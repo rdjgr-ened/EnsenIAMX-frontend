@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 550" width="100%" height="100%">
+  <defs>
+    <linearGradient id="owlGradient" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="45%" stop-color="#0284c7" />
+      <stop offset="80%" stop-color="#1d4ed8" />
+      <stop offset="100%" stop-color="#1e3a8a" />
+    </linearGradient>
+  </defs>
+
+  <!-- Group with gradient stroke and fill -->
+  <g stroke="url(#owlGradient)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    
+    <!-- Top Ears and Head Outer Arch -->
+    <path d="M 125 50 C 130 90, 160 110, 200 110 C 240 110, 270 90, 275 50" stroke-width="12" />
+    <path d="M 125 50 C 100 45, 80 70, 80 120 L 80 250" stroke-width="12" />
+    <path d="M 275 50 C 300 45, 320 70, 320 120 L 320 250" stroke-width="12" />
+
+    <!-- Forehead 4-pointed Star -->
+    <path d="M 200 60 Q 200 75 215 75 Q 200 75 200 90 Q 200 75 185 75 Q 200 75 200 60 Z" fill="url(#owlGradient)" stroke="none" />
+
+    <!-- Eyes -->
+    <!-- Left Eye Outer Circle -->
+    <circle cx="150" cy="160" r="32" stroke-width="12" />
+    <!-- Left Eye Pupil -->
+    <circle cx="150" cy="160" r="14" fill="url(#owlGradient)" stroke="none" />
+
+    <!-- Right Eye Outer Circle -->
+    <circle cx="250" cy="160" r="32" stroke-width="12" />
+    <!-- Right Eye Pupil -->
+    <circle cx="250" cy="160" r="14" fill="url(#owlGradient)" stroke="none" />
+
+    <!-- Beak -->
+    <path d="M 188 195 L 200 220 L 212 195" stroke-width="10" fill="url(#owlGradient)" />
+
+    <!-- Floating Stars -->
+    <!-- Left Star -->
+    <path d="M 45 160 Q 45 175 60 175 Q 45 175 45 190 Q 45 175 30 175 Q 45 175 45 160 Z" fill="url(#owlGradient)" stroke="none" />
+    
+    <!-- Right Star -->
+    <path d="M 355 240 Q 355 255 370 255 Q 355 255 355 270 Q 355 255 340 255 Q 355 255 355 240 Z" fill="url(#owlGradient)" stroke="none" />
+
+    <!-- Body Lines (Stylized L & A) -->
+
+    <!-- Left Wing Teardrop / L Loop -->
+    <path d="M 80 250 C 30 310, 25 400, 70 440 C 120 480, 180 430, 175 330 C 170 270, 100 240, 80 250 Z" stroke-width="12" />
+    <path d="M 80 250 L 80 470 C 80 500, 110 520, 140 500 C 160 485, 155 460, 130 460" stroke-width="12" />
+
+    <!-- Right Side A Shape and Parallel Legs -->
+    <!-- Parallel Diagonal 1 -->
+    <path d="M 240 250 L 160 500" stroke-width="12" />
+    
+    <!-- Parallel Diagonal 2 & Letter A -->
+    <path d="M 270 250 L 370 500" stroke-width="12" />
+    <path d="M 230 380 L 325 380" stroke-width="12" />
+
+  </g>
+</svg>
