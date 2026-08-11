@@ -2,7 +2,7 @@ import time
 from google import genai
 from google.genai import types
 
-API_KEY = "AQ.Ab8RN6L75eIT21XOPcI_nKXWNUytOZ-CfLJIyBGiQ9nzq5ScZQ"  # Asegúrate de colocar tu clave aquí
+API_KEY = ""  # Asegúrate de colocar tu clave aquí
 client = genai.Client(api_key=API_KEY)
 
 print("1. Subiendo el archivo PDF del Plan de Estudios de la SEP...")
