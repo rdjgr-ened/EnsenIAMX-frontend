@@ -285,7 +285,7 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     }
   }, [aiNivel]);
 
-  // AI actions
+  // AI actions pointing to production backend
   const handleSuggestContent = async () => {
     if (!aiSituacion.trim()) {
       setAiError("Por favor escribe la situación-problema primero para que Gemini te sugiera opciones.");
@@ -297,7 +297,7 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     setCreatedContent(null);
     setSelectedAiIndex(null);
     try {
-      const response = await fetch("/api/suggest-content", {
+      const response = await fetch("https://enseniamx-backend.onrender.com/api/suggest-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -336,7 +336,7 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     setAiSuggestions([]);
     setCreatedContent(null);
     try {
-      const response = await fetch("/api/create-content", {
+      const response = await fetch("https://enseniamx-backend.onrender.com/api/create-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -558,7 +558,7 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
           </h2>
         </div>
 
-        {/* Dynamic School Tab Selection - Show only if multiple schools are registered */}
+        {/* Dynamic School Tab Selection */}
         {escuelasList.length > 1 && (
           <div className="bg-slate-50 p-4 border border-slate-200/60 rounded-xl space-y-2.5 mb-5">
             <label className="block text-slate-500 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5">

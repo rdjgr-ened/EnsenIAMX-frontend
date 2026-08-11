@@ -236,101 +236,59 @@ export default function CrearProgramaAnaliticoView({
 
       <!-- Simbología -->
       <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 text-xs space-y-1.5 my-4">
-        <h5 class="font-bold text-slate-700 uppercase tracking-wide text-[9px]">
-          Simbología del Codiseño y Contextualización:
-        </h5>
-        <div style="display: flex; flex-wrap: wrap; gap: 15px; font-weight: 500; color: #475569;">
-          <span style="display: flex; align-items: center; gap: 6px;">
-            <span style="width: 10px; height: 10px; border-radius: 50%; background-color: #10b981; display: inline-block;"></span>
-            <strong>PDA sin asterisco:</strong> Programa sintético normal
-          </span>
-          <span style="display: flex; align-items: center; gap: 6px;">
-            <span style="width: 10px; height: 10px; border-radius: 50%; background-color: #f59e0b; display: inline-block;"></span>
-            <strong>*PDA Modificado:</strong> Contextualizado/Adecuado
-          </span>
-          <span style="display: flex; align-items: center; gap: 6px;">
-            <span style="width: 10px; height: 10px; border-radius: 50%; background-color: #38bdf8; display: inline-block;"></span>
-            <strong>**Nuevo PDA:</strong> Propuesto en codiseño
-          </span>
+        <h5 class="font-bold text-slate-700 uppercase tracking-wide text-[9px]">Anotaciones de Codiseño y Contextualización:</h5>
+        <div class="flex flex-wrap gap-4 text-[10px] text-slate-600">
+          <span class="flex items-center gap-1.5 font-medium"><span class="w-2 h-2 rounded-full bg-slate-400"></span> <strong>PDA Sintético:</strong> Programa sintético sin modificaciones.</span>
+          <span class="flex items-center gap-1.5 font-medium"><span class="w-2 h-2 rounded-full bg-amber-500"></span> <strong>PDA Modificado (*):</strong> Adaptado al contexto local.</span>
+          <span class="flex items-center gap-1.5 font-medium"><span class="w-2 h-2 rounded-full bg-sky-500"></span> <strong>Nuevo PDA (**):</strong> Creado por codiseño docente.</span>
         </div>
       </div>
 
-      <!-- Tabla de 7 Columnas -->
-      <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; margin-top: 20px;">
-        <!-- 1. Problema -->
-        <div style="background-color: #fdf4ff; border: 1px solid #fae8ff; border-radius: 12px; padding: 12px;">
-          <div style="background-color: #a21caf; color: white; font-weight: 800; font-size: 8px; text-transform: uppercase; text-align: center; padding: 6px; border-radius: 6px; margin-bottom: 10px;">
-            Problema identificado
+      <!-- Contexto Local -->
+      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 my-4">
+        <div class="flex flex-col md:flex-row gap-4 justify-between">
+          <div>
+            <span class="text-[9px] font-black uppercase text-amber-700 tracking-wider">Situación-Problema Local Detectada:</span>
+            <p class="text-xs font-bold text-slate-800 mt-0.5">${programa.problema.replace(/"/g, '&quot;')}</p>
           </div>
-          <div style="background-color: white; padding: 10px; border: 1px solid #f3e8ff; border-radius: 8px; font-weight: bold; font-size: 10px; line-height: 1.4; color: #1e1b4b;">
-            ${programa.problema.replace(/"/g, '&quot;')}
-          </div>
-        </div>
-
-        <!-- 2. Saberes -->
-        <div style="background-color: #f0fdfa; border: 1px solid #ccfbf1; border-radius: 12px; padding: 12px;">
-          <div style="background-color: #0d9488; color: white; font-weight: 800; font-size: 8px; text-transform: uppercase; text-align: center; padding: 6px; border-radius: 6px; margin-bottom: 10px;">
-            Saberes y Pensamiento Científico
-          </div>
-          ${renderPdaListHtml(programa.camposFormativos.saberes)}
-        </div>
-
-        <!-- 3. Lenguajes -->
-        <div style="background-color: #fff7ed; border: 1px solid #ffedd5; border-radius: 12px; padding: 12px;">
-          <div style="background-color: #ea580c; color: white; font-weight: 800; font-size: 8px; text-transform: uppercase; text-align: center; padding: 6px; border-radius: 6px; margin-bottom: 10px;">
-            Lenguajes
-          </div>
-          ${renderPdaListHtml(programa.camposFormativos.lenguajes)}
-        </div>
-
-        <!-- 4. Ética -->
-        <div style="background-color: #f0f9ff; border: 1px solid #e0f2fe; border-radius: 12px; padding: 12px;">
-          <div style="background-color: #0284c7; color: white; font-weight: 800; font-size: 8px; text-transform: uppercase; text-align: center; padding: 6px; border-radius: 6px; margin-bottom: 10px;">
-            Ética, Naturaleza y Sociedades
-          </div>
-          ${renderPdaListHtml(programa.camposFormativos.etica)}
-        </div>
-
-        <!-- 5. Humano -->
-        <div style="background-color: #f0fdf4; border: 1px solid #dcfce7; border-radius: 12px; padding: 12px;">
-          <div style="background-color: #16a34a; color: white; font-weight: 800; font-size: 8px; text-transform: uppercase; text-align: center; padding: 6px; border-radius: 6px; margin-bottom: 10px;">
-            De lo Humano y lo Comunitario
-          </div>
-          ${renderPdaListHtml(programa.camposFormativos.humano)}
-        </div>
-
-        <!-- 6. Metodología -->
-        <div style="background-color: #eef2ff; border: 1px solid #e0e7ff; border-radius: 12px; padding: 12px;">
-          <div style="background-color: #4f46e5; color: white; font-weight: 800; font-size: 8px; text-transform: uppercase; text-align: center; padding: 6px; border-radius: 6px; margin-bottom: 10px;">
-            Metodología
-          </div>
-          <div style="background-color: white; padding: 10px; border: 1px solid #e0e7ff; border-radius: 8px; font-size: 10px; line-height: 1.4;">
-            <p style="margin: 0 0 8px 0;"><strong>Metodología:</strong><br><span style="font-weight: bold; color: #4f46e5;">${programa.metodologia.tipo.replace(/"/g, '&quot;')}</span></p>
-            <p style="margin: 0 0 8px 0;"><strong>Eje Articulador:</strong><br><span style="font-weight: bold; color: #4f46e5;">${programa.metodologia.ejeArticulador.replace(/"/g, '&quot;')}</span></p>
-            <p style="margin: 0; font-style: italic; color: #475569;"><strong>Orientaciones:</strong><br>${programa.metodologia.orientaciones.replace(/"/g, '&quot;')}</p>
+          <div>
+            <span class="text-[9px] font-black uppercase text-slate-500 tracking-wider">Docente Responsable:</span>
+            <p class="text-xs font-bold text-slate-700 mt-0.5">${docenteName.replace(/"/g, '&quot;')}</p>
           </div>
         </div>
+      </div>
 
-        <!-- 7. Nombre Proyecto -->
-        <div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; padding: 12px;">
-          <div style="background-color: #d97706; color: white; font-weight: 800; font-size: 8px; text-transform: uppercase; text-align: center; padding: 6px; border-radius: 6px; margin-bottom: 10px;">
-            Proyecto Sugerido
-          </div>
-          <div style="background-color: white; padding: 14px 10px; border: 1px solid #fef3c7; border-radius: 8px; font-weight: 900; font-size: 11px; text-align: center; line-height: 1.4; color: #92400e;">
-            "${programa.nombreProyecto.replace(/"/g, '&quot;')}"
-          </div>
+      <!-- Matriz de Campos Formativos -->
+      <div class="border border-slate-200 rounded-2xl overflow-hidden my-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-200 bg-slate-100/80 border-b border-slate-200">
+          <div class="p-3 text-center"><h4 class="font-black text-xs uppercase tracking-wider text-emerald-800">1. Saberes y Pensamiento C.</h4></div>
+          <div class="p-3 text-center"><h4 class="font-black text-xs uppercase tracking-wider text-indigo-800">2. Lenguajes</h4></div>
+          <div class="p-3 text-center"><h4 class="font-black text-xs uppercase tracking-wider text-amber-800">3. Ética, Naturaleza y Soc.</h4></div>
+          <div class="p-3 text-center"><h4 class="font-black text-xs uppercase tracking-wider text-rose-800">4. De lo Humano y lo Com.</h4></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-200 p-2 bg-white">
+          <div class="p-2 space-y-2">${renderPdaListHtml(programa.camposFormativos.saberes)}</div>
+          <div class="p-2 space-y-2">${renderPdaListHtml(programa.camposFormativos.lenguajes)}</div>
+          <div class="p-2 space-y-2">${renderPdaListHtml(programa.camposFormativos.etica)}</div>
+          <div class="p-2 space-y-2">${renderPdaListHtml(programa.camposFormativos.humano)}</div>
+        </div>
+      </div>
+
+      <!-- Orientaciones Metodológicas -->
+      <div class="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 my-4 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-black text-amber-900 uppercase tracking-wider">Orientaciones Didácticas Generales y Metodología Propuesta</span>
+          <span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">${programa.metodologia.tipo}</span>
+        </div>
+        <p class="text-xs text-slate-700 leading-relaxed">${programa.metodologia.orientaciones}</p>
+        <div class="pt-2 flex flex-wrap gap-4 text-[10px] text-slate-600 border-t border-amber-200/50">
+          <span><strong>Eje Articulador Principal:</strong> ${programa.metodologia.ejeArticulador}</span>
+          ${programa.nombreProyecto ? `<span><strong>Proyecto Sugerido:</strong> ${programa.nombreProyecto}</span>` : ""}
         </div>
       </div>
     </div>
   </div>
-
-  <script>
-    window.onload = function() {
-      setTimeout(function() {
-        window.print();
-      }, 500);
-    }
-  </script>
 </body>
 </html>`;
 
@@ -342,409 +300,374 @@ export default function CrearProgramaAnaliticoView({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const renderPdaList = (pdaList: PDALine[]) => {
+    return pdaList.map((item, idx) => {
+      let cardStyle = "bg-white border-slate-200";
+      let badgeStyle = "bg-slate-100 text-slate-600 border-slate-200";
+      let badgeText = "PDA Sintético";
+
+      if (item.tipo === "modificado") {
+        cardStyle = "bg-amber-50/50 border-amber-200";
+        badgeStyle = "bg-amber-100 text-amber-800 border-amber-300";
+        badgeText = "PDA Modificado (*)";
+      } else if (item.tipo === "nuevo") {
+        cardStyle = "bg-sky-50/50 border-sky-200";
+        badgeStyle = "bg-sky-100 text-sky-800 border-sky-300";
+        badgeText = "Nuevo PDA (Codiseño **)";
+      }
+
+      return (
+        <div key={idx} className={`p-3 rounded-xl border ${cardStyle} space-y-2 shadow-xs transition hover:shadow-sm`}>
+          <div className="flex items-center justify-between gap-2">
+            <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${badgeStyle}`}>
+              {badgeText}
+            </span>
+            {item.disciplina && nivel !== "Preescolar" && (
+              <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 uppercase">
+                {item.disciplina}
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-1 text-xs">
+            <div>
+              <span className="text-[9px] font-black text-slate-400 uppercase block">Contenido Sintético / Codiseño:</span>
+              <p className="font-semibold text-slate-800 leading-snug">{item.contenido}</p>
+            </div>
+            <div>
+              <span className="text-[9px] font-black text-slate-400 uppercase block">Proceso de Desarrollo de Aprendizaje (PDA):</span>
+              <p className="font-extrabold text-slate-900 leading-snug">{item.pda}</p>
+            </div>
+          </div>
+
+          {item.nota && (
+            <p className="text-[10px] text-slate-600 italic bg-white/80 p-2 rounded-lg border border-slate-100 leading-tight">
+              {item.nota}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              onUseContent({
+                nivel,
+                grado,
+                campoFormativo: "Lenguajes", // Default mapped field
+                disciplina: item.disciplina || "Español",
+                contenido: item.contenido,
+                pda: item.pda,
+                metodologia: programa?.metodologia.tipo || "Aprendizaje Basado en Proyectos Comunitarios",
+                ejesArticuladores: [programa?.metodologia.ejeArticulador || "Inclusión"],
+                situacionProblema: programa?.problema || situacionProblema,
+                nombreProyecto: programa?.nombreProyecto || "Proyecto Integrador NEM",
+              });
+            }}
+            className="w-full mt-2 py-1.5 bg-slate-100 hover:bg-amber-500 hover:text-white text-slate-700 font-extrabold text-[9px] uppercase tracking-wider rounded-lg transition flex items-center justify-center gap-1 group"
+          >
+            <span>Diseñar Proyecto con este PDA</span>
+            <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        </div>
+      );
+    });
   };
 
   return (
-    <div className="space-y-6">
-      {/* Banner de Título */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm print:hidden flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h3 className="font-extrabold text-slate-800 text-base mb-1 tracking-tight flex items-center gap-2">
-            <Layers className="w-5 h-5 text-mex-gold" />
-            <span>Crear Programa Analítico con Codiseño</span>
-          </h3>
-          <p className="text-slate-500 text-xs leading-relaxed">
-            Estructura el Programa Analítico integrado de tu fase. Selecciona nivel, grado y describe tu situación-problema. Gemini redactará de forma integrada los contenidos, codiseños (PDAs modificados y nuevos), metodología y sugerirá el proyecto didáctico asociable.
-          </p>
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-8 animate-fade-in space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 print:hidden">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="p-2 hover:bg-slate-100 text-slate-500 hover:text-slate-900 rounded-lg transition"
+            title="Volver"
+          >
+            <ArrowRight className="w-5 h-5 rotate-180" />
+          </button>
+          <div>
+            <h2 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
+              <Layers className="w-4 h-4 text-amber-600" />
+              Generador de Programa Analítico Integrado
+            </h2>
+            <p className="text-slate-500 text-xs mt-0.5">
+              Genera la contextualización y codiseño de contenidos para todos los Campos Formativos
+            </p>
+          </div>
         </div>
-        <button
-          onClick={onBack}
-          className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition self-start sm:self-center shrink-0"
-        >
-          ← Volver al Panel
-        </button>
+        <span className="bg-amber-500/10 text-amber-700 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest inline-block self-start sm:self-center">
+          Plan de Estudio NEM
+        </span>
       </div>
 
-      {/* Formulario de Entrada */}
-      {!programa && !loading && (
-        <form onSubmit={handleGenerate} className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm space-y-6 max-w-3xl mx-auto print:hidden">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Nivel */}
-            <div>
-              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                Nivel Educativo
-              </label>
-              <select
-                value={nivel}
-                onChange={(e) => setNivel(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-mex-maroon/20 focus:border-mex-maroon transition"
-              >
-                <option value="Preescolar">Preescolar (Fase 2)</option>
-                <option value="Primaria">Primaria (Fases 3, 4, 5)</option>
-                <option value="Secundaria">Secundaria (Fase 6)</option>
-              </select>
-            </div>
+      {/* Form Setup */}
+      <form onSubmit={handleGenerate} className="space-y-4 print:hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">Nivel Educativo</label>
+            <select
+              value={nivel}
+              onChange={(e) => setNivel(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:bg-white rounded-xl text-slate-800 text-xs font-semibold transition outline-none"
+            >
+              <option value="Preescolar">Preescolar (Fases 2)</option>
+              <option value="Primaria">Primaria (Fases 3, 4 y 5)</option>
+              <option value="Secundaria">Secundaria (Fase 6)</option>
+            </select>
+          </div>
 
-            {/* Grado */}
-            <div>
-              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
-                Grado Escolar
-              </label>
+          <div>
+            <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">Grado / Fase Escolar</label>
+            <select
+              value={grado}
+              onChange={(e) => setGrado(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:bg-white rounded-xl text-slate-800 text-xs font-semibold transition outline-none"
+            >
               {nivel === "Preescolar" && (
-                <select
-                  value={grado}
-                  onChange={(e) => setGrado(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-mex-maroon/20 focus:border-mex-maroon transition"
-                >
-                  <option value="1º de Preescolar">1º de Preescolar</option>
-                  <option value="2º de Preescolar">2º de Preescolar</option>
-                  <option value="3º de Preescolar">3º de Preescolar</option>
-                </select>
+                <>
+                  <option value="1º de Preescolar">1º de Preescolar (Fase 2)</option>
+                  <option value="2º de Preescolar">2º de Preescolar (Fase 2)</option>
+                  <option value="3º de Preescolar">3º de Preescolar (Fase 2)</option>
+                </>
               )}
               {nivel === "Primaria" && (
-                <select
-                  value={grado}
-                  onChange={(e) => setGrado(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-mex-maroon/20 focus:border-mex-maroon transition"
-                >
+                <>
                   <option value="1º de Primaria">1º de Primaria (Fase 3)</option>
                   <option value="2º de Primaria">2º de Primaria (Fase 3)</option>
                   <option value="3º de Primaria">3º de Primaria (Fase 4)</option>
                   <option value="4º de Primaria">4º de Primaria (Fase 4)</option>
                   <option value="5º de Primaria">5º de Primaria (Fase 5)</option>
                   <option value="6º de Primaria">6º de Primaria (Fase 5)</option>
-                </select>
+                </>
               )}
               {nivel === "Secundaria" && (
-                <select
-                  value={grado}
-                  onChange={(e) => setGrado(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-mex-maroon/20 focus:border-mex-maroon transition"
-                >
-                  <option value="1º de Secundaria">1º de Secundaria</option>
-                  <option value="2º de Secundaria">2º de Secundaria</option>
-                  <option value="3º de Secundaria">3º de Secundaria</option>
-                </select>
+                <>
+                  <option value="1º de Secundaria">1º de Secundaria (Fase 6)</option>
+                  <option value="2º de Secundaria">2º de Secundaria (Fase 6)</option>
+                  <option value="3º de Secundaria">3º de Secundaria (Fase 6)</option>
+                </>
               )}
-            </div>
+            </select>
           </div>
+        </div>
 
-          {/* Situación Problema */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider">
-                Situación-Problema Identificado
-              </label>
-              <span className="text-[10px] font-bold text-slate-400">Puntual y contextual</span>
-            </div>
-            <textarea
-              required
-              rows={4}
-              value={situacionProblema}
-              onChange={(e) => setSituacionProblema(e.target.value)}
-              placeholder="Ej: Nutrición deficiente de niñas y niños que asisten a la escuela, debido al consumo excesivo de comida chatarra y falta de desayunos saludables..."
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-mex-maroon/20 focus:border-mex-maroon transition resize-none"
-            />
-          </div>
+        <div>
+          <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">
+            Situación-Problema Local o Diagnóstico Comunitario
+          </label>
+          <textarea
+            rows={3}
+            value={situacionProblema}
+            onChange={(e) => setSituacionProblema(e.target.value)}
+            placeholder="Describe la problemática comunitaria o particular de tu escuela (ej. Mal manejo de residuos sólidos en la comunidad, bajo nivel de comprensión lectora, problemas de convivencia escolar)..."
+            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:bg-white rounded-xl text-slate-800 text-xs font-medium leading-relaxed transition outline-none"
+            required
+          />
+        </div>
 
-          {/* Botón de envío */}
-          <div className="pt-2 flex justify-end">
-            <button
-              type="submit"
-              disabled={!situacionProblema.trim()}
-              className="px-6 py-3 bg-mex-maroon hover:bg-mex-maroon/90 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-sm hover:shadow transition flex items-center gap-2"
-            >
-              <Sparkles className="w-4 h-4 text-mex-gold" />
-              <span>Generar Programa Analítico</span>
-            </button>
-          </div>
-        </form>
-      )}
+        <div className="flex justify-end pt-2">
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-[10px] uppercase tracking-wider rounded-xl transition shadow-sm flex items-center gap-2 disabled:opacity-50"
+          >
+            {loading ? (
+              <>
+                <Sparkles className="w-4 h-4 animate-spin" />
+                <span>Contextualizando Programa...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                <span>Generar Programa Analítico con IA</span>
+              </>
+            )}
+          </button>
+        </div>
+      </form>
 
-      {/* Estado de Carga */}
+      {/* Loading Progress State */}
       {loading && (
-        <div className="bg-white border border-slate-100 rounded-2xl p-12 shadow-sm text-center max-w-2xl mx-auto space-y-6 print:hidden">
-          <div className="relative w-16 h-16 mx-auto">
-            <div className="absolute inset-0 rounded-full border-4 border-slate-100"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-mex-maroon border-t-transparent animate-spin"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-mex-gold animate-pulse" />
-            </div>
+        <div className="p-8 bg-amber-50/50 border border-amber-200/80 rounded-2xl text-center space-y-4 my-6">
+          <div className="relative w-12 h-12 mx-auto flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full border-4 border-amber-200 border-t-amber-600 animate-spin"></div>
+            <Sparkles className="w-5 h-5 text-amber-600" />
           </div>
-          <div className="space-y-2">
-            <h4 className="font-extrabold text-slate-800 text-sm tracking-tight">Diseñando Programa Analítico</h4>
-            <p className="text-mex-maroon text-xs font-bold animate-pulse tracking-wide">
+          <div className="space-y-1">
+            <h4 className="font-extrabold text-slate-800 text-sm">Diseñando Programa Analítico Multidisciplinario</h4>
+            <p className="text-amber-800 text-xs font-bold animate-pulse">
               {loadingTexts[loadingStep]}
             </p>
           </div>
-          <p className="text-[10px] text-slate-400 max-w-sm mx-auto leading-relaxed">
-            Gemini está formulando una propuesta integral que vincula la problemática identificada con los contenidos y procesos de codiseño curricular oficiales de la SEP.
-          </p>
         </div>
       )}
 
-      {/* Resultado del Programa Analítico */}
+      {/* Display Program Results */}
       {programa && (
-        <div className="space-y-6 animate-fade-in">
-          {/* Instrucciones de Impresión y Planificación */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm print:hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-1 max-w-xl">
-              <h4 className="font-extrabold text-slate-800 text-sm tracking-tight flex items-center gap-1.5">
-                <Check className="w-4 h-4 text-emerald-500 stroke-[3px]" />
-                <span>¡Programa Analítico Generado Exitosamente!</span>
-              </h4>
-              <p className="text-slate-500 text-xs leading-relaxed">
-                Revisa el diagrama interactivo de tu programa de contextualización y codiseño. Puedes imprimirlo o descargar el archivo HTML de alta fidelidad para abrirlo en tu navegador y guardarlo directamente como PDF.
+        <div className="space-y-6 pt-4 animate-fade-in">
+          {/* Action Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-slate-900 text-white rounded-2xl print:hidden">
+            <div>
+              <h3 className="font-extrabold text-xs text-amber-400 uppercase tracking-wider">
+                Programa Analítico Listo
+              </h3>
+              <p className="text-[11px] text-slate-300">
+                Contextualizado para {programa.fase} ({programa.grado})
               </p>
             </div>
-            <div className="flex flex-wrap gap-3 shrink-0">
+
+            <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={handleDownloadHtml}
-                className="px-4 py-2.5 bg-slate-900 hover:bg-black text-white font-extrabold text-[10px] uppercase tracking-wider rounded-xl transition flex items-center gap-2 shadow-sm"
-                title="Descargar archivo HTML de alta fidelidad listo para imprimirse en formato horizontal"
+                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-extrabold text-[10px] uppercase tracking-wider rounded-xl transition flex items-center gap-1.5 border border-slate-700"
+                title="Descargar archivo HTML interactivo e imprimible"
               >
-                <Download className="w-4 h-4 text-mex-gold" />
-                <span>Descargar HTML Imprimible</span>
+                <Download className="w-3.5 h-3.5 text-amber-400" />
+                <span>Descargar HTML/PDF</span>
               </button>
+
               <button
+                type="button"
                 onClick={handlePrint}
-                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-[10px] uppercase tracking-wider rounded-xl transition flex items-center gap-2"
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-[10px] uppercase tracking-wider rounded-xl transition flex items-center gap-1.5 shadow-sm"
               >
-                <Printer className="w-4 h-4 text-slate-500" />
-                <span>Imprimir PDF</span>
-              </button>
-              <button
-                onClick={() => setPrograma(null)}
-                className="px-4 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 font-extrabold text-[10px] uppercase tracking-wider rounded-xl transition"
-              >
-                Nuevo Programa
+                <Printer className="w-3.5 h-3.5" />
+                <span>Imprimir Programa</span>
               </button>
             </div>
           </div>
 
-          {/* Aviso de ayuda si se bloquea la impresión (Común en frames sandboxed de AI Studio) */}
-          <div className="bg-amber-50/80 border border-amber-200/60 p-4.5 rounded-xl text-amber-950 text-xs font-medium space-y-2 print:hidden shadow-sm">
-            <p className="font-bold uppercase tracking-wide text-amber-900 flex items-center gap-2">
-              <span>💡 Recomendación para una Impresión Exitosa</span>
-            </p>
-            <p className="leading-relaxed text-slate-700">
-              Debido a las restricciones de seguridad del visor integrado (iframe) en AI Studio, la ventana de impresión de "Imprimir PDF" puede llegar a bloquearse temporalmente. Te recomendamos usar estas dos alternativas:
-            </p>
-            <ul className="list-disc pl-5 space-y-1 text-slate-700">
-              <li>Haz clic en <strong className="text-slate-900">"Descargar HTML Imprimible"</strong> para guardar un archivo interactivo en tu equipo que se abre directamente con el formato horizontal impecable y abre el diálogo de impresión de tu navegador de manera automática.</li>
-              <li>Haz clic en el icono de <strong className="text-slate-900">"Abrir en una pestaña nueva"</strong> en la esquina superior derecha del panel de visualización, y usa el botón de imprimir con total libertad.</li>
-            </ul>
-          </div>
+          {printBlocked && (
+            <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl text-xs font-semibold flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Si el cuadro de impresión de tu navegador no se abre, utiliza el botón "Descargar HTML/PDF" arriba.</span>
+              </div>
+            </div>
+          )}
 
-          {/* DOCUMENTO IMPRIMIBLE Y VISUAL (DIAGRAMA) */}
-          <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm p-4 sm:p-8 space-y-6 print:border-0 print:shadow-none print:p-0">
-            {/* Header / Datos de identificación */}
-            <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-2xl p-4 sm:p-6 text-white text-center sm:text-left flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:bg-orange-500 print:text-black print:rounded-none">
+          {/* DOCUMENT BODY PRINTABLE AREA */}
+          <div className="border border-slate-200 rounded-2xl p-6 space-y-6 bg-white shadow-xs">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-2xl p-6 text-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <span className="text-[10px] font-black tracking-widest uppercase text-white/95 print:text-slate-800">
+                <span className="text-[10px] font-black tracking-widest uppercase text-white/90">
                   {escuelaName} • C.C.T. {cct}
                 </span>
                 <h2 className="text-xl sm:text-2xl font-black tracking-tight mt-1">
                   Programa Analítico Integrado
                 </h2>
               </div>
-              <div className="bg-white/10 px-4 py-2 rounded-xl border border-white/25 text-xs font-black uppercase tracking-wider self-center print:border-slate-400">
+              <div className="bg-white/10 px-4 py-2 rounded-xl border border-white/25 text-xs font-black uppercase tracking-wider self-center">
                 {programa.fase} • {programa.grado}
               </div>
             </div>
 
-            {/* Simbología / Guía de Codiseño */}
-            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 text-xs space-y-2 print:hidden">
-              <h5 className="font-extrabold text-slate-700 uppercase tracking-wide text-[10px]">
-                Simbología del Codiseño y Contextualización:
-              </h5>
-              <div className="flex flex-wrap gap-x-6 gap-y-2 text-slate-600 font-medium">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  <strong>PDA sin asterisco:</strong> Sin contextualización requerida (Programa sintético)
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                  <strong>*PDA Modificado:</strong> Con adecuación del colectivo docente
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-sky-400" />
-                  <strong>**Nuevo PDA:</strong> Propuesto basado en el contexto y justificación sintética
-                </span>
+            {/* Simbología */}
+            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 text-xs space-y-1.5">
+              <h5 className="font-bold text-slate-700 uppercase tracking-wide text-[9px]">Anotaciones de Codiseño y Contextualización:</h5>
+              <div className="flex flex-wrap gap-4 text-[10px] text-slate-600">
+                <span className="flex items-center gap-1.5 font-medium"><span class="w-2 h-2 rounded-full bg-slate-400"></span> <strong>PDA Sintético:</strong> Programa sintético sin modificaciones.</span>
+                <span className="flex items-center gap-1.5 font-medium"><span class="w-2 h-2 rounded-full bg-amber-500"></span> <strong>PDA Modificado (*):</strong> Adaptado al contexto local.</span>
+                <span className="flex items-center gap-1.5 font-medium"><span class="w-2 h-2 rounded-full bg-sky-500"></span> <strong>Nuevo PDA (**):</strong> Creado por codiseño docente.</span>
               </div>
             </div>
 
-            {/* Diagrama en Tabla/Grid - Estilo del folleto de Tobón */}
-            <div className="overflow-x-auto">
-              <div className="min-w-[1200px] grid grid-cols-7 gap-4 text-[11px] leading-relaxed">
-                {/* 1. Problema Identificado */}
-                <div className="bg-fuchsia-50/40 border border-fuchsia-100 rounded-2xl p-4 space-y-3">
-                  <div className="bg-fuchsia-700 text-white font-black text-[10px] uppercase tracking-wider text-center py-2 px-3 rounded-lg shadow-sm print:bg-fuchsia-800">
-                    Problema identificado y jerarquizado
-                  </div>
-                  <div className="bg-white p-3.5 rounded-xl border border-fuchsia-200 font-bold text-slate-800 text-xs shadow-sm">
-                    {programa.problema}
-                  </div>
+            {/* Contexto Local */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+              <div className="flex flex-col md:flex-row gap-4 justify-between">
+                <div>
+                  <span className="text-[9px] font-black uppercase text-amber-700 tracking-wider">Situación-Problema Local Detectada:</span>
+                  <p className="text-xs font-bold text-slate-800 mt-0.5">{programa.problema}</p>
                 </div>
-
-                {/* 2. Saberes y pensamiento científico */}
-                <div className="bg-teal-50/40 border border-teal-100 rounded-2xl p-4 space-y-3">
-                  <div className="bg-teal-600 text-white font-black text-[10px] uppercase tracking-wider text-center py-2 px-3 rounded-lg shadow-sm print:bg-teal-800">
-                    Saberes y pensamiento científico
-                  </div>
-                  <div className="space-y-3">
-                    {programa.camposFormativos.saberes.map((item, idx) => (
-                      <div key={idx}>
-                        <PdaCard item={item} nivel={nivel} />
-                      </div>
-                    ))}
-                  </div>
+                <div>
+                  <span className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Docente Responsable:</span>
+                  <p className="text-xs font-bold text-slate-700 mt-0.5">{docenteName}</p>
                 </div>
-
-                {/* 3. Lenguajes */}
-                <div className="bg-orange-50/40 border border-orange-100 rounded-2xl p-4 space-y-3">
-                  <div className="bg-orange-600 text-white font-black text-[10px] uppercase tracking-wider text-center py-2 px-3 rounded-lg shadow-sm print:bg-orange-800">
-                    Lenguajes
-                  </div>
-                  <div className="space-y-3">
-                    {programa.camposFormativos.lenguajes.map((item, idx) => (
-                      <div key={idx}>
-                        <PdaCard item={item} nivel={nivel} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 4. Ética, naturaleza y sociedades */}
-                <div className="bg-sky-50/40 border border-sky-100 rounded-2xl p-4 space-y-3">
-                  <div className="bg-sky-600 text-white font-black text-[10px] uppercase tracking-wider text-center py-2 px-3 rounded-lg shadow-sm print:bg-sky-800">
-                    Ética, naturaleza y sociedades
-                  </div>
-                  <div className="space-y-3">
-                    {programa.camposFormativos.etica.map((item, idx) => (
-                      <div key={idx}>
-                        <PdaCard item={item} nivel={nivel} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 5. De lo humano y lo comunitario */}
-                <div className="bg-emerald-50/40 border border-emerald-100 rounded-2xl p-4 space-y-3">
-                  <div className="bg-emerald-600 text-white font-black text-[10px] uppercase tracking-wider text-center py-2 px-3 rounded-lg shadow-sm print:bg-emerald-800">
-                    De lo humano y lo comunitario
-                  </div>
-                  <div className="space-y-3">
-                    {programa.camposFormativos.humano.map((item, idx) => (
-                      <div key={idx}>
-                        <PdaCard item={item} nivel={nivel} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 6. Metodología */}
-                <div className="bg-indigo-50/40 border border-indigo-100 rounded-2xl p-4 space-y-3">
-                  <div className="bg-indigo-600 text-white font-black text-[10px] uppercase tracking-wider text-center py-2 px-3 rounded-lg shadow-sm print:bg-indigo-800">
-                    Metodología
-                  </div>
-                  <div className="bg-white p-3.5 rounded-xl border border-indigo-200 space-y-3 shadow-sm">
-                    <div>
-                      <strong className="text-slate-500 uppercase text-[9px] block">Tipo</strong>
-                      <span className="font-extrabold text-indigo-900">{programa.metodologia.tipo}</span>
-                    </div>
-                    <div>
-                      <strong className="text-slate-500 uppercase text-[9px] block">Eje Articulador</strong>
-                      <span className="font-extrabold text-indigo-900">{programa.metodologia.ejeArticulador}</span>
-                    </div>
-                    <div>
-                      <strong className="text-slate-500 uppercase text-[9px] block">Orientaciones Didácticas</strong>
-                      <p className="text-slate-700 leading-normal font-semibold text-[10px] mt-1 italic">
-                        {programa.metodologia.orientaciones}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 7. Nombre del Proyecto */}
-                <div className="bg-amber-50/40 border border-amber-100 rounded-2xl p-4 space-y-3">
-                  <div className="bg-amber-600 text-white font-black text-[10px] uppercase tracking-wider text-center py-2 px-3 rounded-lg shadow-sm print:bg-amber-800">
-                    Nombre del proyecto sugerido
-                  </div>
-                  <div className="bg-white p-3.5 rounded-xl border border-amber-200 text-center font-black text-amber-900 text-xs shadow-sm py-5 leading-normal">
-                    "{programa.nombreProyecto}"
-                  </div>
-                </div>
-
               </div>
             </div>
 
-            {/* Espacio final */}
-            <div className="pt-2" />
+            {/* Matriz de Campos Formativos */}
+            <div className="space-y-3">
+              <h4 className="font-extrabold text-xs text-slate-800 uppercase tracking-wider">
+                Distribución por Campos Formativos:
+              </h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* 1. Saberes y Pensamiento Científico */}
+                <div className="space-y-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-200/80">
+                  <div className="p-2 bg-emerald-100/60 border border-emerald-200/80 rounded-xl text-center">
+                    <h5 className="font-black text-xs uppercase tracking-wider text-emerald-900">
+                      1. Saberes y Pensamiento C.
+                    </h5>
+                  </div>
+                  <div className="space-y-3">
+                    {renderPdaList(programa.camposFormativos.saberes)}
+                  </div>
+                </div>
+
+                {/* 2. Lenguajes */}
+                <div className="space-y-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-200/80">
+                  <div className="p-2 bg-indigo-100/60 border border-indigo-200/80 rounded-xl text-center">
+                    <h5 className="font-black text-xs uppercase tracking-wider text-indigo-900">
+                      2. Lenguajes
+                    </h5>
+                  </div>
+                  <div className="space-y-3">
+                    {renderPdaList(programa.camposFormativos.lenguajes)}
+                  </div>
+                </div>
+
+                {/* 3. Ética, Naturaleza y Sociedades */}
+                <div className="space-y-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-200/80">
+                  <div className="p-2 bg-amber-100/60 border border-amber-200/80 rounded-xl text-center">
+                    <h5 className="font-black text-xs uppercase tracking-wider text-amber-900">
+                      3. Ética, Naturaleza y Soc.
+                    </h5>
+                  </div>
+                  <div className="space-y-3">
+                    {renderPdaList(programa.camposFormativos.etica)}
+                  </div>
+                </div>
+
+                {/* 4. De lo Humano y lo Comunitario */}
+                <div className="space-y-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-200/80">
+                  <div className="p-2 bg-rose-100/60 border border-rose-200/80 rounded-xl text-center">
+                    <h5 className="font-black text-xs uppercase tracking-wider text-rose-900">
+                      4. De lo Humano y lo Com.
+                    </h5>
+                  </div>
+                  <div className="space-y-3">
+                    {renderPdaList(programa.camposFormativos.humano)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Orientaciones Metodológicas */}
+            <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-5 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <span className="text-xs font-black text-amber-950 uppercase tracking-wider">
+                  Orientaciones Didácticas Generales y Metodología Sugerida
+                </span>
+                <span className="text-[10px] font-bold bg-amber-100 text-amber-900 px-2.5 py-1 rounded-lg border border-amber-200 self-start sm:self-auto">
+                  {programa.metodologia.tipo}
+                </span>
+              </div>
+              <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                {programa.metodologia.orientaciones}
+              </p>
+              <div className="pt-2 flex flex-wrap gap-4 text-[11px] text-slate-600 border-t border-amber-200/50">
+                <span><strong>Eje Articulador Principal:</strong> {programa.metodologia.ejeArticulador}</span>
+                {programa.nombreProyecto && (
+                  <span><strong>Proyecto Sugerido:</strong> {programa.nombreProyecto}</span>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PdaCard({ item, nivel }: { item: PDALine; nivel?: string }) {
-  const [showNote, setShowNote] = useState<boolean>(false);
-
-  let pdaClass = "bg-white p-3 rounded-xl border shadow-sm space-y-2 relative transition hover:border-slate-300";
-  let badgeClass = "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full inline-block";
-  let badgeText = "";
-
-  if (item.tipo === "modificado") {
-    pdaClass += " border-amber-200 bg-amber-50/10";
-    badgeClass += " bg-amber-100 text-amber-800 border border-amber-200/40";
-    badgeText = "PDA Modificado (*)";
-  } else if (item.tipo === "nuevo") {
-    pdaClass += " border-sky-200 bg-sky-50/10";
-    badgeClass += " bg-sky-100 text-sky-800 border border-sky-200/40";
-    badgeText = "Nuevo PDA (Codiseño **)";
-  } else {
-    pdaClass += " border-slate-100";
-    badgeClass += " bg-slate-100 text-slate-600";
-    badgeText = "PDA Sintético";
-  }
-
-  return (
-    <div className={pdaClass}>
-      <div className="flex items-center justify-between gap-1">
-        <span className={badgeClass}>{badgeText}</span>
-        {item.disciplina && nivel !== "Preescolar" && (
-          <span className="text-[9px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 uppercase">
-            {item.disciplina}
-          </span>
-        )}
-      </div>
-
-      <div className="space-y-1.5">
-        <p className="text-[10px] text-slate-400 font-semibold leading-normal">
-          <strong className="text-slate-500 uppercase text-[9px] block">Contenido:</strong>
-          {item.contenido}
-        </p>
-        <p className="text-slate-800 font-bold leading-normal text-[10px]">
-          <strong className="text-slate-500 uppercase text-[9px] block">PDA:</strong>
-          {item.pda}
-        </p>
-      </div>
-
-      {item.nota && (
-        <div className="pt-2 border-t border-slate-100">
-          <button
-            onClick={() => setShowNote(!showNote)}
-            className="text-[9px] text-mex-maroon hover:text-mex-maroon/80 font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer print:hidden"
-          >
-            <AlertCircle className="w-3 h-3 text-mex-gold" />
-            <span>{showNote ? "Ocultar justificación" : "Ver justificación/contexto"}</span>
-          </button>
-          
-          {/* Always visible on print, toggleable on web */}
-          <p className={`text-[9.5px] leading-relaxed text-slate-500 font-semibold italic mt-1.5 bg-slate-50 p-2 rounded-lg border border-slate-150 ${showNote ? "block animate-fade-in" : "hidden md:hidden print:block"}`}>
-            {item.nota}
-          </p>
         </div>
       )}
     </div>

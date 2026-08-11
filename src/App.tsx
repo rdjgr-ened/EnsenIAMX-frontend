@@ -11,75 +11,88 @@ import FormatoEvaluacionView from "./components/FormatoEvaluacionView";
 import BitacoraIncidenciaView from "./components/BitacoraIncidenciaView";
 import OrganizadorEscolarView from "./components/OrganizadorEscolarView";
 import { CompletePlan } from "./types";
-import { Sparkles, FileText, CheckCircle, LogOut, FolderKanban } from "lucide-react";
-const logoImg = "https://i.imgur.com/tv95RC0.png";
+import { FileText, LogOut } from "lucide-react";
+
+const LOGO_IMG = "https://i.imgur.com/tv95RC0.png";
+const STORAGE_PROFILE_KEY = "nem_secundaria_profile";
+const STORAGE_PLANS_KEY = "nem_secundaria_plans";
+
+interface UserProfile {
+  docenteName: string;
+  escuelaName: string;
+  cct: string;
+  email: string;
+  escuelas?: Array<{ escuelaName: string; cct: string }>;
+}
+
+type ActiveTab = 
+  | "hub" 
+  | "diseno" 
+  | "sugerir" 
+  | "crear" 
+  | "programa" 
+  | "evaluacion" 
+  | "bitacora" 
+  | "organizador";
+
+type OrganizadorTab = "planeaciones" | "grupos" | "bitacora" | "seguimiento" | "evaluacion";
 
 export default function App() {
-  const [plans, setPlans] = useState<CompletePlan[]>([]);
+  // Inicialización perezosa de planes desde localStorage
+  const [plans, setPlans] = useState<CompletePlan[]>(() => {
+    const savedPlans = localStorage.getItem(STORAGE_PLANS_KEY);
+    if (savedPlans) {
+      try {
+        return JSON.parse(savedPlans);
+      } catch (e) {
+        console.error("Error parsing saved plans from localStorage:", e);
+      }
+    }
+    return [];
+  });
+
   const [currentPlan, setCurrentPlan] = useState<CompletePlan | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [userProfile, setUserProfile] = useState<{
-    docenteName: string;
-    escuelaName: string;
-    cct: string;
-    email: string;
-    escuelas?: Array<{ escuelaName: string; cct: string }>;
-  } | null>(() => {
-    const saved = localStorage.getItem("nem_secundaria_profile");
+
+  // Inicialización perezosa del perfil de usuario
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
+    const saved = localStorage.getItem(STORAGE_PROFILE_KEY);
     if (saved) {
       try {
         return JSON.parse(saved);
       } catch (e) {
+        console.error("Error parsing saved profile from localStorage:", e);
         return null;
       }
     }
     return null;
   });
 
-  const [activeTab, setActiveTab] = useState<"hub" | "diseno" | "sugerir" | "crear" | "programa" | "evaluacion" | "bitacora" | "organizador">("hub");
-  const [organizadorTab, setOrganizadorTab] = useState<"planeaciones" | "grupos" | "bitacora" | "seguimiento" | "evaluacion">("planeaciones");
-  const [prefilledData, setPrefilledData] = useState<any | null>(null);
+  const [activeTab, setActiveTab] = useState<ActiveTab>("hub");
+  const [organizadorTab, setOrganizadorTab] = useState<OrganizadorTab>("planeaciones");
+  const [prefilledData, setPrefilledData] = useState<Record<string, unknown> | null>(null);
 
-  const handleLogin = (profile: {
-    docenteName: string;
-    escuelaName: string;
-    cct: string;
-    email: string;
-    escuelas?: Array<{ escuelaName: string; cct: string }>;
-  }) => {
-    localStorage.setItem("nem_secundaria_profile", JSON.stringify(profile));
+  const handleLogin = (profile: UserProfile) => {
+    localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(profile));
     setUserProfile(profile);
     setActiveTab("hub");
     setPrefilledData(null);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("nem_secundaria_profile");
+    localStorage.removeItem(STORAGE_PROFILE_KEY);
     setUserProfile(null);
     setActiveTab("hub");
     setPrefilledData(null);
     setCurrentPlan(null);
   };
 
-  // Load plans from localStorage on mount
-  useEffect(() => {
-    const savedPlans = localStorage.getItem("nem_secundaria_plans");
-    if (savedPlans) {
-      try {
-        setPlans(JSON.parse(savedPlans));
-      } catch (e) {
-        console.error("Error parsing saved plans:", e);
-      }
-    }
-  }, []);
-
-  // Save plans to localStorage on change
   const savePlansToStorage = (updatedPlans: CompletePlan[]) => {
     setPlans(updatedPlans);
-    localStorage.setItem("nem_secundaria_plans", JSON.stringify(updatedPlans));
+    localStorage.setItem(STORAGE_PLANS_KEY, JSON.stringify(updatedPlans));
   };
 
-  const handleFormSubmit = async (formData: any) => {
+  const handleFormSubmit = async (formData: Record<string, any>) => {
     setIsLoading(true);
     try {
       const response = await fetch("/api/generate-plan", {
@@ -91,14 +104,14 @@ export default function App() {
       });
 
       if (!response.ok) {
-        const errData = await response.json();
+        const errData = await response.json().catch(() => ({}));
         throw new Error(errData.error || "Error al procesar la planeación en el servidor.");
       }
 
       const data = await response.json();
       if (data.success && data.plan) {
         const newCompletePlan: CompletePlan = {
-          id: Math.random().toString(36).substr(2, 9),
+          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
           createdAt: new Date().toISOString(),
           nivel: formData.nivel,
           docenteName: formData.docenteName,
@@ -125,9 +138,10 @@ export default function App() {
       } else {
         throw new Error("No se recibió el formato del plan esperado.");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error generating plan:", error);
-      alert(`Error de Generación: ${error.message || "No se pudo conectar con el servidor."}`);
+      const errorMessage = error instanceof Error ? error.message : "No se pudo conectar con el servidor.";
+      alert(`Error de Generación: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
@@ -145,12 +159,19 @@ export default function App() {
     setCurrentPlan(plan);
   };
 
+  if (!userProfile) {
+    return <LoginScreen onLogin={handleLogin} />;
+  }
+
+  // Determinar dinámicamente cuándo ocultar la columna lateral
+  const isFullWidthView = activeTab === "hub" || activeTab === "organizador" || activeTab === "programa";
+
   const renderActiveView = () => {
     switch (activeTab) {
       case "hub":
         return (
           <DashboardHub
-            onSelectFunction={(func, folder) => {
+            onSelectFunction={(func: ActiveTab, folder?: OrganizadorTab) => {
               if (folder) {
                 setOrganizadorTab(folder);
               }
@@ -198,37 +219,31 @@ export default function App() {
       case "sugerir":
         return (
           <SugerirContenidosView
-            onUseContent={(data) => {
+            onUseContent={(data: any) => {
               setPrefilledData(data);
               setActiveTab("diseno");
             }}
-            onBack={() => {
-              setActiveTab("hub");
-            }}
+            onBack={() => setActiveTab("hub")}
           />
         );
       case "crear":
         return (
           <CrearContenidoView
-            onUseContent={(data) => {
+            onUseContent={(data: any) => {
               setPrefilledData(data);
               setActiveTab("diseno");
             }}
-            onBack={() => {
-              setActiveTab("hub");
-            }}
+            onBack={() => setActiveTab("hub")}
           />
         );
       case "programa":
         return (
           <CrearProgramaAnaliticoView
-            onUseContent={(data) => {
+            onUseContent={(data: any) => {
               setPrefilledData(data);
               setActiveTab("diseno");
             }}
-            onBack={() => {
-              setActiveTab("hub");
-            }}
+            onBack={() => setActiveTab("hub")}
             escuelaName={userProfile.escuelaName}
             cct={userProfile.cct}
             docenteName={userProfile.docenteName}
@@ -237,9 +252,7 @@ export default function App() {
       case "evaluacion":
         return (
           <FormatoEvaluacionView
-            onBack={() => {
-              setActiveTab("hub");
-            }}
+            onBack={() => setActiveTab("hub")}
             escuelaName={userProfile.escuelaName}
             cct={userProfile.cct}
             docenteName={userProfile.docenteName}
@@ -248,9 +261,7 @@ export default function App() {
       case "bitacora":
         return (
           <BitacoraIncidenciaView
-            onBack={() => {
-              setActiveTab("hub");
-            }}
+            onBack={() => setActiveTab("hub")}
             escuelaName={userProfile.escuelaName}
             cct={userProfile.cct}
             docenteName={userProfile.docenteName}
@@ -262,16 +273,10 @@ export default function App() {
           <OrganizadorEscolarView
             initialTab={organizadorTab}
             plans={plans}
-            onSelectPlan={(plan) => {
-              setCurrentPlan(plan);
-            }}
+            onSelectPlan={(plan) => setCurrentPlan(plan)}
             onDeletePlan={handleDeletePlan}
-            onBack={() => {
-              setActiveTab("hub");
-            }}
-            onGoToBitacora={() => {
-              setActiveTab("bitacora");
-            }}
+            onBack={() => setActiveTab("hub")}
+            onGoToBitacora={() => setActiveTab("bitacora")}
             onGoToDiseno={() => {
               setActiveTab("diseno");
               setPrefilledData(null);
@@ -285,23 +290,15 @@ export default function App() {
     }
   };
 
-  if (!userProfile) {
-    return <LoginScreen onLogin={handleLogin} />;
-  }
-
-  const isFullWidthView = true;
-
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-12 flex flex-col">
-      {/* Encabezado Escolar e Institucional - Oculto al imprimir */}
       <header className="bg-mex-maroon text-white py-4 px-4 sm:px-8 shadow-md shrink-0 print:hidden relative overflow-hidden">
-        {/* Subtle geometric decoration */}
         <div className="absolute right-0 top-0 w-48 h-48 bg-white/5 rounded-lg -mr-12 -mt-12 pointer-events-none rotate-45" />
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-xl flex items-center justify-center p-1 shadow-sm overflow-hidden shrink-0 border border-mex-gold/40">
               <img
-                src={logoImg}
+                src={LOGO_IMG}
                 alt="EnseñIA MX Logo"
                 className="w-full h-full object-contain"
                 referrerPolicy="no-referrer"
@@ -329,13 +326,9 @@ export default function App() {
         </div>
       </header>
 
-      {/* Contenido Principal de la Aplicación */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-8 mt-8 w-full">
-        
-        {/* Bento Grid layout */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-8 mt-8 w-full flex-grow">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Columna Lateral Izquierda (Acceso a Organizador Escolar) - Oculto al imprimir */}
-          {!isFullWidthView && (
+          {!isFullWidthView && !currentPlan && (
             <div className="lg:col-span-1 print:hidden">
               <HistorySidebar
                 plans={plans}
@@ -351,15 +344,16 @@ export default function App() {
             </div>
           )}
 
-          {/* Columna Principal Derecha (Herramientas, Hub o Visualizador) */}
-          <div className={isFullWidthView ? "lg:col-span-3" : "lg:col-span-2"}>
+          <div className={isFullWidthView || currentPlan ? "lg:col-span-3" : "lg:col-span-2"}>
             {currentPlan ? (
               <PlaneacionPreview
                 planData={currentPlan}
                 onBack={() => setCurrentPlan(null)}
                 onUpdatePlan={(updatedPlan) => {
                   setCurrentPlan(updatedPlan);
-                  const updatedPlans = plans.map(p => p.id === updatedPlan.id ? updatedPlan : p);
+                  const updatedPlans = plans.map((p) =>
+                    p.id === updatedPlan.id ? updatedPlan : p
+                  );
                   savePlansToStorage(updatedPlans);
                 }}
               />
@@ -370,15 +364,20 @@ export default function App() {
         </div>
       </main>
 
-      {/* Footer Bar - Oculto al imprimir */}
       <footer className="mt-auto py-3.5 bg-slate-100 border-t border-slate-200 px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 print:hidden text-center sm:text-left">
         <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-tight">
           EnseñIA MX v2026.1
         </p>
         <div className="flex gap-4">
-          <span className="text-[10px] text-slate-400 hover:text-slate-600 cursor-pointer font-medium transition">Privacidad</span>
-          <span className="text-[10px] text-slate-400 hover:text-slate-600 cursor-pointer font-medium transition">Manual de la NEM</span>
-          <span className="text-[10px] text-slate-400 hover:text-slate-600 cursor-pointer font-medium transition">Soporte Técnico</span>
+          <span className="text-[10px] text-slate-400 hover:text-slate-600 cursor-pointer font-medium transition">
+            Privacidad
+          </span>
+          <span className="text-[10px] text-slate-400 hover:text-slate-600 cursor-pointer font-medium transition">
+            Manual de la NEM
+          </span>
+          <span className="text-[10px] text-slate-400 hover:text-slate-600 cursor-pointer font-medium transition">
+            Soporte Técnico
+          </span>
         </div>
       </footer>
     </div>
