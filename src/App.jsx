@@ -15,7 +15,6 @@ export default function App() {
   const [resultado, setResultado] = useState('')
   const [error, setError] = useState('')
 
-  // Referencia para capturar el contenedor que se convertirá en PDF
   const pdfRef = useRef(null)
 
   const handleChange = (e) => {
@@ -31,11 +30,7 @@ export default function App() {
     setError('')
     setResultado('')
 
-    // Prompt actualizado con los datos reales del docente y la escuela
-    const promptText = `Genera una planeacion didactica bajo la NEM para ${formData.grado}, campo formativo ${formData.campoFormativo}, tema ${formData.tema}.
-Docente: ${formData.docenteNombre}
-Escuela: ${formData.escuela}
-Por favor redacta la planeación incluyendo de forma explícita los datos del docente y la escuela en la cabecera, sin usar textos entre corchetes ni placeholders.`
+    const promptText = "Genera una planeacion didactica bajo la NEM para " + formData.grado + ", campo formativo " + formData.campoFormativo + ", tema " + formData.tema + ". Docente: " + formData.docenteNombre + ". Escuela: " + formData.escuela + ". Redacta la planeación incluyendo de forma explícita los datos del docente y la escuela en la cabecera, sin usar textos entre corchetes ni placeholders."
 
     try {
       const response = await fetch('https://enseniamx-backend.onrender.com/api/planeaciones/generar', {
@@ -47,7 +42,7 @@ Por favor redacta la planeación incluyendo de forma explícita los datos del do
       })
 
       if (!response.ok) {
-        throw new Error(`Error en el servidor: ${response.status}`)
+        throw new Error("Error en el servidor: " + response.status)
       }
 
       const rawText = await response.text()
@@ -68,7 +63,6 @@ Por favor redacta la planeación incluyendo de forma explícita los datos del do
     }
   }
 
-  // Función para exportar a PDF
   const handleDownloadPDF = () => {
     const element = pdfRef.current
     if (!element) return
@@ -85,85 +79,130 @@ Por favor redacta la planeación incluyendo de forma explícita los datos del do
   }
 
   return (
-    
-      
+    <div className="min-h-screen bg-slate-100 p-4 md:p-8 font-sans">
+      <div className="max-w-4xl mx-auto space-y-6">
         
         {/* Header */}
-        
-          EnseñIA MX
-          Generador Inteligente de Planeaciones Didácticas (NEM)
-        
+        <header className="bg-blue-700 text-white rounded-xl p-6 shadow-md">
+          <h1 className="text-3xl font-bold">EnseñIA MX</h1>
+          <p className="text-blue-100 mt-1">Generador Inteligente de Planeaciones Didácticas (NEM)</p>
+        </header>
 
         {/* Formulario */}
-        
-          Datos de la Planeación
+        <section className="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+          <h2 className="text-xl font-semibold mb-4 text-slate-800">Datos de la Planeación</h2>
           
-          
-            
-              
-                Nombre del Docente
-                
-              
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Nombre del Docente</label>
+                <input
+                  type="text"
+                  name="docenteNombre"
+                  value={formData.docenteNombre}
+                  onChange={handleChange}
+                  className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  required
+                />
+              </div>
 
-              
-                Escuela
-                
-              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Escuela</label>
+                <input
+                  type="text"
+                  name="escuela"
+                  value={formData.escuela}
+                  onChange={handleChange}
+                  className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  required
+                />
+              </div>
 
-              
-                Grado Escolar
-                
-              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Grado Escolar</label>
+                <input
+                  type="text"
+                  name="grado"
+                  value={formData.grado}
+                  onChange={handleChange}
+                  placeholder="Ej. 3 de primaria"
+                  className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  required
+                />
+              </div>
 
-              
-                Campo Formativo
-                
-              
-            
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Campo Formativo</label>
+                <input
+                  type="text"
+                  name="campoFormativo"
+                  value={formData.campoFormativo}
+                  onChange={handleChange}
+                  placeholder="Ej. Lenguajes"
+                  className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  required
+                />
+              </div>
+            </div>
 
-            
-              Tema / Proyecto
-              
-            
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Tema / Proyecto</label>
+              <input
+                type="text"
+                name="tema"
+                value={formData.tema}
+                onChange={handleChange}
+                placeholder="Ej. textos instructivos"
+                className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                required
+              />
+            </div>
 
-            
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg shadow transition duration-200 disabled:opacity-50"
+            >
               {loading ? 'Generando planeación con IA...' : 'Generar Planeación'}
-            
-          
-        
+            </button>
+          </form>
+        </section>
 
         {/* Error */}
         {error && (
-          
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl shadow-sm">
             {error}
-          
+          </div>
         )}
 
         {/* Resultado Renderizado con Markdown */}
         {resultado && (
-          
-            
-              Resultado Generado
-              
-                 navigator.clipboard.writeText(resultado)}
+          <section className="bg-white p-6 rounded-xl shadow-md border border-slate-200 space-y-4">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h2 className="text-xl font-semibold text-slate-800">Resultado Generado</h2>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => navigator.clipboard.writeText(resultado)}
                   className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-md font-medium transition"
                 >
                   Copiar Texto
-                
-                
+                </button>
+                <button 
+                  onClick={handleDownloadPDF}
+                  className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-md font-medium transition shadow-sm"
+                >
                   Descargar PDF
-                
-              
+                </button>
+              </div>
+            </div>
             
-            
-            {/* Elemento referenciado para exportar a PDF */}
-            
-              {resultado}
-            
-          
+            <div ref={pdfRef} className="prose max-w-none text-slate-700 leading-relaxed max-h-[600px] overflow-y-auto pr-2 p-2">
+              <Markdown>{resultado}</Markdown>
+            </div>
+          </section>
         )}
 
-      
-    
+      </div>
+    </div>
   )
 }
