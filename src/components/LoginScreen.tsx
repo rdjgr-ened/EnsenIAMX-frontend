@@ -1,15 +1,59 @@
 import React, { useState } from 'react';
-import { iniciarSesion, registrarUsuario, recuperarPassword } from '../services/authService';
+import { 
+  iniciarSesion, 
+  registrarUsuario, 
+  recuperarPassword 
+} from '../services/authService';
+import { 
+  Mail, 
+  KeyRound, 
+  User, 
+  Building2, 
+  Plus, 
+  Trash2, 
+  UserPlus, 
+  LogIn, 
+  HelpCircle, 
+  ArrowLeft 
+} from 'lucide-react';
 
 const LOGO_IMG = "https://i.imgur.com/tv95RC0.png";
 
+interface Escuela {
+  nombre: string;
+  cct: string;
+}
+
 export const LoginScreen: React.FC = () => {
   const [esRegistro, setEsRegistro] = useState(false);
+  
+  // Campos del formulario
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [nombreDocente, setNombreDocente] = useState('');
+  const [escuelas, setEscuelas] = useState<Escuela[]>([{ nombre: '', cct: '' }]);
+
+  // Estados de control
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
+
+  // Funciones para administrar escuelas en el registro
+  const handleAgregarEscuela = () => {
+    setEscuelas([...escuelas, { nombre: '', cct: '' }]);
+  };
+
+  const handleRemoverEscuela = (index: number) => {
+    if (escuelas.length > 1) {
+      setEscuelas(escuelas.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleEscuelaChange = (index: number, field: 'nombre' | 'cct', value: string) => {
+    const nuevasEscuelas = [...escuelas];
+    nuevasEscuelas[index][field] = value;
+    setEscuelas(nuevasEscuelas);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,8 +63,14 @@ export const LoginScreen: React.FC = () => {
 
     try {
       if (esRegistro) {
-        await registrarUsuario(email, password);
-        setMensaje('Cuenta creada con éxito. Revisa tu correo o inicia sesión.');
+        // Registro completo con perfil profesional y planteles
+        const perfilCompleto = {
+          nombreDocente,
+          escuelas: escuelas.filter(e => e.nombre.trim() !== '' || e.cct.trim() !== '')
+        };
+
+        await registrarUsuario(email, password, perfilCompleto);
+        setMensaje('Cuenta y perfil creados con éxito. Revisa tu correo o inicia sesión.');
         setEsRegistro(false);
       } else {
         await iniciarSesion(email, password);
@@ -54,7 +104,7 @@ export const LoginScreen: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-lg overflow-hidden">
+      <div className={`w-full ${esRegistro ? 'max-w-2xl' : 'max-w-md'} bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300`}>
         {/* Header */}
         <div className="bg-[#2A3E54] text-white p-6 text-center">
           <img src={LOGO_IMG} alt="EnseñIA MX Logo" className="w-20 h-20 mx-auto mb-2" />
@@ -65,12 +115,12 @@ export const LoginScreen: React.FC = () => {
         {/* Formulario */}
         <div className="p-6 space-y-6">
           <div className="text-center">
-            <h2 className="text-lg font-bold text-slate-800 tracking-wide uppercase">
-              {esRegistro ? 'REGISTRO DE NUEVA CUENTA' : 'ACCESO DOCENTE'}
+            <h2 className="text-xl font-bold text-slate-800 tracking-wide uppercase">
+              {esRegistro ? 'CREAR CUENTA DOCENTE' : 'ACCESO DOCENTE'}
             </h2>
             <p className="text-xs text-slate-500 mt-1">
               {esRegistro
-                ? 'Ingresa tu correo y define una contraseña para crear tu cuenta docente.'
+                ? 'Registra tu perfil en el sistema. Los datos del plantel se vincularán automáticamente a tus planeaciones didácticas.'
                 : 'Ingresa tu correo institucional o personal y contraseña para cargar tu planeador didáctico.'}
             </p>
           </div>
@@ -87,60 +137,176 @@ export const LoginScreen: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                CORREO ELECTRÓNICO (GMAIL)
-              </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="rdjgr.ened@gmail.com"
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400 bg-slate-50"
-              />
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="text-xs font-bold text-slate-700">
-                  CONTRASEÑA
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Fila Correo y Contraseña */}
+            <div className={`grid grid-cols-1 ${esRegistro ? 'md:grid-cols-2' : ''} gap-4`}>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1 uppercase">
+                  CORREO DE G-MAIL (@GMAIL.COM)
                 </label>
-                {!esRegistro && (
-                  <button
-                    type="button"
-                    onClick={handleForgotPassword}
-                    className="text-[11px] font-bold text-[#2A3E54] hover:underline"
-                  >
-                    ¿OLVIDASTE TU CONTRASEÑA?
-                  </button>
-                )}
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="usuario@gmail.com"
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400 bg-slate-50/50"
+                  />
+                </div>
               </div>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••"
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400 bg-slate-50"
-              />
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-[11px] font-bold text-slate-700 uppercase">
+                    {esRegistro ? 'DEFINIR CONTRASEÑA' : 'CONTRASEÑA'}
+                  </label>
+                  {!esRegistro && (
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      className="text-[10px] font-bold text-[#2A3E54] hover:underline flex items-center gap-1"
+                    >
+                      <HelpCircle className="w-3 h-3" />
+                      ¿OLVIDASTE TU CONTRASEÑA?
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={esRegistro ? 'Mínimo 6 caracteres' : '••••••••••'}
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400 bg-slate-50/50"
+                  />
+                </div>
+              </div>
             </div>
 
+            {/* Sección exclusiva del Registro: Perfil Docente */}
+            {esRegistro && (
+              <>
+                <div className="border-t border-dashed border-slate-200 my-4 pt-4">
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                    PERFIL PROFESIONAL DOCENTE
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mb-3">
+                    Esta información de identificación es obligatoria y aparecerá en las firmas de los formatos de planeación oficiales.
+                  </p>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1 uppercase">
+                      NOMBRE COMPLETO DEL DOCENTE
+                    </label>
+                    <div className="relative">
+                      <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                      <input
+                        type="text"
+                        required
+                        value={nombreDocente}
+                        onChange={(e) => setNombreDocente(e.target.value)}
+                        placeholder="Ej. René Gaytán"
+                        className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400 bg-slate-50/50"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sección de Escuelas */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                      PLANTELES / ESCUELAS ASOCIADAS
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={handleAgregarEscuela}
+                      className="text-xs font-bold text-[#2A3E54] hover:underline flex items-center gap-1 uppercase"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> AGREGAR PLANTEL
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {escuelas.map((escuela, index) => (
+                      <div key={index} className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2 relative">
+                        {escuelas.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoverEscuela(index)}
+                            className="absolute top-2 right-2 text-slate-400 hover:text-red-500"
+                            title="Eliminar plantel"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 mb-1 uppercase">
+                              NOMBRE DE LA ESCUELA {index + 1}
+                            </label>
+                            <div className="relative">
+                              <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                              <input
+                                type="text"
+                                required
+                                value={escuela.nombre}
+                                onChange={(e) => handleEscuelaChange(index, 'nombre', e.target.value)}
+                                placeholder="Ej. Esc. Sec. Gral. #3"
+                                className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 mb-1 uppercase">
+                              CCT DE LA ESCUELA {index + 1}
+                            </label>
+                            <div className="relative">
+                              <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                              <input
+                                type="text"
+                                required
+                                value={escuela.cct}
+                                onChange={(e) => handleEscuelaChange(index, 'cct', e.target.value)}
+                                placeholder="EJ. 10DES0021J"
+                                className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white uppercase"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Botón Principal */}
             <button
               type="submit"
               disabled={cargando}
-              className="w-full bg-[#0F172A] text-white py-3 rounded-md font-bold text-sm hover:bg-slate-800 transition-colors uppercase tracking-wider mt-4"
+              className="w-full bg-[#2A3E54] hover:bg-[#1f2d3d] text-white py-3 rounded-md font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition-colors mt-6"
             >
-              {cargando
-                ? 'CARGANDO...'
-                : esRegistro
-                ? 'REGISTRAR MI CUENTA'
-                : 'INGRESAR AL SISTEMA'}
+              {cargando ? (
+                'CARGANDO...'
+              ) : esRegistro ? (
+                <>
+                  <UserPlus className="w-4 h-4" /> REGISTRAR CUENTA Y PERFIL
+                </>
+              ) : (
+                <>
+                  <LogIn className="w-4 h-4" /> INGRESAR AL SISTEMA
+                </>
+              )}
             </button>
           </form>
 
-          {/* Botón de alternar entre Registro / Login */}
+          {/* Botón Inferior para Cambiar de Modo */}
           <div className="pt-2 text-center border-t border-slate-100">
             <button
               type="button"
@@ -151,7 +317,15 @@ export const LoginScreen: React.FC = () => {
               }}
               className="text-xs font-bold text-[#2A3E54] hover:underline inline-flex items-center gap-1 uppercase tracking-wider"
             >
-              {esRegistro ? '← VOLVER A INICIAR SESIÓN' : '⊕ CREAR NUEVA CUENTA DOCENTE'}
+              {esRegistro ? (
+                <>
+                  <ArrowLeft className="w-3.5 h-3.5" /> VOLVER AL ACCESO
+                </>
+              ) : (
+                <>
+                  <Plus className="w-3.5 h-3.5" /> CREAR NUEVA CUENTA DOCENTE
+                </>
+              )}
             </button>
           </div>
         </div>
