@@ -40,10 +40,8 @@ type ActiveTab =
 type OrganizadorTab = "planeaciones" | "grupos" | "bitacora" | "seguimiento" | "evaluacion";
 
 export default function App() {
-  // Estado para autenticación de Supabase
   const [usuarioSupabase, setUsuarioSupabase] = useState<any>(null);
 
-  // Inicialización perezosa de planes desde localStorage
   const [plans, setPlans] = useState<CompletePlan[]>(() => {
     const savedPlans = localStorage.getItem(STORAGE_PLANS_KEY);
     if (savedPlans) {
@@ -59,7 +57,6 @@ export default function App() {
   const [currentPlan, setCurrentPlan] = useState<CompletePlan | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Inicialización perezosa del perfil de usuario
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
     const saved = localStorage.getItem(STORAGE_PROFILE_KEY);
     if (saved) {
@@ -77,7 +74,6 @@ export default function App() {
   const [organizadorTab, setOrganizadorTab] = useState<OrganizadorTab>("planeaciones");
   const [prefilledData, setPrefilledData] = useState<Record<string, unknown> | null>(null);
 
-  // Escuchar sesión activa de Supabase al cargar el componente
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUsuarioSupabase(session?.user ?? null);
@@ -182,7 +178,6 @@ export default function App() {
     return <LoginScreen onLogin={handleLogin} />;
   }
 
-  // Determinar dinámicamente cuándo ocultar la columna lateral
   const isFullWidthView = activeTab === "hub" || activeTab === "organizador" || activeTab === "programa";
 
   const renderActiveView = () => {
