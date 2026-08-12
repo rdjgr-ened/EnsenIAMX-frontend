@@ -8,27 +8,34 @@ export const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [cargando, setCargando] = useState(true);
 
-  useEffect(() => {
-    // 1. Obtener la sesión almacenada en localStorage
-    const recuperarSesion = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error("Error al obtener la sesión:", error);
-        }
-        setUser(session?.user ?? null);
-      } catch (err) {
-        console.error("Excepción al recuperar sesión:", err);
-      } finally {
-        setCargando(false);
+  // Función para sincronizar la sesión manualmente
+  const verificarSesion = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        console.log("✅ Sesión detectada en App.tsx:", session.user);
+        setUser(session.user);
+      } else {
+        setUser(null);
       }
-    };
+    } catch (err) {
+      console.error("Error al obtener sesión:", err);
+    } finally {
+      setCargando(false);
+    }
+  };
 
-    recuperarSesion();
+  useEffect(() => {
+    verificarSesion();
 
-    // 2. Suscribirse a cambios en el estado de autenticación (Login, Logout, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    // Listener para cambios de autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("🔄 Evento de Auth en App.tsx:", event, session?.user);
+      if (session?.user) {
+        setUser(session.user);
+      } else {
+        setUser(null);
+      }
       setCargando(false);
     });
 
@@ -42,26 +49,30 @@ export const App: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-slate-100">
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#2A3E54] mx-auto mb-3"></div>
-          <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Accediendo a EnseñIA MX...</p>
+          <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Cargando EnseñIA MX...</p>
         </div>
       </div>
     );
   }
 
-  // Muestra Login si no hay usuario activo
+  // Si no hay usuario en el estado, mostramos el Login
   if (!user) {
     return (
       <LoginScreen 
-        onLoginSuccess={(usuario) => {
-          if (usuario) {
-            setUser(usuario);
+        onLoginSuccess={(usuarioDetectado) => {
+          console.log("Login exitoso capturado en App.tsx:", usuarioDetectado);
+          if (usuarioDetectado) {
+            setUser(usuarioDetectado);
+          } else {
+            // Si por alguna razón el objeto no viene, forzamos la verificación con Supabase
+            verificarSesion();
           }
         }} 
       />
     );
   }
 
-  // Renderiza la aplicación cuando el usuario existe
+  // Si hay usuario, entra al MainLayout directamente
   return <MainLayout user={user} />;
 };
 
