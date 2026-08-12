@@ -42,7 +42,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
 
-  // Funciones para administrar escuelas en el registro
   const handleAgregarEscuela = () => {
     setEscuelas([...escuelas, { nombre: '', cct: '' }]);
   };
@@ -61,32 +60,46 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("-> Iniciando envío de formulario...", { esRegistro, email });
+    
     setError(null);
     setMensaje(null);
     setCargando(true);
 
     try {
       if (esRegistro) {
-        const perfilCompleto = {
-          nombreDocente,
-          escuelas: escuelas.filter(e => e.nombre.trim() !== '' || e.cct.trim() !== '')
-        };
+        const escuelasFiltradas = escuelas.filter(
+          e => e.nombre.trim() !== '' || e.cct.trim() !== ''
+        );
 
-        const res = await registrarUsuario(email, password, perfilCompleto);
-        
-        // Si la confirmación por correo está desactivada, Supabase retorna una sesión activa al momento
+        console.log("-> Registrando usuario con perfil:", { nombreDocente, escuelasFiltradas });
+        const res = await registrarUsuario(email, password, {
+          nombreDocente,
+          escuelas: escuelasFiltradas
+        });
+
+        console.log("-> Respuesta de registro Supabase:", res);
+
         if (res?.session) {
+          console.log("-> Sesión activa detectada. Entrando al sistema...");
           if (onLoginSuccess) {
             onLoginSuccess();
           } else {
             window.location.reload();
           }
         } else {
-          setMensaje('Cuenta registrada exitosamente. Puedes iniciar sesión ahora.');
-          setEsRegistro(false);
+          setMensaje('Cuenta procesada. Intentando iniciar sesión automáticamente...');
+          // Intento de auto-login inmediato
+          const loginRes = await iniciarSesion(email, password);
+          if (loginRes?.session) {
+            window.location.reload();
+          }
         }
       } else {
-        await iniciarSesion(email, password);
+        console.log("-> Intentando iniciar sesión...");
+        const res = await iniciarSesion(email, password);
+        console.log("-> Inicio de sesión exitoso:", res);
+        
         if (onLoginSuccess) {
           onLoginSuccess();
         } else {
@@ -94,6 +107,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         }
       }
     } catch (err: any) {
+      console.error("❌ Error atrapado en handleSubmit:", err);
       setError(err.message || 'Ocurrió un error al procesar la solicitud');
     } finally {
       setCargando(false);
@@ -144,19 +158,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           </div>
 
           {error && (
-            <div className="bg-red-50 text-red-600 text-xs p-3 rounded border border-red-200">
-              {error}
+            <div className="bg-red-50 text-red-600 text-xs p-3 rounded border border-red-200 font-medium">
+              ⚠️ {error}
             </div>
           )}
 
           {mensaje && (
-            <div className="bg-green-50 text-green-700 text-xs p-3 rounded border border-green-200">
-              {mensaje}
+            <div className="bg-green-50 text-green-700 text-xs p-3 rounded border border-green-200 font-medium">
+              ✅ {mensaje}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Fila Correo y Contraseña */}
             <div className={`grid grid-cols-1 ${esRegistro ? 'md:grid-cols-2' : ''} gap-4`}>
               <div>
                 <label className="block text-[11px] font-bold text-slate-700 mb-1 uppercase">
@@ -205,7 +218,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               </div>
             </div>
 
-            {/* Sección exclusiva del Registro: Perfil Docente */}
             {esRegistro && (
               <>
                 <div className="border-t border-dashed border-slate-200 my-4 pt-4">
@@ -224,7 +236,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                       <input
                         type="text"
-                        required
+                        required={esRegistro}
                         value={nombreDocente}
                         onChange={(e) => setNombreDocente(e.target.value)}
                         placeholder="Ej. Juan Pérez"
@@ -234,7 +246,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   </div>
                 </div>
 
-                {/* Sección de Escuelas */}
                 <div>
                   <div className="flex justify-between items-center mb-2">
                     <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wide">
@@ -271,7 +282,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                               <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                               <input
                                 type="text"
-                                required
                                 value={escuela.nombre}
                                 onChange={(e) => handleEscuelaChange(index, 'nombre', e.target.value)}
                                 placeholder="Ej. Esc. Sec. Gral. No. 1"
@@ -288,7 +298,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                               <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                               <input
                                 type="text"
-                                required
                                 value={escuela.cct}
                                 onChange={(e) => handleEscuelaChange(index, 'cct', e.target.value)}
                                 placeholder="EJ. 00DPR0000X"
@@ -304,11 +313,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               </>
             )}
 
-            {/* Botón Principal */}
             <button
               type="submit"
               disabled={cargando}
-              className="w-full bg-[#2A3E54] hover:bg-[#1f2d3d] text-white py-3 rounded-md font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition-colors mt-6"
+              className="w-full bg-[#2A3E54] hover:bg-[#1f2d3d] text-white py-3 rounded-md font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition-colors mt-6 cursor-pointer disabled:opacity-50"
             >
               {cargando ? (
                 'CARGANDO...'
@@ -324,7 +332,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             </button>
           </form>
 
-          {/* Botón Inferior para Cambiar de Modo */}
           <div className="pt-2 text-center border-t border-slate-100">
             <button
               type="button"
