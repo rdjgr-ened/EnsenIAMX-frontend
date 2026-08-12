@@ -9,23 +9,26 @@ export const App: React.FC = () => {
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    // 1. Verificar si ya existe una sesión activa al cargar la app
-    const inicializarSesion = async () => {
+    // 1. Obtener sesión activa al cargar la aplicación por primera vez
+    const comprobarSesionInicial = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error("Error al recuperar la sesión inicial:", error);
+        }
         setUser(session?.user ?? null);
-      } catch (error) {
-        console.error("Error al obtener la sesión de Supabase:", error);
+      } catch (err) {
+        console.error("Excepción al validar sesión:", err);
       } finally {
         setCargando(false);
       }
     };
 
-    inicializarSesion();
+    comprobarSesionInicial();
 
-    // 2. Suscribirse a cambios en la autenticación (Login / Logout)
+    // 2. Escuchador en tiempo real para eventos de autenticación (SIGNED_IN, SIGNED_OUT, INITIAL_SESSION)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("🔄 Evento Auth detectado:", event);
+      console.log("⚡ Evento de autenticación registrado:", event);
       setUser(session?.user ?? null);
       setCargando(false);
     });
@@ -35,23 +38,34 @@ export const App: React.FC = () => {
     };
   }, []);
 
+  // Pantalla de carga profesional mientras Supabase valida el almacenamiento local
   if (cargando) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2A3E54] mx-auto mb-4"></div>
-          <p className="text-sm font-bold text-slate-600 uppercase tracking-wider">Cargando sistema...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100 p-4">
+        <div className="text-center bg-white p-8 rounded-lg shadow-md border border-slate-200">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#2A3E54] mx-auto mb-4"></div>
+          <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+            Cargando asistente docente...
+          </p>
         </div>
       </div>
     );
   }
 
-  // Si no hay usuario autenticado, renderiza el Login
+  // Si no hay sesión válida, muestra la pantalla de acceso
   if (!user) {
-    return <LoginScreen onLoginSuccess={() => setCargando(true)} />;
+    return (
+      <LoginScreen 
+        onLoginSuccess={async () => {
+          // Callback de respaldo: fuerza la relectura de sesión activa si la suscripción tarda milisegundos
+          const { data: { session } } = await supabase.auth.getSession();
+          setUser(session?.user ?? null);
+        }} 
+      />
+    );
   }
 
-  // Si hay usuario autenticado, renderiza el Dashboard principal
+  // Si hay usuario autenticado, renderiza el panel de control principal (MainLayout)
   return <MainLayout user={user} />;
 };
 
