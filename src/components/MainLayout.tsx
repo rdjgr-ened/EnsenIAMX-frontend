@@ -3,13 +3,15 @@ import { supabase } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
 import { LogOut, User as UserIcon } from 'lucide-react';
 
-// Importamos todas tus vistas y el Hub principal de AI Studio
+// Importación de todos los componentes de vistas de AI Studio
 import DashboardHub from './DashboardHub';
 import OrganizadorEscolarView from './OrganizadorEscolarView';
 import PlaneacionForm from './PlaneacionForm';
 import BitacoraIncidenciaView from './BitacoraIncidenciaView';
 import FormatoEvaluacionView from './FormatoEvaluacionView';
 import CrearProgramaAnaliticoView from './CrearProgramaAnaliticoView';
+import SugerirContenidosView from './SugerirContenidosView';
+import CrearContenidoView from './CrearContenidoView';
 
 interface MainLayoutProps {
   user: User;
@@ -17,7 +19,13 @@ interface MainLayoutProps {
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ user }) => {
   const [vistaActual, setVistaActual] = useState<string>('hub');
-  const nombreDocente = user.user_metadata?.nombreDocente || 'Docente';
+
+  const nombreDocente = 
+    user.user_metadata?.nombreDocente || 
+    user.user_metadata?.full_name || 
+    user.user_metadata?.name || 
+    user.email?.split('@')[0] || 
+    'Docente';
 
   const handleCerrarSesion = async () => {
     await supabase.auth.signOut();
@@ -27,7 +35,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ user }) => {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
-      {/* Navbar Superior */}
+      {/* Header */}
       <header className="bg-[#2A3E54] text-white px-6 py-4 shadow-md flex justify-between items-center">
         <div 
           className="flex items-center gap-3 cursor-pointer"
@@ -60,7 +68,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ user }) => {
         </div>
       </header>
 
-      {/* Contenido Dinámico según la selección en el Dashboard */}
+      {/* Contenido Dinámico */}
       <main className="flex-1 p-6 max-w-7xl w-full mx-auto">
         {vistaActual === 'hub' && (
           <DashboardHub 
@@ -87,6 +95,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ user }) => {
 
         {vistaActual === 'programa-analitico' && (
           <CrearProgramaAnaliticoView onVolver={() => setVistaActual('hub')} />
+        )}
+
+        {vistaActual === 'sugerir-contenidos' && (
+          <SugerirContenidosView onVolver={() => setVistaActual('hub')} />
+        )}
+
+        {vistaActual === 'crear-contenido' && (
+          <CrearContenidoView onVolver={() => setVistaActual('hub')} />
         )}
       </main>
     </div>
