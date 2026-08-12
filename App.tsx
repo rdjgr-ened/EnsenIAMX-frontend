@@ -9,30 +9,26 @@ export const App: React.FC = () => {
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    // Verificar sesión al cargar la app
-    const cargarSesionInicial = async () => {
+    // 1. Obtener la sesión almacenada en localStorage
+    const recuperarSesion = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          console.log("Sesión previa detectada:", session.user.email);
-          setUser(session.user);
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error("Error al obtener la sesión:", error);
         }
+        setUser(session?.user ?? null);
       } catch (err) {
-        console.error("Error al obtener sesión inicial:", err);
+        console.error("Excepción al recuperar sesión:", err);
       } finally {
         setCargando(false);
       }
     };
 
-    cargarSesionInicial();
+    recuperarSesion();
 
-    // Escuchar eventos globales de Supabase
+    // 2. Suscribirse a cambios en el estado de autenticación (Login, Logout, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser(session.user);
-      } else {
-        setUser(null);
-      }
+      setUser(session?.user ?? null);
       setCargando(false);
     });
 
@@ -46,32 +42,26 @@ export const App: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-slate-100">
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#2A3E54] mx-auto mb-3"></div>
-          <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Cargando EnseñIA MX...</p>
+          <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Accediendo a EnseñIA MX...</p>
         </div>
       </div>
     );
   }
 
-  // Si NO hay usuario, muestra el Login
+  // Muestra Login si no hay usuario activo
   if (!user) {
     return (
       <LoginScreen 
-        onLoginSuccess={(usuarioAutenticado) => {
-          console.log("onLoginSuccess activado. Cambiando a MainLayout...");
-          if (usuarioAutenticado) {
-            setUser(usuarioAutenticado);
-          } else {
-            // Reintento directo si no se pasó por parámetro
-            supabase.auth.getUser().then(({ data }) => {
-              if (data.user) setUser(data.user);
-            });
+        onLoginSuccess={(usuario) => {
+          if (usuario) {
+            setUser(usuario);
           }
         }} 
       />
     );
   }
 
-  // Si SÍ hay usuario, renderiza la app
+  // Renderiza la aplicación cuando el usuario existe
   return <MainLayout user={user} />;
 };
 

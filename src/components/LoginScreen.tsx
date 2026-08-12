@@ -90,8 +90,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
         console.log("Respuesta de Supabase:", res);
 
-        if (res?.session?.user) {
-          if (onLoginSuccess) onLoginSuccess(res.session.user);
+        const usuario = res?.session?.user || res?.user;
+        if (usuario) {
+          if (onLoginSuccess) onLoginSuccess(usuario);
+          setTimeout(() => { window.location.reload(); }, 100);
         } else {
           setMensaje('Registro completado. Por favor, inicia sesión con tus credenciales.');
           setEsRegistro(false);
@@ -101,12 +103,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         const res = await iniciarSesion(email, password);
         console.log("Inicio de sesión exitoso:", res);
         
-        if (res?.session?.user && onLoginSuccess) {
-          onLoginSuccess(res.session.user);
-        } else if (res?.user && onLoginSuccess) {
-          onLoginSuccess(res.user);
-        } else if (onLoginSuccess) {
-          onLoginSuccess();
+        const usuario = res?.session?.user || res?.user;
+
+        if (usuario) {
+          if (onLoginSuccess) {
+            onLoginSuccess(usuario);
+          }
+          // Red de seguridad: garantiza la recarga y lectura de localStorage
+          setTimeout(() => {
+            window.location.reload();
+          }, 100);
         }
       }
     } catch (err: any) {
