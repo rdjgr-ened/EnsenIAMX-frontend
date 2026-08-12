@@ -8,29 +8,44 @@ export const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [cargando, setCargando] = useState(true);
 
-  // Función para sincronizar la sesión manualmente
-  const verificarSesion = async () => {
+  // Función para obtener al usuario del storage de Supabase o direct de la API
+  const comprobarUsuario = async () => {
     try {
+      // 1. Preguntar a Supabase si hay sesión activa
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        console.log("✅ Sesión detectada en App.tsx:", session.user);
         setUser(session.user);
-      } else {
-        setUser(null);
+        return;
       }
-    } catch (err) {
-      console.error("Error al obtener sesión:", err);
+
+      // 2. Si getSession falla, leer directamente el localStorage como respaldo de emergencia
+      const keys = Object.keys(localStorage);
+      const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+      if (sbKey) {
+        const item = localStorage.getItem(sbKey);
+        if (item) {
+          const parsed = JSON.parse(item);
+          if (parsed?.user) {
+            setUser(parsed.user);
+            return;
+          }
+        }
+      }
+
+      setUser(null);
+    } catch (e) {
+      console.error("Error comprobando sesión:", e);
+      setUser(null);
     } finally {
       setCargando(false);
     }
   };
 
   useEffect(() => {
-    verificarSesion();
+    comprobarUsuario();
 
-    // Listener para cambios de autenticación
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("🔄 Evento de Auth en App.tsx:", event, session?.user);
+    // Listener de cambios de Auth
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user);
       } else {
@@ -55,24 +70,22 @@ export const App: React.FC = () => {
     );
   }
 
-  // Si no hay usuario en el estado, mostramos el Login
+  // Si no se detecta usuario, mostramos el login
   if (!user) {
     return (
       <LoginScreen 
         onLoginSuccess={(usuarioDetectado) => {
-          console.log("Login exitoso capturado en App.tsx:", usuarioDetectado);
           if (usuarioDetectado) {
             setUser(usuarioDetectado);
-          } else {
-            // Si por alguna razón el objeto no viene, forzamos la verificación con Supabase
-            verificarSesion();
           }
+          // Recargamos la ventana para asegurar la lectura global de la app
+          window.location.reload();
         }} 
       />
     );
   }
 
-  // Si hay usuario, entra al MainLayout directamente
+  // Si hay usuario, renderiza el Dashboard principal
   return <MainLayout user={user} />;
 };
 
