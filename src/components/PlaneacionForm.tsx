@@ -121,19 +121,6 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
   const [formError, setFormError] = useState<string | null>(null);
   const [escuelasList, setEscuelasList] = useState<Array<{ escuelaName: string; cct: string }>>([]);
 
-  // Asistente IA (Generación/Sugerencias con Gemini)
-  const [aiNivel, setAiNivel] = useState("Secundaria");
-  const [aiGrado, setAiGrado] = useState("Primer Grado");
-  const [aiCampo, setAiCampo] = useState("Lenguajes");
-  const [aiDisciplina, setAiDisciplina] = useState("Español");
-  const [aiSituacion, setAiSituacion] = useState("");
-  
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [aiSuggestions, setAiSuggestions] = useState<Array<{ contenido: string; pda: string }>>([]);
-  const [selectedAiIndex, setSelectedAiIndex] = useState<number | null>(null);
-  const [createdContent, setCreatedContent] = useState<{ contenido: string; pda: string } | null>(null);
-
   // Fechas y Calendario
   const [startDate, setStartDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState(() => {
@@ -191,26 +178,15 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
   // Sincronizar initialData si proviene de otras vistas
   useEffect(() => {
     if (initialData) {
-      if (initialData.nivel) {
-        setNivel(initialData.nivel);
-        setAiNivel(initialData.nivel);
-      }
-      if (initialData.grado) {
-        setGrado(initialData.grado);
-        setAiGrado(initialData.grado);
-      }
-      if (initialData.situacionProblema) {
-        setSituacionProblema(initialData.situacionProblema);
-        setAiSituacion(initialData.situacionProblema);
-      }
+      if (initialData.nivel) setNivel(initialData.nivel);
+      if (initialData.grado) setGrado(initialData.grado);
+      if (initialData.situacionProblema) setSituacionProblema(initialData.situacionProblema);
       
       setIsCustomCurriculum(true);
       if (initialData.contenido) setCustomContenido(initialData.contenido);
       if (initialData.pda) setCustomPda(initialData.pda);
 
-      if (initialData.metodologia) {
-        setSelectedMetodologia(initialData.metodologia);
-      }
+      if (initialData.metodologia) setSelectedMetodologia(initialData.metodologia);
       if (initialData.ejesArticuladores && Array.isArray(initialData.ejesArticuladores)) {
         setSelectedEjes(initialData.ejesArticuladores);
       }
@@ -268,20 +244,6 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     }
   }, [nivel]);
 
-  // Actualización panel IA
-  useEffect(() => {
-    if (aiNivel === "Preescolar") {
-      setAiGrado("1º de Preescolar");
-      setAiDisciplina("Educación Preescolar");
-    } else if (aiNivel === "Primaria") {
-      setAiGrado("Primer Grado");
-      setAiDisciplina("Lenguajes / Primaria");
-    } else {
-      setAiGrado("Primer Grado");
-      setAiDisciplina("Español");
-    }
-  }, [aiNivel]);
-
   // Obtener disciplinas únicas cuando cambia el campo o nivel
   useEffect(() => {
     const uniqueDisciplinas = Array.from(
@@ -302,7 +264,7 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     );
     setDisciplinas(uniqueDisciplinas);
 
-    if (uniqueDisciplinas.length > 0) {
+    if (uniqueDisciplinas.length > 0 && !uniqueDisciplinas.includes(selectedDisciplina)) {
       setSelectedDisciplina(uniqueDisciplinas[0]);
     }
   }, [selectedCampo, nivel]);
