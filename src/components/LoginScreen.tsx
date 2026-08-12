@@ -24,7 +24,11 @@ interface Escuela {
   cct: string;
 }
 
-export const LoginScreen: React.FC = () => {
+interface LoginScreenProps {
+  onLoginSuccess?: () => void;
+}
+
+export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [esRegistro, setEsRegistro] = useState(false);
   
   // Campos del formulario
@@ -68,11 +72,26 @@ export const LoginScreen: React.FC = () => {
           escuelas: escuelas.filter(e => e.nombre.trim() !== '' || e.cct.trim() !== '')
         };
 
-        await registrarUsuario(email, password, perfilCompleto);
-        setMensaje('Cuenta y perfil creados con éxito. Revisa tu correo o inicia sesión.');
-        setEsRegistro(false);
+        const res = await registrarUsuario(email, password, perfilCompleto);
+        
+        // Si la confirmación por correo está desactivada, Supabase retorna una sesión activa al momento
+        if (res?.session) {
+          if (onLoginSuccess) {
+            onLoginSuccess();
+          } else {
+            window.location.reload();
+          }
+        } else {
+          setMensaje('Cuenta registrada exitosamente. Puedes iniciar sesión ahora.');
+          setEsRegistro(false);
+        }
       } else {
         await iniciarSesion(email, password);
+        if (onLoginSuccess) {
+          onLoginSuccess();
+        } else {
+          window.location.reload();
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Ocurrió un error al procesar la solicitud');
