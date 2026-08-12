@@ -1,201 +1,130 @@
 import React, { useState } from 'react';
-import { iniciarSesion, registrarUsuario } from '../services/authService';
+import { iniciarSesion, recuperarPassword } from '../services/authService';
 
 const LOGO_IMG = "https://i.imgur.com/tv95RC0.png";
 
-interface UserProfile {
-  docenteName: string;
-  escuelaName: string;
-  cct: string;
-  email: string;
-  escuelas?: Array<{ escuelaName: string; cct: string }>;
-}
-
-interface LoginScreenProps {
-  onLogin: (profile: UserProfile) => void;
-}
-
-export default function LoginScreen({ onLogin }: LoginScreenProps) {
-  const [esRegistro, setEsRegistro] = useState(false);
+export const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [docenteName, setDocenteName] = useState('');
-  const [escuelaName, setEscuelaName] = useState('');
-  const [cct, setCct] = useState('');
-  
+  const [mensaje, setMensaje] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg('');
+    setError(null);
+    setMensaje(null);
     setCargando(true);
 
     try {
-      if (esRegistro) {
-        // Registro en Supabase Auth
-        const data = await registrarUsuario(email, password, {
-          docenteName,
-          escuelaName,
-          cct
-        });
-
-        if (data.user) {
-          onLogin({
-            email,
-            docenteName: docenteName || email.split('@')[0],
-            escuelaName: escuelaName || 'Escuela Secundaria',
-            cct: cct || 'CCT-000000',
-          });
-        }
-      } else {
-        // Login en Supabase Auth
-        const data = await iniciarSesion(email, password);
-
-        if (data.user) {
-          const metadata = data.user.user_metadata || {};
-          onLogin({
-            email: data.user.email || email,
-            docenteName: metadata.docenteName || email.split('@')[0],
-            escuelaName: metadata.escuelaName || 'Escuela Secundaria',
-            cct: metadata.cct || 'CCT-000000',
-          });
-        }
-      }
+      await iniciarSesion(email, password);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Error de autenticación. Verifica tus datos.');
+      setError(err.message || 'Error al iniciar sesión');
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Por favor, ingresa tu correo electrónico para recuperar la contraseña.');
+      return;
+    }
+
+    setError(null);
+    setMensaje(null);
+    setCargando(true);
+
+    try {
+      await recuperarPassword(email);
+      setMensaje('Se ha enviado un enlace de recuperación a tu correo electrónico.');
+    } catch (err: any) {
+      setError(err.message || 'Error al enviar el correo de recuperación.');
     } finally {
       setCargando(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
-        {/* Encabezado */}
-        <div className="bg-[#2c3e50] text-white p-6 text-center relative overflow-hidden">
-          <div className="w-16 h-16 bg-white rounded-xl mx-auto mb-3 p-1 flex items-center justify-center shadow">
-            <img src={LOGO_IMG} alt="EnseñIA MX Logo" className="w-full h-full object-contain" />
-          </div>
-          <h2 className="text-xl font-bold tracking-wide">EnseñIA MX</h2>
-          <p className="text-xs text-slate-300 font-medium">ASISTENTE INTEGRAL DOCENTE</p>
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
+      <div className="w-full max-w-md bg-white rounded-lg shadow-lg overflow-hidden">
+        {/* Header */}
+        <div className="bg-[#2A3E54] text-white p-6 text-center">
+          <img src={LOGO_IMG} alt="EnseñIA MX Logo" className="w-20 h-20 mx-auto mb-2" />
+          <h1 className="text-2xl font-bold">EnseñIA MX</h1>
+          <p className="text-xs tracking-wider text-slate-300">ASISTENTE INTEGRAL DOCENTE</p>
         </div>
 
         {/* Formulario */}
-        <div className="p-8">
-          <h3 className="text-center text-sm font-extrabold text-slate-800 tracking-wider uppercase mb-1">
-            {esRegistro ? 'CREAR CUENTA DOCENTE' : 'ACCESO DOCENTE'}
-          </h3>
-          <p className="text-center text-xs text-slate-500 mb-6">
-            {esRegistro 
-              ? 'Registra tus datos institucionales para comenzar a planear.' 
-              : 'Ingresa tu correo institucional o personal y contraseña para cargar tu planeador didáctico.'}
-          </p>
+        <div className="p-6 space-y-6">
+          <div className="text-center">
+            <h2 className="text-lg font-bold text-slate-800 tracking-wide">ACCESO DOCENTE</h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Ingresa tu correo institucional o personal y contraseña para cargar tu planeador didáctico.
+            </p>
+          </div>
 
-          {errorMsg && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-xs text-center font-medium">
-              {errorMsg}
+          {error && (
+            <div className="bg-red-50 text-red-600 text-xs p-3 rounded border border-red-200">
+              {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {mensaje && (
+            <div className="bg-green-50 text-green-700 text-xs p-3 rounded border border-green-200">
+              {mensaje}
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-600 mb-1">
-                CORREO ELECTRÓNICO
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                CORREO ELECTRÓNICO (GMAIL)
               </label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="docente@escuela.edu.mx"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-mex-maroon focus:bg-white outline-none transition"
+                placeholder="rdjgr.ened@gmail.com"
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400 bg-slate-50"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-600 mb-1">
-                CONTRASEÑA
-              </label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-xs font-bold text-slate-700">
+                  CONTRASEÑA
+                </label>
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-[11px] font-bold text-[#2A3E54] hover:underline"
+                >
+                  ¿OLVIDASTE TU CONTRASEÑA?
+                </button>
+              </div>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-mex-maroon focus:bg-white outline-none transition"
+                placeholder="••••••••••"
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400 bg-slate-50"
               />
             </div>
-
-            {/* Campos adicionales sólo al registrarse */}
-            {esRegistro && (
-              <>
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-600 mb-1">
-                    NOMBRE COMPLETO DEL DOCENTE
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={docenteName}
-                    onChange={(e) => setDocenteName(e.target.value)}
-                    placeholder="Prof. Juan Pérez"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-mex-maroon focus:bg-white outline-none transition"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-600 mb-1">
-                      ESCUELA
-                    </label>
-                    <input
-                      type="text"
-                      value={escuelaName}
-                      onChange={(e) => setEscuelaName(e.target.value)}
-                      placeholder="Secundaria No. 1"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-mex-maroon focus:bg-white outline-none transition"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-600 mb-1">
-                      CCT
-                    </label>
-                    <input
-                      type="text"
-                      value={cct}
-                      onChange={(e) => setCct(e.target.value)}
-                      placeholder="05DES0001A"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-mex-maroon focus:bg-white outline-none transition"
-                    />
-                  </div>
-                </div>
-              </>
-            )}
 
             <button
               type="submit"
               disabled={cargando}
-              className="w-full py-3 bg-[#0f172a] hover:bg-slate-800 text-white font-bold text-xs rounded-lg uppercase tracking-wider transition shadow-md disabled:opacity-50 mt-2"
+              className="w-full bg-[#0F172A] text-white py-3 rounded-md font-bold text-sm hover:bg-slate-800 transition-colors uppercase tracking-wider mt-4"
             >
-              {cargando ? 'Procesando...' : esRegistro ? 'REGISTRAR CUENTA' : 'INGRESAR AL SISTEMA'}
+              {cargando ? 'CARGANDO...' : 'INGRESAR AL SISTEMA'}
             </button>
           </form>
-
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setEsRegistro(!esRegistro);
-                setErrorMsg('');
-              }}
-              className="text-xs font-bold text-slate-600 hover:text-slate-900 uppercase tracking-wider transition"
-            >
-              {esRegistro ? '← Volver al Inicio de Sesión' : '+ CREAR NUEVA CUENTA DOCENTE'}
-            </button>
-          </div>
         </div>
       </div>
     </div>
   );
-}
+};
+export default LoginScreen;
