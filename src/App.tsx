@@ -10,7 +10,6 @@ import CrearProgramaAnaliticoView from "./components/CrearProgramaAnaliticoView"
 import FormatoEvaluacionView from "./components/FormatoEvaluacionView";
 import BitacoraIncidenciaView from "./components/BitacoraIncidenciaView";
 import OrganizadorEscolarView from "./components/OrganizadorEscolarView";
-import { AuthModal } from "./components/AuthModal";
 import { supabase } from "./lib/supabase";
 import { cerrarSesion } from "./services/authService";
 import { CompletePlan } from "./types";
@@ -43,7 +42,6 @@ type OrganizadorTab = "planeaciones" | "grupos" | "bitacora" | "seguimiento" | "
 export default function App() {
   // Estado para autenticación de Supabase
   const [usuarioSupabase, setUsuarioSupabase] = useState<any>(null);
-  const [mostrarAuthModal, setMostrarAuthModal] = useState(false);
 
   // Inicialización perezosa de planes desde localStorage
   const [plans, setPlans] = useState<CompletePlan[]>(() => {
@@ -335,18 +333,11 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {usuarioSupabase ? (
+            {usuarioSupabase && (
               <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded text-xs font-semibold">
                 <UserCheck className="w-3.5 h-3.5 text-mex-gold" />
                 <span className="hidden sm:inline max-w-[150px] truncate">{usuarioSupabase.email}</span>
               </div>
-            ) : (
-              <button
-                onClick={() => setMostrarAuthModal(true)}
-                className="text-xs bg-mex-gold/20 hover:bg-mex-gold/30 border border-mex-gold/50 px-3 py-1.5 rounded text-white font-bold transition flex items-center gap-2 cursor-pointer"
-              >
-                <span>Acceder a Supabase</span>
-              </button>
             )}
 
             <button
@@ -415,13 +406,6 @@ export default function App() {
           </span>
         </div>
       </footer>
-
-      {/* Modal de Autenticación Supabase */}
-      <AuthModal
-        isOpen={mostrarAuthModal}
-        onClose={() => setMostrarAuthModal(false)}
-        onSuccess={() => console.log("Sesión iniciada con éxito en Supabase")}
-      />
     </div>
   );
 }
