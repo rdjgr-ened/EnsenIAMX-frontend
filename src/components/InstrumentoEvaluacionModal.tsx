@@ -1,6 +1,6 @@
 import React from "react";
 import { GeneratedInstrument, CompletePlan } from "../types";
-import { Printer, Download, X, Sparkles, Loader2, AlertCircle, CheckCircle2, FileText } from "lucide-react";
+import { Printer, Download, X, Sparkles, AlertCircle } from "lucide-react";
 
 interface InstrumentoEvaluacionModalProps {
   isOpen: boolean;
@@ -33,7 +33,6 @@ export default function InstrumentoEvaluacionModal({
     grupo,
     campoFormativo,
     disciplina,
-    contenido,
     pda,
     plan,
   } = planData;
@@ -48,6 +47,158 @@ export default function InstrumentoEvaluacionModal({
 
   const handleDownloadHtml = () => {
     if (!instrumentData) return;
+
+    // Renderizado seguro de tablas/reactivos dentro del documento HTML exportado
+    let tablesContentHtml = "";
+
+    if (instrumentData.criteriosRubrica && instrumentData.criteriosRubrica.length > 0) {
+      tablesContentHtml += `
+        <div class="overflow-x-auto border-2 border-slate-900 rounded my-4">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-900 text-white font-black text-[10px] uppercase tracking-wider">
+                <th class="p-2.5 border-r border-slate-700 w-1/5">CRITERIO / DIMENSIÓN</th>
+                <th class="p-2.5 border-r border-slate-700 bg-emerald-900/90 w-1/5 text-center">SOBRESALIENTE (10-9)</th>
+                <th class="p-2.5 border-r border-slate-700 bg-blue-900/90 w-1/5 text-center">SATISFACTORIO (8-7)</th>
+                <th class="p-2.5 border-r border-slate-700 bg-amber-900/90 w-1/5 text-center">BÁSICO (6)</th>
+                <th class="p-2.5 border-r border-slate-700 bg-rose-900/90 w-1/5 text-center">REQUIERE APOYO (5)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-300 font-normal">
+              ${instrumentData.criteriosRubrica.map((row, idx) => `
+                <tr class="${idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}">
+                  <td class="p-2.5 font-bold text-slate-900 border-r border-slate-300">
+                    ${row.criterio}
+                    ${row.ponderacion ? `<span class="block text-[9px] text-amber-900 font-black uppercase mt-0.5">Ponderación: ${row.ponderacion}</span>` : ''}
+                  </td>
+                  <td class="p-2.5 border-r border-slate-300 text-[11px] leading-relaxed text-slate-800">${row.sobresaliente}</td>
+                  <td class="p-2.5 border-r border-slate-300 text-[11px] leading-relaxed text-slate-800">${row.satisfactorio}</td>
+                  <td class="p-2.5 border-r border-slate-300 text-[11px] leading-relaxed text-slate-800">${row.basico}</td>
+                  <td class="p-2.5 text-[11px] leading-relaxed text-slate-800">${row.requiereApoyo}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    if (instrumentData.itemsListaCotejo && instrumentData.itemsListaCotejo.length > 0) {
+      tablesContentHtml += `
+        <div class="overflow-x-auto border-2 border-slate-900 rounded my-4">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-900 text-white font-black text-[10px] uppercase tracking-wider">
+                <th class="p-2.5 border-r border-slate-700 text-center w-10">N°</th>
+                <th class="p-2.5 border-r border-slate-700">INDICADOR / CRITERIO OBSERVABLE</th>
+                <th class="p-2.5 border-r border-slate-700 text-center w-20">CUMPLE (SÍ)</th>
+                <th class="p-2.5 border-r border-slate-700 text-center w-20">NO CUMPLE (NO)</th>
+                <th class="p-2.5 text-center w-1/3">OBSERVACIONES / EVIDENCIAS</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-300 font-normal">
+              ${instrumentData.itemsListaCotejo.map((item, idx) => `
+                <tr class="${idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}">
+                  <td class="p-2.5 text-center font-bold text-slate-900 border-r border-slate-300">${item.num || idx + 1}</td>
+                  <td class="p-2.5 border-r border-slate-300 text-slate-900 font-medium">
+                    <span class="font-bold block text-amber-900 text-[10px] uppercase">${item.criterio}</span>
+                    <span class="text-[11px]">${item.indicador}</span>
+                  </td>
+                  <td class="p-2.5 text-center border-r border-slate-300 font-bold"><div class="w-5 h-5 border border-slate-800 rounded mx-auto"></div></td>
+                  <td class="p-2.5 text-center border-r border-slate-300 font-bold"><div class="w-5 h-5 border border-slate-800 rounded mx-auto"></div></td>
+                  <td class="p-2.5 text-slate-400 italic"><div class="border-b border-dashed border-slate-300 h-5"></div></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    if (instrumentData.itemsEscalaEstimativa && instrumentData.itemsEscalaEstimativa.length > 0) {
+      tablesContentHtml += `
+        <div class="overflow-x-auto border-2 border-slate-900 rounded my-4">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-900 text-white font-black text-[10px] uppercase tracking-wider">
+                <th class="p-2.5 border-r border-slate-700 text-center w-10">N°</th>
+                <th class="p-2.5 border-r border-slate-700">ASPECTO / CONDUCTA A ESTIMAR</th>
+                <th class="p-2.5 border-r border-slate-700 text-center w-24">EXCELENTE</th>
+                <th class="p-2.5 border-r border-slate-700 text-center w-24">SATISFACTORIO</th>
+                <th class="p-2.5 border-r border-slate-700 text-center w-24">BÁSICO</th>
+                <th class="p-2.5 text-center w-24">REQUIERE APOYO</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-300 font-normal">
+              ${instrumentData.itemsEscalaEstimativa.map((item, idx) => `
+                <tr class="${idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}">
+                  <td class="p-2.5 text-center font-bold text-slate-900 border-r border-slate-300">${item.num || idx + 1}</td>
+                  <td class="p-2.5 border-r border-slate-300 text-slate-900 font-medium">${item.aspecto}</td>
+                  <td class="p-2.5 text-center border-r border-slate-300"><div class="w-5 h-5 border border-slate-800 rounded mx-auto"></div></td>
+                  <td class="p-2.5 text-center border-r border-slate-300"><div class="w-5 h-5 border border-slate-800 rounded mx-auto"></div></td>
+                  <td class="p-2.5 text-center border-r border-slate-300"><div class="w-5 h-5 border border-slate-800 rounded mx-auto"></div></td>
+                  <td class="p-2.5 text-center"><div class="w-5 h-5 border border-slate-800 rounded mx-auto"></div></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    if (instrumentData.guiaObservacion && instrumentData.guiaObservacion.length > 0) {
+      tablesContentHtml += `
+        <div class="overflow-x-auto border-2 border-slate-900 rounded my-4">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-900 text-white font-black text-[10px] uppercase tracking-wider">
+                <th class="p-2.5 border-r border-slate-700 text-center w-10">N°</th>
+                <th class="p-2.5 border-r border-slate-700 w-1/3">ASPECTO PEDAGÓGICO / FOCO DE ATENCIÓN</th>
+                <th class="p-2.5 text-center">REGISTRO CUALITATIVO DE OBSERVACIÓN</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-300 font-normal">
+              ${instrumentData.guiaObservacion.map((item, idx) => `
+                <tr class="${idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}">
+                  <td class="p-2.5 text-center font-bold text-slate-900 border-r border-slate-300">${item.num || idx + 1}</td>
+                  <td class="p-2.5 border-r border-slate-300 text-slate-900 font-medium">
+                    <span class="font-bold block text-amber-900 text-[10px] uppercase">${item.aspecto}</span>
+                    <span class="text-[11px] text-slate-700">${item.focoAtencion}</span>
+                  </td>
+                  <td class="p-2.5 space-y-2">
+                    <div class="border-b border-dashed border-slate-300 h-5"></div>
+                    <div class="border-b border-dashed border-slate-300 h-5"></div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    if (instrumentData.preguntasCuestionario && instrumentData.preguntasCuestionario.length > 0) {
+      tablesContentHtml += `
+        <div class="space-y-4 border-2 border-slate-900 p-4 rounded bg-slate-50/30 my-4">
+          <h3 class="font-black text-xs uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-2">REACTIVOS Y PREGUNTAS DE EVALUACIÓN</h3>
+          ${instrumentData.preguntasCuestionario.map((q, idx) => `
+            <div class="bg-white p-3 rounded border border-slate-300 space-y-2">
+              <p class="font-bold text-xs text-slate-900">${q.num || idx + 1}. ${q.pregunta}</p>
+              ${q.opciones && q.opciones.length > 0 ? `
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-4 pt-1">
+                  ${q.opciones.map((opt) => `
+                    <div class="flex items-center gap-2 text-xs font-medium text-slate-800">
+                      <div class="w-4 h-4 rounded-full border border-slate-800"></div>
+                      <span>${opt}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : `
+                <div class="pl-4 pt-2 space-y-2">
+                  <div class="border-b border-slate-400 h-5 w-full"></div>
+                  <div class="border-b border-slate-400 h-5 w-full"></div>
+                </div>
+              `}
+            </div>
+          `).join('')}
+        </div>`;
+    }
 
     const htmlString = `<!DOCTYPE html>
 <html lang="es">
@@ -100,7 +251,7 @@ export default function InstrumentoEvaluacionModal({
     </div>
 
     <!-- Contenido del Instrumento -->
-    ${document.getElementById("instrument-tables-container")?.innerHTML || ""}
+    ${tablesContentHtml}
 
     <!-- Retroalimentación -->
     <div class="border border-slate-400 p-3 rounded">
@@ -125,7 +276,6 @@ export default function InstrumentoEvaluacionModal({
 
   <script>
     window.onload = function() {
-      // Auto trigger print when opened directly
       setTimeout(function() { window.print(); }, 500);
     }
   </script>
@@ -144,7 +294,7 @@ export default function InstrumentoEvaluacionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto print:p-0 print:static print:bg-white print:overflow-visible">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto print:p-0 print:static print:bg-white print:overflow-visible">
       <div className="bg-white rounded-2xl border-2 border-slate-900 shadow-2xl w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden print:max-h-none print:shadow-none print:border-none print:rounded-none">
         
         {/* Barra Superior - Oculta en impresión */}
@@ -207,7 +357,7 @@ export default function InstrumentoEvaluacionModal({
               </div>
               <div>
                 <h3 className="font-black text-slate-900 text-base uppercase tracking-wider">
-                  Gemini está estructurando el instrumento...
+                  Generando el instrumento...
                 </h3>
                 <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
                   Diseñando la matriz de criterios para "{instrumentName}" con total coherencia al PDA, producto y metodología NEM.
@@ -427,7 +577,7 @@ export default function InstrumentoEvaluacionModal({
                         <tr className="bg-slate-900 text-white font-black text-[10px] uppercase tracking-wider">
                           <th className="p-2.5 border-r border-slate-700 text-center w-10">N°</th>
                           <th className="p-2.5 border-r border-slate-700 w-1/3">ASPECTO PEDAGÓGICO / FOCO DE ATENCIÓN</th>
-                          <th className="p-2.5 text-center">REGISTRO QUALITATIVO DE OBSERVACIÓN</th>
+                          <th className="p-2.5 text-center">REGISTRO CUALITATIVO DE OBSERVACIÓN</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-300 font-normal">

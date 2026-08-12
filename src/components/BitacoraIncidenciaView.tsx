@@ -84,7 +84,7 @@ const EVIDENCIAS_ANEXAS = [
   "Otro",
 ];
 
-// Helper to generate custom folio from teacher initials, group, and count
+// Helper para generar folio personalizado con iniciales, grado y consecutivo
 const generateFolio = (docenteName: string, grado: string, grupo: string, count: number): string => {
   let initials = "DOC";
   if (docenteName && docenteName.trim()) {
@@ -107,15 +107,23 @@ const generateFolio = (docenteName: string, grado: string, grupo: string, count:
 
 export default function BitacoraIncidenciaView({
   onBack,
-  escuelaName: initialEscuela,
-  cct: initialCct,
-  docenteName: initialDocente,
+  escuelaName: initialEscuela = "",
+  cct: initialCct = "",
+  docenteName: initialDocente = "",
   escuelas = [],
 }: BitacoraIncidenciaViewProps) {
 
-  // Multi-school selection support
+  // Selección y Sincronización de Perfil y Multiescuela
   const [selectedEscuela, setSelectedEscuela] = useState(initialEscuela || "Escuela Educación Básica");
   const [selectedCct, setSelectedCct] = useState(initialCct || "CCT Sin Registrar");
+  const [docenteReporta, setDocenteReporta] = useState(initialDocente || "Docente Titular");
+
+  // Efecto para actualizar los estados locales cuando las props del perfil docente cambian
+  useEffect(() => {
+    if (initialEscuela) setSelectedEscuela(initialEscuela);
+    if (initialCct) setSelectedCct(initialCct);
+    if (initialDocente) setDocenteReporta(initialDocente);
+  }, [initialEscuela, initialCct, initialDocente]);
 
   useEffect(() => {
     if (escuelas && escuelas.length > 0) {
@@ -126,7 +134,7 @@ export default function BitacoraIncidenciaView({
     }
   }, [selectedEscuela, escuelas]);
 
-  // Saved bitácoras in localStorage
+  // Bitácoras guardadas en localStorage
   const [bitacoras, setBitacoras] = useState<BitacoraIncidencia[]>(() => {
     const saved = localStorage.getItem("nem_bitacoras_incidencias");
     if (saved) {
@@ -144,7 +152,7 @@ export default function BitacoraIncidenciaView({
     localStorage.setItem("nem_bitacoras_incidencias", JSON.stringify(updated));
   };
 
-  // Student Padron stored in localStorage
+  // Padrón de Alumnos guardado en localStorage
   const [studentPadron, setStudentPadron] = useState<StudentPadronItem[]>(() => {
     const saved = localStorage.getItem("nem_padron_alumnos");
     if (saved) {
@@ -168,7 +176,7 @@ export default function BitacoraIncidenciaView({
     localStorage.setItem("nem_padron_alumnos", JSON.stringify(updated));
   };
 
-  // Synchronize students from Formato de Evaluación saved state if available
+  // Sincronización con Formato de Evaluación si existen alumnos cargados
   useEffect(() => {
     const savedEval = localStorage.getItem("nem_formato_evaluacion_state");
     if (savedEval) {
@@ -194,16 +202,16 @@ export default function BitacoraIncidenciaView({
           });
         }
       } catch (e) {
-        console.error("Error loading students from evaluation format:", e);
+        console.error("Error al cargar alumnos desde el formato de evaluación:", e);
       }
     }
   }, []);
 
-  // View mode: "form" | "list" | "print"
+  // Modos de Vista: "form" | "list" | "print"
   const [viewMode, setViewMode] = useState<"form" | "list" | "print">("form");
   const [selectedBitacoraId, setSelectedBitacoraId] = useState<string | null>(null);
 
-  // Form State
+  // Estados del Formulario
   const [turno, setTurno] = useState("Matutino");
   const [cicloEscolar, setCicloEscolar] = useState("2025-2026");
   
@@ -215,7 +223,6 @@ export default function BitacoraIncidenciaView({
   });
   const [lugar, setLugar] = useState("Aula");
   const [lugarOtro, setLugarOtro] = useState("");
-  const docenteReporta = initialDocente || "Docente Titular";
   
   // Alumno Involucrado
   const [alumnoNombre, setAlumnoNombre] = useState("");
@@ -223,21 +230,21 @@ export default function BitacoraIncidenciaView({
   const [alumnoGrupo, setAlumnoGrupo] = useState("A");
   const [otrosInvolucrados, setOtrosInvolucrados] = useState("");
 
-  // Auto-generated Folio
+  // Folio Autogenerado
   const [folio, setFolio] = useState(() => generateFolio(docenteReporta, "1º de Secundaria", "A", bitacoras.length));
 
-  // Auto-update folio when grade/group changes for new bitácora
+  // Actualizar folio dinámicamente si cambian el docente, grado o grupo
   useEffect(() => {
     if (!selectedBitacoraId) {
       setFolio(generateFolio(docenteReporta, alumnoGrado, alumnoGrupo, bitacoras.length));
     }
   }, [docenteReporta, alumnoGrado, alumnoGrupo, bitacoras.length, selectedBitacoraId]);
 
-  // Student search autocomplete state
+  // Autocompletado del Padrón de Alumnos
   const [studentSearchTerm, setStudentSearchTerm] = useState("");
   const [showStudentDropdown, setShowStudentDropdown] = useState(false);
 
-  // Padron Manager Modal State
+  // Modal Padrón
   const [showPadronModal, setShowPadronModal] = useState(false);
   const [bulkPadronText, setBulkPadronText] = useState("");
   const [padronGrado, setPadronGrado] = useState("1º de Secundaria");
@@ -259,10 +266,10 @@ export default function BitacoraIncidenciaView({
   const [compromisoPadre, setCompromisoPadre] = useState("");
   const [compromisoEscuela, setCompromisoEscuela] = useState("");
 
-  // Search filter for List View
+  // Filtro de búsqueda en vista Lista
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Autocomplete student list filtering
+  // Búsqueda de alumnos en padrón
   const matchingStudents = useMemo(() => {
     if (!studentSearchTerm || studentSearchTerm.trim().length < 2) return [];
     const term = studentSearchTerm.toLowerCase().trim();
@@ -271,7 +278,6 @@ export default function BitacoraIncidenciaView({
     );
   }, [studentSearchTerm, studentPadron]);
 
-  // Handle student selection from autocomplete
   const handleSelectStudent = (student: StudentPadronItem) => {
     setAlumnoNombre(student.nombre);
     setAlumnoGrado(student.grado);
@@ -280,7 +286,6 @@ export default function BitacoraIncidenciaView({
     setShowStudentDropdown(false);
   };
 
-  // Toggle Checkboxes Helper
   const toggleArrayItem = (list: string[], setList: (val: string[]) => void, item: string) => {
     if (list.includes(item)) {
       setList(list.filter((i) => i !== item));
@@ -289,7 +294,6 @@ export default function BitacoraIncidenciaView({
     }
   };
 
-  // Reset form for a new bitácora
   const handleNewBitacora = () => {
     setSelectedBitacoraId(null);
     const newFolio = generateFolio(docenteReporta, "1º de Secundaria", "A", bitacoras.length);
@@ -315,7 +319,6 @@ export default function BitacoraIncidenciaView({
     setViewMode("form");
   };
 
-  // Edit existing bitácora
   const handleEditBitacora = (item: BitacoraIncidencia) => {
     setSelectedBitacoraId(item.id);
     setFolio(item.folio);
@@ -343,7 +346,6 @@ export default function BitacoraIncidenciaView({
     setViewMode("form");
   };
 
-  // Save / Update Bitácora
   const handleSaveBitacora = () => {
     if (!alumnoNombre.trim()) {
       alert("Por favor ingresa o selecciona el nombre del alumno involucrado.");
@@ -395,7 +397,6 @@ export default function BitacoraIncidenciaView({
     alert(`¡Bitácora ${folio} guardada exitosamente!`);
   };
 
-  // Delete Bitácora
   const handleDeleteBitacora = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm("¿Estás seguro de que deseas eliminar esta bitácora de incidencia?")) {
@@ -407,7 +408,6 @@ export default function BitacoraIncidenciaView({
     }
   };
 
-  // Bulk add students to Padron
   const handleAddBulkPadron = () => {
     if (!bulkPadronText.trim()) return;
     const lines = bulkPadronText.split("\n").filter((l) => l.trim().length > 0);
@@ -428,7 +428,6 @@ export default function BitacoraIncidenciaView({
     alert(`Se agregaron ${newItems.length} alumnos al padrón de ${padronGrado} ${padronGrupo}.`);
   };
 
-  // Filtered bitacoras for list view
   const filteredBitacoras = useMemo(() => {
     return bitacoras.filter((b) => {
       return (
@@ -440,7 +439,6 @@ export default function BitacoraIncidenciaView({
     });
   }, [bitacoras, searchTerm]);
 
-  // Current active bitacora for print view
   const printBitacora = useMemo(() => {
     if (selectedBitacoraId) {
       return bitacoras.find((b) => b.id === selectedBitacoraId) || null;
@@ -481,7 +479,7 @@ export default function BitacoraIncidenciaView({
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
-      {/* HEADER PRINCIPAL Y BOTÓN DE REGRESO - Ocultos al imprimir */}
+      {/* HEADER PRINCIPAL Y BOTÓN DE REGRESO */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden">
         <div className="flex items-center gap-4">
           <button
@@ -493,24 +491,33 @@ export default function BitacoraIncidenciaView({
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-mex-maroon/10 text-mex-maroon border border-mex-maroon/20 text-[10px] font-black uppercase tracking-wider">
+              <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-black uppercase tracking-wider">
                 Resguardo e Incidencias
               </span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 mt-1 flex items-center gap-2">
-              <ShieldAlert className="w-6 h-6 text-mex-maroon" />
+              <ShieldAlert className="w-6 h-6 text-rose-700" />
               <span>Bitácora de Incidencia Escolar</span>
             </h2>
           </div>
         </div>
 
-        {/* Acciones de Navegación */}
+        {/* Navegación entre lista y formulario */}
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {viewMode === "form" && (
+            <button
+              onClick={handleNewBitacora}
+              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nueva Bitácora</span>
+            </button>
+          )}
           <button
             onClick={() => setViewMode(viewMode === "list" ? "form" : "list")}
             className={`px-4 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition ${
               viewMode === "list"
-                ? "bg-mex-maroon text-white shadow-md"
+                ? "bg-rose-700 text-white shadow-md"
                 : "bg-slate-100 text-slate-700 hover:bg-slate-200"
             }`}
           >
@@ -520,7 +527,7 @@ export default function BitacoraIncidenciaView({
         </div>
       </div>
 
-      {/* ==================== VISTA 1: LISTADO DE BITÁCORAS GUARDADAS ==================== */}
+      {/* VISTA 1: LISTADO DE BITÁCORAS */}
       {viewMode === "list" && (
         <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
@@ -531,7 +538,7 @@ export default function BitacoraIncidenciaView({
                 placeholder="Buscar por folio, alumno, o grupo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-mex-maroon/20"
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-rose-500/20"
               />
             </div>
           </div>
@@ -549,11 +556,11 @@ export default function BitacoraIncidenciaView({
                 <div
                   key={item.id}
                   onClick={() => handleEditBitacora(item)}
-                  className="group bg-slate-50/80 hover:bg-white border border-slate-200 hover:border-mex-maroon rounded-2xl p-5 transition-all shadow-2xs hover:shadow-md cursor-pointer flex flex-col justify-between space-y-4"
+                  className="group bg-slate-50/80 hover:bg-white border border-slate-200 hover:border-rose-700 rounded-2xl p-5 transition-all shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between space-y-4"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="font-black text-xs text-mex-maroon bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-lg">
+                      <span className="font-black text-xs text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-lg">
                         {item.folio}
                       </span>
                       <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
@@ -562,7 +569,7 @@ export default function BitacoraIncidenciaView({
                       </span>
                     </div>
 
-                    <h4 className="font-extrabold text-slate-900 text-sm group-hover:text-mex-maroon transition line-clamp-1">
+                    <h4 className="font-extrabold text-slate-900 text-sm group-hover:text-rose-700 transition line-clamp-1">
                       {item.alumnoNombre}
                     </h4>
 
@@ -583,7 +590,7 @@ export default function BitacoraIncidenciaView({
                         handleEditBitacora(item);
                         setViewMode("print");
                       }}
-                      className="text-mex-maroon font-bold hover:underline flex items-center gap-1"
+                      className="text-rose-700 font-bold hover:underline flex items-center gap-1"
                     >
                       <Printer className="w-3.5 h-3.5" />
                       <span>Imprimir PDF</span>
@@ -605,15 +612,15 @@ export default function BitacoraIncidenciaView({
         </div>
       )}
 
-      {/* ==================== VISTA 2: FORMULARIO DE CAPTURA ==================== */}
+      {/* VISTA 2: FORMULARIO DE CAPTURA */}
       {viewMode === "form" && (
         <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-sm space-y-8">
           
-          {/* ENCABEZADO DE LA ESCUELA */}
+          {/* Datos de la Institución */}
           <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
             <div className="border-b border-slate-200/80 pb-3">
               <h3 className="font-black text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
-                <FileText className="w-4 h-4 text-mex-maroon" />
+                <FileText className="w-4 h-4 text-rose-700" />
                 <span>Datos de la Institución</span>
               </h3>
             </div>
@@ -679,10 +686,10 @@ export default function BitacoraIncidenciaView({
             </div>
           </div>
 
-          {/* I. DATOS GENERALES */}
+          {/* I. Datos Generales */}
           <div className="space-y-4 border-b border-slate-100 pb-6">
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2 bg-slate-100 p-2.5 rounded-xl">
-              <span className="w-5 h-5 rounded-lg bg-mex-maroon text-white flex items-center justify-center text-[10px]">I</span>
+              <span className="w-5 h-5 rounded-lg bg-rose-700 text-white flex items-center justify-center text-[10px]">I</span>
               <span>DATOS GENERALES DE LA INCIDENCIA</span>
             </h4>
 
@@ -722,7 +729,7 @@ export default function BitacoraIncidenciaView({
               </div>
             </div>
 
-            {/* Lugar donde ocurrió */}
+            {/* Lugar */}
             <div>
               <label className="block text-[11px] font-extrabold text-slate-700 mb-2">
                 Lugar donde ocurrió la incidencia:
@@ -735,7 +742,7 @@ export default function BitacoraIncidenciaView({
                     onClick={() => setLugar(item)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
                       lugar === item
-                        ? "bg-mex-maroon text-white shadow-sm"
+                        ? "bg-rose-700 text-white shadow-xs"
                         : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                     }`}
                   >
@@ -755,7 +762,7 @@ export default function BitacoraIncidenciaView({
               )}
             </div>
 
-            {/* Alumno(a) Involucrado con Búsqueda Inteligente del Padrón */}
+            {/* Alumno Involucrado */}
             <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200/80 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <label className="text-xs font-black text-emerald-950 uppercase tracking-wide flex items-center gap-1.5">
@@ -773,7 +780,6 @@ export default function BitacoraIncidenciaView({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 relative">
-                {/* Autocomplete Name Search */}
                 <div className="sm:col-span-2 relative">
                   <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">
                     Nombre Completo (Búsqueda en Padrón) *
@@ -791,7 +797,6 @@ export default function BitacoraIncidenciaView({
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-extrabold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                   />
 
-                  {/* Autocomplete Dropdown */}
                   {showStudentDropdown && matchingStudents.length > 0 && (
                     <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 max-h-48 overflow-y-auto divide-y divide-slate-100">
                       {matchingStudents.map((s) => (
@@ -857,10 +862,10 @@ export default function BitacoraIncidenciaView({
             </div>
           </div>
 
-          {/* II. TIPO DE INCIDENCIA */}
+          {/* II. Tipo de Incidencia */}
           <div className="space-y-4 border-b border-slate-100 pb-6">
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2 bg-slate-100 p-2.5 rounded-xl">
-              <span className="w-5 h-5 rounded-lg bg-mex-maroon text-white flex items-center justify-center text-[10px]">II</span>
+              <span className="w-5 h-5 rounded-lg bg-rose-700 text-white flex items-center justify-center text-[10px]">II</span>
               <span>TIPO DE INCIDENCIA</span>
             </h4>
 
@@ -878,7 +883,7 @@ export default function BitacoraIncidenciaView({
                     }`}
                   >
                     <span className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] shrink-0 ${
-                      isSelected ? "bg-rose-600 border-rose-600 text-white font-black" : "border-slate-400 bg-white"
+                      isSelected ? "bg-rose-700 border-rose-700 text-white font-black" : "border-slate-400 bg-white"
                     }`}>
                       {isSelected ? "✓" : ""}
                     </span>
@@ -899,10 +904,10 @@ export default function BitacoraIncidenciaView({
             )}
           </div>
 
-          {/* III. DESCRIPCIÓN OBJETIVA DE LOS HECHOS */}
+          {/* III. Descripción Objetiva */}
           <div className="space-y-3 border-b border-slate-100 pb-6">
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2 bg-slate-100 p-2.5 rounded-xl">
-              <span className="w-5 h-5 rounded-lg bg-mex-maroon text-white flex items-center justify-center text-[10px]">III</span>
+              <span className="w-5 h-5 rounded-lg bg-rose-700 text-white flex items-center justify-center text-[10px]">III</span>
               <span>DESCRIPCIÓN OBJETIVA DE LOS HECHOS</span>
             </h4>
             <p className="text-[11px] text-slate-500 font-semibold italic">
@@ -914,14 +919,14 @@ export default function BitacoraIncidenciaView({
               placeholder="Escribe aquí la descripción clara, imparcial y cronológica de lo acontecido..."
               value={descripcionHechos}
               onChange={(e) => setDescripcionHechos(e.target.value)}
-              className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-mex-maroon/20 leading-relaxed"
+              className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 leading-relaxed"
             />
           </div>
 
-          {/* IV. ACCIONES INMEDIATAS REALIZADAS */}
+          {/* IV. Acciones Inmediatas */}
           <div className="space-y-4 border-b border-slate-100 pb-6">
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2 bg-slate-100 p-2.5 rounded-xl">
-              <span className="w-5 h-5 rounded-lg bg-mex-maroon text-white flex items-center justify-center text-[10px]">IV</span>
+              <span className="w-5 h-5 rounded-lg bg-rose-700 text-white flex items-center justify-center text-[10px]">IV</span>
               <span>ACCIONES INMEDIATAS REALIZADAS</span>
             </h4>
 
@@ -960,7 +965,7 @@ export default function BitacoraIncidenciaView({
             )}
           </div>
 
-          {/* ASIGNACIÓN DE FOLIO Y BOTONES DE FINALIZACIÓN */}
+          {/* Folio y Botones de Acción */}
           <div className="pt-4 border-t border-slate-200/80 space-y-4">
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -973,7 +978,7 @@ export default function BitacoraIncidenciaView({
                   type="text"
                   value={folio}
                   onChange={(e) => setFolio(e.target.value)}
-                  className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg font-black text-mex-maroon text-sm tracking-wider shadow-2xs w-36 text-center uppercase focus:ring-2 focus:ring-mex-maroon/20 focus:outline-none"
+                  className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg font-black text-rose-700 text-sm tracking-wider shadow-2xs w-36 text-center uppercase focus:ring-2 focus:ring-rose-500/20 focus:outline-none"
                   title="Folio autogenerado"
                 />
               </div>
@@ -995,9 +1000,9 @@ export default function BitacoraIncidenciaView({
                   handleSaveBitacora();
                   setViewMode("print");
                 }}
-                className="w-full sm:w-auto px-8 py-3.5 bg-mex-maroon hover:bg-mex-maroon/90 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg transition"
+                className="w-full sm:w-auto px-8 py-3.5 bg-rose-700 hover:bg-rose-800 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg transition"
               >
-                <Printer className="w-4 h-4 text-mex-gold" />
+                <Printer className="w-4 h-4 text-amber-300" />
                 <span>Ver e Imprimir Formato (PDF)</span>
               </button>
             </div>
@@ -1005,11 +1010,9 @@ export default function BitacoraIncidenciaView({
         </div>
       )}
 
-      {/* ==================== VISTA 3: FORMATO IMPRIMIBLE PARA FIRMAS ==================== */}
+      {/* VISTA 3: IMPRESIÓN */}
       {(viewMode === "print" || selectedBitacoraId) && (
         <div className={viewMode === "print" ? "block" : "hidden print:block"}>
-          
-          {/* Barra de Controles de Impresión - Oculta en Print */}
           <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between gap-4 mb-6 print:hidden">
             <div className="flex items-center gap-3">
               <button
@@ -1019,29 +1022,26 @@ export default function BitacoraIncidenciaView({
                 <ArrowLeft className="w-4 h-4" />
                 <span>Volver a Edición</span>
               </button>
-              <span className="text-xs font-black text-mex-gold">
+              <span className="text-xs font-black text-amber-300">
                 Vista de Impresión (Folio: {printBitacora.folio})
               </span>
             </div>
 
             <button
               onClick={() => window.print()}
-              className="px-6 py-2.5 bg-mex-maroon hover:bg-mex-maroon/90 text-white text-xs font-black rounded-xl flex items-center gap-2 shadow-md transition"
+              className="px-6 py-2.5 bg-rose-700 hover:bg-rose-800 text-white text-xs font-black rounded-xl flex items-center gap-2 shadow-md transition"
             >
-              <Printer className="w-4 h-4 text-mex-gold" />
+              <Printer className="w-4 h-4 text-amber-300" />
               <span>Imprimir / Descargar PDF</span>
             </button>
           </div>
 
-          {/* HOJA DE DOCUMENTO DE RESGUARDO INSTITUCIONAL */}
           <div className="bg-white p-8 sm:p-12 border border-slate-300 shadow-xl max-w-4xl mx-auto space-y-6 text-slate-900 font-sans print:shadow-none print:border-none print:p-0">
-            
-            {/* Header Institucional */}
             <div className="border-b-2 border-slate-900 pb-4 text-center space-y-1">
               <h1 className="text-base font-black uppercase tracking-wider">
                 SECRETARÍA DE EDUCACIÓN PÚBLICA
               </h1>
-              <h2 className="text-sm font-black uppercase tracking-wide text-mex-maroon">
+              <h2 className="text-sm font-black uppercase tracking-wide text-rose-700">
                 BITÁCORA DE INCIDENCIA ESCOLAR
               </h2>
               <p className="text-[10px] font-extrabold uppercase text-slate-600">
@@ -1049,7 +1049,6 @@ export default function BitacoraIncidenciaView({
               </p>
             </div>
 
-            {/* Encabezado Escuela & Folio */}
             <div className="grid grid-cols-2 gap-4 text-xs font-bold border border-slate-800 p-3 rounded-lg bg-slate-50/50">
               <div>
                 <p><span className="font-black">Escuela:</span> {printBitacora.escuela}</p>
@@ -1057,12 +1056,11 @@ export default function BitacoraIncidenciaView({
                 <p><span className="font-black">Turno:</span> {printBitacora.turno}</p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-black text-mex-maroon">FOLIO: {printBitacora.folio}</p>
+                <p className="text-sm font-black text-rose-700">FOLIO: {printBitacora.folio}</p>
                 <p><span className="font-black">Ciclo Escolar:</span> {printBitacora.cicloEscolar}</p>
               </div>
             </div>
 
-            {/* I. DATOS GENERALES */}
             <div className="space-y-1 text-xs">
               <h3 className="font-black uppercase bg-slate-200 px-2 py-1 text-[11px] border border-slate-800">
                 I. DATOS GENERALES
@@ -1085,7 +1083,6 @@ export default function BitacoraIncidenciaView({
               </div>
             </div>
 
-            {/* II. TIPO DE INCIDENCIA */}
             <div className="space-y-1 text-xs">
               <h3 className="font-black uppercase bg-slate-200 px-2 py-1 text-[11px] border border-slate-800">
                 II. TIPO DE INCIDENCIA
@@ -1104,7 +1101,6 @@ export default function BitacoraIncidenciaView({
               </div>
             </div>
 
-            {/* III. DESCRIPCIÓN OBJETIVA DE LOS HECHOS */}
             <div className="space-y-1 text-xs">
               <h3 className="font-black uppercase bg-slate-200 px-2 py-1 text-[11px] border border-slate-800">
                 III. DESCRIPCIÓN OBJETIVA DE LOS HECHOS
@@ -1114,7 +1110,6 @@ export default function BitacoraIncidenciaView({
               </div>
             </div>
 
-            {/* IV. ACCIONES INMEDIATAS REALIZADAS */}
             <div className="space-y-1 text-xs">
               <h3 className="font-black uppercase bg-slate-200 px-2 py-1 text-[11px] border border-slate-800">
                 IV. ACCIONES INMEDIATAS REALIZADAS
@@ -1131,7 +1126,6 @@ export default function BitacoraIncidenciaView({
               </div>
             </div>
 
-            {/* V. ACUERDOS Y COMPROMISOS (Espacio para llenado manual en el formato) */}
             <div className="space-y-1 text-xs">
               <h3 className="font-black uppercase bg-slate-200 px-2 py-1 text-[11px] border border-slate-800">
                 V. ACUERDOS Y COMPROMISOS
@@ -1158,7 +1152,6 @@ export default function BitacoraIncidenciaView({
               </div>
             </div>
 
-            {/* VI. SEGUIMIENTO Y EVALUACIÓN DE ACUERDOS (Espacio en blanco para llenado manual) */}
             <div className="space-y-1 text-xs">
               <h3 className="font-black uppercase bg-slate-200 px-2 py-1 text-[11px] border border-slate-800">
                 VI. SEGUIMIENTO Y EVALUACIÓN DE ACUERDOS
@@ -1176,7 +1169,6 @@ export default function BitacoraIncidenciaView({
               </div>
             </div>
 
-            {/* VII. EVIDENCIAS ANEXAS (Formato para marcado manual) */}
             <div className="space-y-1 text-xs">
               <h3 className="font-black uppercase bg-slate-200 px-2 py-1 text-[11px] border border-slate-800">
                 VII. EVIDENCIAS ANEXAS
@@ -1191,7 +1183,6 @@ export default function BitacoraIncidenciaView({
               </div>
             </div>
 
-            {/* FIRMAS FÍSICAS PARA IMPRESIÓN (Docente, Tutor, Orientación/Dirección) */}
             <div className="space-y-1 text-xs pt-6">
               <h3 className="font-black uppercase bg-slate-200 px-2 py-1 text-[11px] border border-slate-800 text-center">
                 FIRMAS DE CONFORMIDAD Y ACUERDO
@@ -1216,7 +1207,7 @@ export default function BitacoraIncidenciaView({
         </div>
       )}
 
-      {/* ==================== MODAL: ADMINISTRAR PADRÓN DE ALUMNOS ==================== */}
+      {/* MODAL PADRÓN */}
       {showPadronModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in print:hidden">
           <div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl border border-slate-200">

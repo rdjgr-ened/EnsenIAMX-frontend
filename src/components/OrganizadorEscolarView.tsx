@@ -53,7 +53,6 @@ export default function OrganizadorEscolarView({
         console.error(e);
       }
     }
-    // Default initial groups
     return [
       {
         id: "grp_1a",
@@ -101,7 +100,6 @@ export default function OrganizadorEscolarView({
   useEffect(() => {
     localStorage.setItem("nem_grupos_organizador", JSON.stringify(grupos));
     
-    // Flatten all students into padron format for bitácora compatibility
     const allPadronStudents = grupos.flatMap(grp => 
       grp.estudiantes.map(st => ({
         id: st.id,
@@ -287,7 +285,6 @@ export default function OrganizadorEscolarView({
     return {};
   });
 
-  const [totalSessionsCols, setTotalSessionsCols] = useState<number>(10);
   const [activeSessionHover, setActiveSessionHover] = useState<{ groupId: string; sessionNum: number } | null>(null);
 
   useEffect(() => {
@@ -396,26 +393,12 @@ export default function OrganizadorEscolarView({
     localStorage.setItem("nem_evaluacion_continua", JSON.stringify(evalData));
   }, [evalData]);
 
-  // Helper date formatting functions
   const formatDateForInput = (str: string) => {
     if (!str) return new Date().toISOString().split("T")[0];
     if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
     return new Date().toISOString().split("T")[0];
   };
 
-  const formatDateDisplay = (str: string) => {
-    if (!str) return "";
-    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
-      const [year, month, day] = str.split("-").map(Number);
-      if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-        const d = new Date(year, month - 1, day);
-        return d.toLocaleDateString("es-MX", { day: "2-digit", month: "short" });
-      }
-    }
-    return str;
-  };
-
-  // Current Group's Evaluation State
   const currentGroupEval = useMemo(() => {
     if (!selectedGroupId) return null;
     const existing = evalData[selectedGroupId];
@@ -429,7 +412,6 @@ export default function OrganizadorEscolarView({
       };
     }
 
-    // Auto-generate columns from synced plan if available
     if (syncedPlan && syncedPlan.plan?.fases) {
       const allLessons = syncedPlan.plan.fases.flatMap(f => f.sesiones);
       if (allLessons.length > 0) {
@@ -462,7 +444,6 @@ export default function OrganizadorEscolarView({
     };
   }, [evalData, selectedGroupId, selectedGroup, plans]);
 
-  // Handler to sync a planeación's lessons to evaluation columns
   const handleSyncPlanToEval = (planId: string) => {
     if (!selectedGroupId) return;
     const targetPlan = plans.find(p => p.id === planId);
@@ -499,7 +480,6 @@ export default function OrganizadorEscolarView({
       };
     });
 
-    // Also sync to group state
     handleSyncPlanToGroup(selectedGroupId, planId);
 
     setEvalData(prev => ({
@@ -512,7 +492,6 @@ export default function OrganizadorEscolarView({
       }
     }));
 
-    // Auto-collapse the selection drawer
     setShowSyncDrawer(false);
   };
 
@@ -536,22 +515,6 @@ export default function OrganizadorEscolarView({
     if (!selectedGroupId) return;
     const currentCols = currentGroupEval?.columnas || [];
     const updatedCols = currentCols.map(col => col.id === columnId ? { ...col, puntosMaximos: Math.max(1, newMaxPoints) } : col);
-
-    setEvalData(prev => ({
-      ...prev,
-      [selectedGroupId]: {
-        groupId: selectedGroupId,
-        syncedPlanId: prev[selectedGroupId]?.syncedPlanId || currentGroupEval?.syncedPlanId,
-        columnas: updatedCols,
-        calificaciones: prev[selectedGroupId]?.calificaciones || {}
-      }
-    }));
-  };
-
-  const handleUpdateColumnTitle = (columnId: string, newTitle: string) => {
-    if (!selectedGroupId) return;
-    const currentCols = currentGroupEval?.columnas || [];
-    const updatedCols = currentCols.map(col => col.id === columnId ? { ...col, titulo: newTitle } : col);
 
     setEvalData(prev => ({
       ...prev,
@@ -652,7 +615,6 @@ export default function OrganizadorEscolarView({
     }));
   };
 
-  // Search for Planeaciones
   const [planSearch, setPlanSearch] = useState<string>("");
   const filteredPlans = useMemo(() => {
     return plans.filter(p => {
@@ -692,7 +654,7 @@ export default function OrganizadorEscolarView({
         </button>
       </div>
 
-      {/* Carpetas / Navigation Tabs */}
+      {/* Navigation Tabs */}
       <div className="bg-slate-200/80 p-1.5 rounded-2xl flex flex-wrap gap-1.5 border border-slate-300/80 shadow-xs print:hidden">
         <button
           type="button"
@@ -760,9 +722,7 @@ export default function OrganizadorEscolarView({
         </button>
       </div>
 
-      {/* ========================================================================= */}
-      {/* FOLDER 1: MIS PLANEACIONES */}
-      {/* ========================================================================= */}
+      {/* TAB 1: PLANEACIONES */}
       {activeTab === "planeaciones" && (
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
@@ -872,9 +832,7 @@ export default function OrganizadorEscolarView({
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* FOLDER 2: MIS GRUPOS */}
-      {/* ========================================================================= */}
+      {/* TAB 2: GRUPOS */}
       {activeTab === "grupos" && (
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
@@ -898,9 +856,7 @@ export default function OrganizadorEscolarView({
             </button>
           </div>
 
-          {/* Master Detail: Groups List + Students Table */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Sidebar of Groups */}
             <div className="lg:col-span-1 space-y-2">
               <span className="font-bold text-slate-600 text-[10px] uppercase tracking-wider block">
                 Selecciona un Grupo ({grupos.length}):
@@ -943,7 +899,6 @@ export default function OrganizadorEscolarView({
               })}
             </div>
 
-            {/* Selected Group Students List */}
             <div className="lg:col-span-3 space-y-4 bg-slate-50/50 p-4 rounded-xl border border-slate-200">
               {selectedGroup ? (
                 <>
@@ -994,7 +949,6 @@ export default function OrganizadorEscolarView({
                     </div>
                   </div>
 
-                  {/* Student Table */}
                   {selectedGroup.estudiantes.length === 0 ? (
                     <div className="p-8 text-center text-slate-400 bg-white rounded-xl border border-slate-200">
                       <Users className="w-8 h-8 mx-auto mb-2 text-slate-300" />
@@ -1049,9 +1003,7 @@ export default function OrganizadorEscolarView({
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* FOLDER 3: BITÁCORA ESCOLAR */}
-      {/* ========================================================================= */}
+      {/* TAB 3: BITÁCORA */}
       {activeTab === "bitacora" && (
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
@@ -1180,9 +1132,7 @@ export default function OrganizadorEscolarView({
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* FOLDER 4: SEGUIMIENTO DE CLASES */}
-      {/* ========================================================================= */}
+      {/* TAB 4: SEGUIMIENTO DE CLASES */}
       {activeTab === "seguimiento" && (
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
@@ -1203,18 +1153,16 @@ export default function OrganizadorEscolarView({
               <p className="text-xs text-slate-500 mt-1">Ve a la pestaña "Mis Grupos" para dar de alta tus grupos.</p>
             </div>
           ) : (() => {
-            // Helper function to calculate total sessions for a group based on its selected planeación
-            const getGroupSessionsCount = (grp: any) => {
+            const getGroupSessionsCount = (grp: EscolarGroup) => {
               const rec = trackingRecords[grp.id];
               const syncedPlan = plans.find(p => p.id === (grp.syncedPlanId || rec?.syncedPlanId));
               if (syncedPlan?.plan?.fases) {
                 const totalInPlan = syncedPlan.plan.fases.flatMap(f => f.sesiones).length;
                 if (totalInPlan > 0) return totalInPlan;
               }
-              return 10; // Default fallback if no planeación is synced
+              return 10;
             };
 
-            // Compute table header columns: max session count among all groups, at least 1
             const headerColsCount = Math.max(
               ...grupos.map(g => getGroupSessionsCount(g)),
               1
@@ -1240,20 +1188,14 @@ export default function OrganizadorEscolarView({
                         const rec = trackingRecords[grp.id] || { groupId: grp.id, completedSessions: [] };
                         const syncedPlan = plans.find(p => p.id === (grp.syncedPlanId || rec.syncedPlanId));
                         
-                        // Dynamic session count for THIS specific group/planeación
                         const groupSessionsCount = getGroupSessionsCount(grp);
-
-                        // Sessions completed SPECIFICALLY for the currently selected planeación
                         const groupCompletedSessions = getCompletedSessionsForGroup(grp, rec);
-
-                        // Only count completed sessions that are within this group's active plan length
                         const validCompletedSessions = groupCompletedSessions.filter(sNum => sNum <= groupSessionsCount);
                         const completedCount = validCompletedSessions.length;
                         const pct = groupSessionsCount > 0 ? Math.round((completedCount / groupSessionsCount) * 100) : 0;
 
                         return (
                           <tr key={grp.id} className="hover:bg-slate-50 transition">
-                            {/* Group & Plan Selector */}
                             <td className="p-3 bg-slate-50">
                               <div className="flex items-center justify-between gap-1">
                                 <div className="font-black text-slate-900 text-xs uppercase">
@@ -1285,7 +1227,6 @@ export default function OrganizadorEscolarView({
                               </div>
                             </td>
 
-                            {/* Session Checkboxes up to headerColsCount */}
                             {Array.from({ length: headerColsCount }, (_, i) => i + 1).map((sNum) => {
                               const isWithinPlan = sNum <= groupSessionsCount;
                               const isDone = isWithinPlan && groupCompletedSessions.includes(sNum);
@@ -1298,7 +1239,6 @@ export default function OrganizadorEscolarView({
                                 );
                               }
 
-                              // Find corresponding session details in synced plan
                               let lessonDetail: any = null;
                               if (syncedPlan && syncedPlan.plan?.fases) {
                                 const allLessons = syncedPlan.plan.fases.flatMap(f => f.sesiones);
@@ -1327,7 +1267,6 @@ export default function OrganizadorEscolarView({
                                     {isDone ? "✓" : sNum}
                                   </button>
 
-                                  {/* Hover Tooltip for Synced Lesson */}
                                   {lessonDetail && activeSessionHover?.groupId === grp.id && activeSessionHover?.sessionNum === sNum && (
                                     <div className="absolute z-30 bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2.5 bg-slate-900 text-white rounded-xl shadow-xl text-[10px] text-left pointer-events-none animate-fade-in">
                                       <span className="text-mex-gold font-black uppercase block border-b border-slate-700 pb-1 mb-1">
@@ -1342,7 +1281,6 @@ export default function OrganizadorEscolarView({
                               );
                             })}
 
-                            {/* Progress */}
                             <td className="p-3 border-l border-slate-200 text-center">
                               <span className="font-black text-xs text-emerald-800 block">
                                 {completedCount} / {groupSessionsCount} ({pct}%)
@@ -1366,9 +1304,7 @@ export default function OrganizadorEscolarView({
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* FOLDER 5: EVALUACIÓN CONTINUA (GOOGLE SHEETS STYLE) */}
-      {/* ========================================================================= */}
+      {/* TAB 5: EVALUACIÓN CONTINUA */}
       {activeTab === "evaluacion" && (
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200 pb-4">
@@ -1420,7 +1356,6 @@ export default function OrganizadorEscolarView({
             </div>
           </div>
 
-          {/* Desplegable de Sincronización con Planeación Didáctica */}
           {showSyncDrawer && selectedGroup && (
             <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-2xl space-y-3 animate-fade-in text-xs">
               <div className="flex items-center justify-between">
@@ -1455,7 +1390,6 @@ export default function OrganizadorEscolarView({
                 </select>
               </div>
 
-              {/* Detalles de la planeación seleccionada en renglón separado sin desbordamientos */}
               {currentGroupEval?.syncedPlanId && (() => {
                 const activePlan = plans.find(p => p.id === currentGroupEval.syncedPlanId);
                 if (!activePlan) return null;
@@ -1495,7 +1429,6 @@ export default function OrganizadorEscolarView({
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Google Sheets Interactive Spreadsheet Table */}
               <div className="overflow-x-auto border border-slate-300 rounded-xl shadow-xs">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="bg-slate-900 text-white font-black uppercase text-[10px] tracking-wider">
@@ -1506,12 +1439,11 @@ export default function OrganizadorEscolarView({
                       {currentGroupEval?.columnas.map((col) => (
                         <th key={col.id} className="p-2 min-w-[150px] max-w-[200px] border-r border-slate-800 text-center">
                           <div className="flex items-center justify-between gap-1 mb-1">
-                            {/* Editable Fecha de Implementación (Permite fechas futuras) */}
                             <input
                               type="date"
                               value={formatDateForInput(col.fecha)}
                               onChange={(e) => handleUpdateColumnDate(col.id, e.target.value)}
-                              title="Fecha de implementación (puedes seleccionar cualquier fecha a futuro)"
+                              title="Fecha de implementación"
                               className="bg-slate-800 text-amber-300 font-extrabold text-[10px] px-1.5 py-0.5 rounded border border-slate-700 focus:outline-none focus:ring-1 focus:ring-amber-400 cursor-pointer"
                             />
 
@@ -1533,7 +1465,6 @@ export default function OrganizadorEscolarView({
                           </span>
 
                           <div className="mt-1 flex items-center justify-center gap-1.5">
-                            {/* Editable Puntaje Máximo */}
                             <div className="flex items-center gap-1 bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700">
                               <span className="text-[9px] text-amber-200/80 font-bold">Max:</span>
                               <input
@@ -1543,7 +1474,7 @@ export default function OrganizadorEscolarView({
                                 value={col.puntosMaximos}
                                 onChange={(e) => handleUpdateColumnMaxPoints(col.id, Number(e.target.value))}
                                 className="w-10 text-center bg-slate-900 text-amber-300 font-black text-[10px] py-0.2 rounded border border-slate-700 focus:outline-none focus:border-amber-400"
-                                title="Editar puntaje máximo asignable a esta clase"
+                                title="Editar puntaje máximo"
                               />
                               <span className="text-[9px] text-amber-200/80 font-bold">pts</span>
                             </div>
@@ -1552,7 +1483,7 @@ export default function OrganizadorEscolarView({
                               type="button"
                               onClick={() => handleBatchCheckColumn(col.id, col.puntosMaximos)}
                               className="text-[8px] bg-slate-800 hover:bg-slate-700 px-1.5 py-1 rounded text-slate-300 font-bold cursor-pointer"
-                              title="Marcar a todos los alumnos con el puntaje máximo"
+                              title="Marcar a todos con puntaje máximo"
                             >
                               ✓ Todos
                             </button>
@@ -1568,7 +1499,6 @@ export default function OrganizadorEscolarView({
 
                   <tbody className="divide-y divide-slate-200 font-semibold text-slate-800 bg-white">
                     {selectedGroup.estudiantes.map((st, idx) => {
-                      // Calculate sum for this student
                       let totalPoints = 0;
                       let maxPossible = 0;
 
@@ -1607,7 +1537,7 @@ export default function OrganizadorEscolarView({
                                         ? "bg-amber-100 text-amber-900 border border-amber-300"
                                         : "bg-slate-100 text-slate-300 hover:bg-slate-200"
                                     }`}
-                                    title="Haz clic para asignar el puntaje máximo o desmarcar"
+                                    title="Asignar máximo / desmarcar"
                                   >
                                     ✓
                                   </button>
@@ -1626,7 +1556,6 @@ export default function OrganizadorEscolarView({
                             );
                           })}
 
-                          {/* Realtime Sum Total Column */}
                           <td className="p-3 text-center bg-amber-50 font-black text-xs text-amber-950 border-l border-amber-200">
                             <span className="text-sm text-amber-900 font-extrabold block">
                               {totalPoints} pts
@@ -1646,9 +1575,7 @@ export default function OrganizadorEscolarView({
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL: REGISTRAR NUEVO GRUPO */}
-      {/* ========================================================================= */}
+      {/* MODAL: NUEVO GRUPO */}
       {showAddGroupModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 space-y-5">
@@ -1739,9 +1666,7 @@ export default function OrganizadorEscolarView({
         </div>
       )}
 
-      {/* ========================================================================= */}
       {/* MODAL: AGREGAR ESTUDIANTE(S) */}
-      {/* ========================================================================= */}
       {showAddStudentModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200 space-y-5">
@@ -1827,7 +1752,7 @@ export default function OrganizadorEscolarView({
         </div>
       )}
 
-      {/* MODAL: AGREGAR CLASE O ELEMENTO A EVALUAR */}
+      {/* MODAL: AGREGAR COLUMNA EVALUACIÓN */}
       {showAddColumnModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl border border-slate-200">
@@ -1881,7 +1806,7 @@ export default function OrganizadorEscolarView({
 
               <div>
                 <label className="block mb-1 text-slate-800">
-                  Fecha de Implementación (puedes programar fechas futuras):
+                  Fecha de Implementación:
                 </label>
                 <input
                   type="date"
@@ -1915,7 +1840,7 @@ export default function OrganizadorEscolarView({
         </div>
       )}
 
-      {/* MODAL CONFIRMAR ELIMINAR GRUPO */}
+      {/* MODAL: CONFIRMAR ELIMINAR GRUPO */}
       {groupToDeleteId && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-slate-200">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Sparkles, ArrowRight, HelpCircle, FileText, Check, Layers, Printer, AlertCircle, Download } from "lucide-react";
+import { Sparkles, ArrowRight, Layers, Printer, AlertCircle, Download } from "lucide-react";
 
 interface CrearProgramaAnaliticoViewProps {
   onUseContent: (data: {
@@ -62,7 +62,7 @@ export default function CrearProgramaAnaliticoView({
   
   const [printBlocked, setPrintBlocked] = useState<boolean>(false);
 
-  // Auto-update default grado when nivel changes
+  // Actualización automática del grado predeterminado al cambiar de nivel
   useEffect(() => {
     if (nivel === "Preescolar") {
       setGrado("3º de Preescolar");
@@ -83,15 +83,17 @@ export default function CrearProgramaAnaliticoView({
   ];
 
   useEffect(() => {
-    let interval: any;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (loading) {
       setLoadingStep(0);
       interval = setInterval(() => {
         setLoadingStep((prev) => (prev < loadingTexts.length - 1 ? prev + 1 : prev));
       }, 2500);
     }
-    return () => clearInterval(interval);
-  }, [loading]);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [loading, loadingTexts.length]);
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,7 +117,7 @@ export default function CrearProgramaAnaliticoView({
       });
 
       if (!response.ok) {
-        const err = await response.json();
+        const err = await response.json().catch(() => ({}));
         throw new Error(err.error || "Error al generar el programa analítico.");
       }
 
@@ -125,9 +127,10 @@ export default function CrearProgramaAnaliticoView({
       } else {
         throw new Error("Formato de respuesta inválido.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      alert(`Error: ${err.message || "No se pudo conectar con el servidor."}`);
+      const errorMessage = err instanceof Error ? err.message : "No se pudo conectar con el servidor.";
+      alert(`Error: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -137,7 +140,7 @@ export default function CrearProgramaAnaliticoView({
     try {
       window.print();
     } catch (e) {
-      console.error("Manual printing failed:", e);
+      console.error("Error al ejecutar ventana de impresión:", e);
       setPrintBlocked(true);
     }
   };
@@ -145,7 +148,7 @@ export default function CrearProgramaAnaliticoView({
   const handleDownloadHtml = () => {
     if (!programa) return;
 
-    const renderPdaListHtml = (pdaList: PDALine[]) => {
+    const renderPdaListHtml = (pdaList: PDALine[] = []) => {
       return pdaList.map(item => {
         let pdaStyle = "border: 1px solid #cbd5e1; background-color: #ffffff;";
         let badgeText = "PDA Sintético";
@@ -268,10 +271,10 @@ export default function CrearProgramaAnaliticoView({
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-200 p-2 bg-white">
-          <div class="p-2 space-y-2">${renderPdaListHtml(programa.camposFormativos.saberes)}</div>
-          <div class="p-2 space-y-2">${renderPdaListHtml(programa.camposFormativos.lenguajes)}</div>
-          <div class="p-2 space-y-2">${renderPdaListHtml(programa.camposFormativos.etica)}</div>
-          <div class="p-2 space-y-2">${renderPdaListHtml(programa.camposFormativos.humano)}</div>
+          <div class="p-2 space-y-2">${renderPdaListHtml(programa.camposFormativos?.saberes)}</div>
+          <div class="p-2 space-y-2">${renderPdaListHtml(programa.camposFormativos?.lenguajes)}</div>
+          <div class="p-2 space-y-2">${renderPdaListHtml(programa.camposFormativos?.etica)}</div>
+          <div class="p-2 space-y-2">${renderPdaListHtml(programa.camposFormativos?.humano)}</div>
         </div>
       </div>
 
@@ -279,11 +282,11 @@ export default function CrearProgramaAnaliticoView({
       <div class="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 my-4 space-y-2">
         <div class="flex items-center justify-between">
           <span class="text-xs font-black text-amber-900 uppercase tracking-wider">Orientaciones Didácticas Generales y Metodología Propuesta</span>
-          <span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">${programa.metodologia.tipo}</span>
+          <span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">${programa.metodologia?.tipo || ''}</span>
         </div>
-        <p class="text-xs text-slate-700 leading-relaxed">${programa.metodologia.orientaciones}</p>
+        <p class="text-xs text-slate-700 leading-relaxed">${programa.metodologia?.orientaciones || ''}</p>
         <div class="pt-2 flex flex-wrap gap-4 text-[10px] text-slate-600 border-t border-amber-200/50">
-          <span><strong>Eje Articulador Principal:</strong> ${programa.metodologia.ejeArticulador}</span>
+          <span><strong>Eje Articulador Principal:</strong> ${programa.metodologia?.ejeArticulador || ''}</span>
           ${programa.nombreProyecto ? `<span><strong>Proyecto Sugerido:</strong> ${programa.nombreProyecto}</span>` : ""}
         </div>
       </div>
@@ -303,7 +306,7 @@ export default function CrearProgramaAnaliticoView({
     URL.revokeObjectURL(url);
   };
 
-  const renderPdaList = (pdaList: PDALine[]) => {
+  const renderPdaList = (pdaList: PDALine[] = []) => {
     return pdaList.map((item, idx) => {
       let cardStyle = "bg-white border-slate-200";
       let badgeStyle = "bg-slate-100 text-slate-600 border-slate-200";
@@ -355,12 +358,12 @@ export default function CrearProgramaAnaliticoView({
               onUseContent({
                 nivel,
                 grado,
-                campoFormativo: "Lenguajes", // Default mapped field
+                campoFormativo: "Lenguajes",
                 disciplina: item.disciplina || "Español",
                 contenido: item.contenido,
                 pda: item.pda,
-                metodologia: programa?.metodologia.tipo || "Aprendizaje Basado en Proyectos Comunitarios",
-                ejesArticuladores: [programa?.metodologia.ejeArticulador || "Inclusión"],
+                metodologia: programa?.metodologia?.tipo || "Aprendizaje Basado en Proyectos Comunitarios",
+                ejesArticuladores: [programa?.metodologia?.ejeArticulador || "Inclusión"],
                 situacionProblema: programa?.problema || situacionProblema,
                 nombreProyecto: programa?.nombreProyecto || "Proyecto Integrador NEM",
               });
@@ -412,7 +415,7 @@ export default function CrearProgramaAnaliticoView({
               onChange={(e) => setNivel(e.target.value)}
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:bg-white rounded-xl text-slate-800 text-xs font-semibold transition outline-none"
             >
-              <option value="Preescolar">Preescolar (Fases 2)</option>
+              <option value="Preescolar">Preescolar (Fase 2)</option>
               <option value="Primaria">Primaria (Fases 3, 4 y 5)</option>
               <option value="Secundaria">Secundaria (Fase 6)</option>
             </select>
@@ -570,9 +573,9 @@ export default function CrearProgramaAnaliticoView({
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 text-xs space-y-1.5">
               <h5 className="font-bold text-slate-700 uppercase tracking-wide text-[9px]">Anotaciones de Codiseño y Contextualización:</h5>
               <div className="flex flex-wrap gap-4 text-[10px] text-slate-600">
-                <span className="flex items-center gap-1.5 font-medium"><span class="w-2 h-2 rounded-full bg-slate-400"></span> <strong>PDA Sintético:</strong> Programa sintético sin modificaciones.</span>
-                <span className="flex items-center gap-1.5 font-medium"><span class="w-2 h-2 rounded-full bg-amber-500"></span> <strong>PDA Modificado (*):</strong> Adaptado al contexto local.</span>
-                <span className="flex items-center gap-1.5 font-medium"><span class="w-2 h-2 rounded-full bg-sky-500"></span> <strong>Nuevo PDA (**):</strong> Creado por codiseño docente.</span>
+                <span className="flex items-center gap-1.5 font-medium"><span className="w-2 h-2 rounded-full bg-slate-400"></span> <strong>PDA Sintético:</strong> Programa sintético sin modificaciones.</span>
+                <span className="flex items-center gap-1.5 font-medium"><span className="w-2 h-2 rounded-full bg-amber-500"></span> <strong>PDA Modificado (*):</strong> Adaptado al contexto local.</span>
+                <span className="flex items-center gap-1.5 font-medium"><span className="w-2 h-2 rounded-full bg-sky-500"></span> <strong>Nuevo PDA (**):</strong> Creado por codiseño docente.</span>
               </div>
             </div>
 
@@ -585,7 +588,7 @@ export default function CrearProgramaAnaliticoView({
                 </div>
                 <div>
                   <span className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Docente Responsable:</span>
-                  <p className="text-xs font-bold text-slate-700 mt-0.5">{docenteName}</p>
+                  <p class="text-xs font-bold text-slate-700 mt-0.5">{docenteName}</p>
                 </div>
               </div>
             </div>
@@ -605,7 +608,7 @@ export default function CrearProgramaAnaliticoView({
                     </h5>
                   </div>
                   <div className="space-y-3">
-                    {renderPdaList(programa.camposFormativos.saberes)}
+                    {renderPdaList(programa.camposFormativos?.saberes)}
                   </div>
                 </div>
 
@@ -617,7 +620,7 @@ export default function CrearProgramaAnaliticoView({
                     </h5>
                   </div>
                   <div className="space-y-3">
-                    {renderPdaList(programa.camposFormativos.lenguajes)}
+                    {renderPdaList(programa.camposFormativos?.lenguajes)}
                   </div>
                 </div>
 
@@ -629,7 +632,7 @@ export default function CrearProgramaAnaliticoView({
                     </h5>
                   </div>
                   <div className="space-y-3">
-                    {renderPdaList(programa.camposFormativos.etica)}
+                    {renderPdaList(programa.camposFormativos?.etica)}
                   </div>
                 </div>
 
@@ -641,7 +644,7 @@ export default function CrearProgramaAnaliticoView({
                     </h5>
                   </div>
                   <div className="space-y-3">
-                    {renderPdaList(programa.camposFormativos.humano)}
+                    {renderPdaList(programa.camposFormativos?.humano)}
                   </div>
                 </div>
               </div>
@@ -654,14 +657,14 @@ export default function CrearProgramaAnaliticoView({
                   Orientaciones Didácticas Generales y Metodología Sugerida
                 </span>
                 <span className="text-[10px] font-bold bg-amber-100 text-amber-900 px-2.5 py-1 rounded-lg border border-amber-200 self-start sm:self-auto">
-                  {programa.metodologia.tipo}
+                  {programa.metodologia?.tipo}
                 </span>
               </div>
               <p className="text-xs text-slate-700 leading-relaxed font-medium">
-                {programa.metodologia.orientaciones}
+                {programa.metodologia?.orientaciones}
               </p>
               <div className="pt-2 flex flex-wrap gap-4 text-[11px] text-slate-600 border-t border-amber-200/50">
-                <span><strong>Eje Articulador Principal:</strong> {programa.metodologia.ejeArticulador}</span>
+                <span><strong>Eje Articulador Principal:</strong> {programa.metodologia?.ejeArticulador}</span>
                 {programa.nombreProyecto && (
                   <span><strong>Proyecto Sugerido:</strong> {programa.nombreProyecto}</span>
                 )}

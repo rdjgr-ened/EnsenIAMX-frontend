@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Sparkles, ArrowLeft, RefreshCw, Copy, Check, FileEdit, HelpCircle } from "lucide-react";
+import { Sparkles, ArrowLeft, RefreshCw, Copy, Check, FileEdit } from "lucide-react";
 
 interface SugerirContenidosViewProps {
   onBack: () => void;

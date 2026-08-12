@@ -107,7 +107,7 @@ const BAP_CATEGORIES = [
 ];
 
 export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBackToHub }: PlaneacionFormProps) {
-  // General details
+  // Datos Generales
   const [docenteName, setDocenteName] = useState("René Gaytán");
   const [escuelaName, setEscuelaName] = useState("Esc. Sec. Gral. #3 \"Jaime Torres Bodet\"");
   const [cct, setCct] = useState("10DES0021J");
@@ -121,33 +121,49 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
   const [formError, setFormError] = useState<string | null>(null);
   const [escuelasList, setEscuelasList] = useState<Array<{ escuelaName: string; cct: string }>>([]);
 
-  // AI Assistant States (Seleccionar y Crear Contenidos con Gemini)
+  // Asistente IA (Generación/Sugerencias con Gemini)
   const [aiNivel, setAiNivel] = useState("Secundaria");
   const [aiGrado, setAiGrado] = useState("Primer Grado");
   const [aiCampo, setAiCampo] = useState("Lenguajes");
   const [aiDisciplina, setAiDisciplina] = useState("Español");
   const [aiSituacion, setAiSituacion] = useState("");
   
-  // Suggestion options & loading states
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiSuggestions, setAiSuggestions] = useState<Array<{ contenido: string; pda: string }>>([]);
   const [selectedAiIndex, setSelectedAiIndex] = useState<number | null>(null);
-  
-  // Custom created content option
   const [createdContent, setCreatedContent] = useState<{ contenido: string; pda: string } | null>(null);
 
-  // Calendar state
-  const [startDate, setStartDate] = useState(() => {
-    return new Date().toISOString().split("T")[0];
-  });
+  // Fechas y Calendario
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState(() => {
     const date = new Date();
     date.setDate(date.getDate() + 14);
     return date.toISOString().split("T")[0];
   });
 
-  // Load profile from localStorage if exists
+  // Selección Curricular
+  const [selectedCampo, setSelectedCampo] = useState("lenguajes");
+  const [selectedDisciplina, setSelectedDisciplina] = useState("ESPAÑOL");
+  const [selectedContenido, setSelectedContenido] = useState("");
+  const [selectedPda, setSelectedPda] = useState("");
+
+  // Modo Currículo Personalizado
+  const [isCustomCurriculum, setIsCustomCurriculum] = useState<boolean>(false);
+  const [customContenido, setCustomContenido] = useState("");
+  const [customPda, setCustomPda] = useState("");
+
+  // Otros Elementos NEM
+  const [selectedEjes, setSelectedEjes] = useState<string[]>(["Artes y experiencias estéticas"]);
+  const [selectedMetodologia, setSelectedMetodologia] = useState("Aprendizaje Basado en Proyectos Comunitarios (ABPC)");
+  const [situacionProblema, setSituacionProblema] = useState("Dificultad de los estudiantes para valorar y difundir las manifestaciones culturales locales en un segundo idioma.");
+
+  // Listas filtradas dinámicamente
+  const [disciplinas, setDisciplinas] = useState<string[]>([]);
+  const [contenidos, setContenidos] = useState<string[]>([]);
+  const [pdas, setPdas] = useState<string[]>([]);
+
+  // Cargar perfil desde localStorage
   useEffect(() => {
     const savedProfile = localStorage.getItem("nem_secundaria_profile");
     if (savedProfile) {
@@ -167,12 +183,12 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
           setEscuelasList([{ escuelaName: profile.escuelaName, cct: profile.cct }]);
         }
       } catch (e) {
-        console.error("Error loading profile:", e);
+        console.error("Error al cargar perfil:", e);
       }
     }
   }, []);
 
-  // Sync initialData if provided from Sugerir/Crear views
+  // Sincronizar initialData si proviene de otras vistas
   useEffect(() => {
     if (initialData) {
       if (initialData.nivel) {
@@ -188,12 +204,10 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
         setAiSituacion(initialData.situacionProblema);
       }
       
-      // Auto-enable custom curriculum mode
       setIsCustomCurriculum(true);
       if (initialData.contenido) setCustomContenido(initialData.contenido);
       if (initialData.pda) setCustomPda(initialData.pda);
 
-      // Pre-fill methodology and ejes articuladores if provided
       if (initialData.metodologia) {
         setSelectedMetodologia(initialData.metodologia);
       }
@@ -201,7 +215,6 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
         setSelectedEjes(initialData.ejesArticuladores);
       }
 
-      // Select appropriate Campo Formativo key
       if (initialData.campoFormativo) {
         const normCampo = initialData.campoFormativo.toLowerCase();
         if (normCampo.includes("lenguaje")) {
@@ -217,7 +230,7 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     }
   }, [initialData]);
 
-  // Sync dates to duracionSemanas
+  // Sincronizar cálculo de duración en semanas
   useEffect(() => {
     if (startDate && endDate) {
       const start = new Date(startDate);
@@ -238,23 +251,7 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     }
   }, [startDate, endDate]);
 
-  // Curriculum selections
-  const [selectedCampo, setSelectedCampo] = useState("lenguajes");
-  const [selectedDisciplina, setSelectedDisciplina] = useState("ESPAÑOL");
-  const [selectedContenido, setSelectedContenido] = useState("");
-  const [selectedPda, setSelectedPda] = useState("");
-
-  // Custom curriculum toggling
-  const [isCustomCurriculum, setIsCustomCurriculum] = useState<boolean>(false);
-  const [customContenido, setCustomContenido] = useState("");
-  const [customPda, setCustomPda] = useState("");
-
-  // Other NEM details
-  const [selectedEjes, setSelectedEjes] = useState<string[]>(["Artes y experiencias estéticas"]);
-  const [selectedMetodologia, setSelectedMetodologia] = useState("Aprendizaje Basado en Proyectos Comunitarios (ABPC)");
-  const [situacionProblema, setSituacionProblema] = useState("Dificultad de los estudiantes para valorar y difundir las manifestaciones culturales locales en un segundo idioma.");
-
-  // Automatically select a valid default grade and use database mode by default when level changes
+  // Ajustes automáticos por nivel educativo
   useEffect(() => {
     if (nivel === "Preescolar") {
       setGrado("1º de Preescolar");
@@ -271,7 +268,7 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     }
   }, [nivel]);
 
-  // Automatically update default grades/disciplines in the AI panel based on level
+  // Actualización panel IA
   useEffect(() => {
     if (aiNivel === "Preescolar") {
       setAiGrado("1º de Preescolar");
@@ -285,121 +282,7 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     }
   }, [aiNivel]);
 
-  // AI actions pointing to production backend
-  const handleSuggestContent = async () => {
-    if (!aiSituacion.trim()) {
-      setAiError("Por favor escribe la situación-problema primero para que Gemini te sugiera opciones.");
-      return;
-    }
-    setIsAiLoading(true);
-    setAiError(null);
-    setAiSuggestions([]);
-    setCreatedContent(null);
-    setSelectedAiIndex(null);
-    try {
-      const response = await fetch("https://enseniamx-backend.onrender.com/api/suggest-content", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nivel: aiNivel,
-          grado: aiGrado,
-          campoFormativo: aiCampo,
-          disciplina: aiDisciplina,
-          situacionProblema: aiSituacion,
-        }),
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Error al sugerir contenidos.");
-      }
-      const data = await response.json();
-      if (data.success && data.suggestions) {
-        setAiSuggestions(data.suggestions);
-      } else {
-        throw new Error("Formato de respuesta incorrecto.");
-      }
-    } catch (err: any) {
-      console.error("Error in suggest:", err);
-      setAiError(err.message || "Ocurrió un error al conectar con el servidor.");
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
-
-  const handleCreateContent = async () => {
-    if (!aiSituacion.trim()) {
-      setAiError("Por favor escribe la situación-problema primero para que Gemini diseñe un Contenido y PDA.");
-      return;
-    }
-    setIsAiLoading(true);
-    setAiError(null);
-    setAiSuggestions([]);
-    setCreatedContent(null);
-    try {
-      const response = await fetch("https://enseniamx-backend.onrender.com/api/create-content", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nivel: aiNivel,
-          grado: aiGrado,
-          campoFormativo: aiCampo,
-          disciplina: aiDisciplina,
-          situacionProblema: aiSituacion,
-        }),
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Error al crear contenido.");
-      }
-      const data = await response.json();
-      if (data.success && data.contenido) {
-        setCreatedContent({ contenido: data.contenido, pda: data.pda });
-      } else {
-        throw new Error("Formato de respuesta incorrecto.");
-      }
-    } catch (err: any) {
-      console.error("Error in create:", err);
-      setAiError(err.message || "Ocurrió un error al conectar con el servidor.");
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
-
-  const applyAiSelection = (contText: string, pdaText: string) => {
-    setIsCustomCurriculum(true);
-    setCustomContenido(contText);
-    setCustomPda(pdaText);
-    
-    // Sync main form values
-    setNivel(aiNivel);
-    setGrado(aiGrado);
-    setSituacionProblema(aiSituacion);
-
-    // Sync selected Campo Formativo dynamically
-    const normCampo = aiCampo.toLowerCase();
-    if (normCampo.includes("lenguaje")) {
-      setSelectedCampo("lenguajes");
-    } else if (normCampo.includes("saberes") || normCampo.includes("científico")) {
-      setSelectedCampo("SABERES");
-    } else if (normCampo.includes("ética") || normCampo.includes("naturaleza")) {
-      setSelectedCampo("ETICA NyS");
-    } else {
-      setSelectedCampo("HUMANO Y C");
-    }
-
-    // Scroll to the main curriculum area
-    const element = document.getElementById("planeacion-form");
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
-  };
-
-  // Lists dynamically filtered
-  const [disciplinas, setDisciplinas] = useState<string[]>([]);
-  const [contenidos, setContenidos] = useState<string[]>([]);
-  const [pdas, setPdas] = useState<string[]>([]);
-
-  // 1. Get unique disciplines when Campo changes
+  // Obtener disciplinas únicas cuando cambia el campo o nivel
   useEffect(() => {
     const uniqueDisciplinas = Array.from(
       new Set(
@@ -411,7 +294,6 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
             } else if (nivel === "Primaria") {
               return matchesCampo && item.disciplina === "PRIMARIA";
             } else {
-              // Secundaria
               return matchesCampo && item.disciplina !== "PREESCOLAR" && item.disciplina !== "PRIMARIA";
             }
           })
@@ -420,13 +302,12 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     );
     setDisciplinas(uniqueDisciplinas);
 
-    // Pre-select first discipline in list
     if (uniqueDisciplinas.length > 0) {
       setSelectedDisciplina(uniqueDisciplinas[0]);
     }
   }, [selectedCampo, nivel]);
 
-  // 2. Automatically suggest official NEM methodology when Campo changes
+  // Asignación de metodología predeterminada según el Campo Formativo
   useEffect(() => {
     if (nivel !== "Preescolar") {
       if (selectedCampo === "lenguajes") {
@@ -441,7 +322,7 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     }
   }, [selectedCampo, nivel]);
 
-  // 3. Get contents based on Campo, Disciplina and Grado
+  // Filtrar contenidos de la base de datos
   useEffect(() => {
     const filteredContents = Array.from(
       new Set(
@@ -464,7 +345,7 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     }
   }, [selectedCampo, selectedDisciplina, grado]);
 
-  // 4. Get PDAs based on chosen Content
+  // Filtrar PDAs correspondientes al contenido seleccionado
   useEffect(() => {
     if (!selectedContenido) {
       setPdas([]);
@@ -517,7 +398,6 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
       }
     }
 
-    // Determine values for custom mode
     const finalCampo = isCustomCurriculum
       ? (CAMPO_FORMATIVO_LABELS[selectedCampo] || selectedCampo || "General")
       : (CAMPO_FORMATIVO_LABELS[selectedCampo] || selectedCampo);
@@ -558,7 +438,6 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
           </h2>
         </div>
 
-        {/* Dynamic School Tab Selection */}
         {escuelasList.length > 1 && (
           <div className="bg-slate-50 p-4 border border-slate-200/60 rounded-xl space-y-2.5 mb-5">
             <label className="block text-slate-500 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5">
@@ -1054,7 +933,6 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
           required
         />
 
-        {/* Sugerencias de problemáticas contextuales */}
         <div className="mt-4">
           <span className="block text-slate-500 font-bold text-[10px] mb-2.5 uppercase tracking-wider">
             Sugerencias de Problemáticas del Contexto Nacional/Escolar:
@@ -1074,7 +952,7 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
         </div>
       </div>
 
-      {/* Sección 6: Barreras para el Aprendizaje y la Participación (BAP) y Aptitudes Sobresalientes */}
+      {/* Sección 6: BAP y Aptitudes Sobresalientes */}
       <div>
         <div className="flex items-center gap-2 pb-4 mb-5 border-b border-slate-100">
           <Accessibility className="w-5 h-5 text-mex-maroon" />
@@ -1157,14 +1035,14 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
         )}
       </div>
 
-      {/* Error banner if validation fails */}
+      {/* Banner de error */}
       {formError && (
         <div className="p-4 bg-slate-50 border-l-4 border-mex-maroon rounded text-slate-800 text-xs font-semibold">
           {formError}
         </div>
       )}
 
-      {/* Botón de Enviar */}
+      {/* Botones de acción */}
       <div className="pt-4 flex flex-col sm:flex-row items-center gap-3">
         {onBackToHub && (
           <button

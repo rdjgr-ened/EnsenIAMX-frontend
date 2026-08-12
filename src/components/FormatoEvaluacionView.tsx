@@ -210,7 +210,6 @@ export default function FormatoEvaluacionView({
 
   // Open modal for elements catalog
   const handleOpenAddElementsModal = () => {
-    // pre-select elements that are already added
     setSelectedCatalogIds(elements.map((e) => e.id));
     setShowAddElementsModal(true);
   };
@@ -480,7 +479,7 @@ export default function FormatoEvaluacionView({
           </div>
         </div>
 
-        {/* Disciplina, Grado (Preescolar a Secundaria), Grupo y Periodo */}
+        {/* Disciplina, Grado, Grupo y Periodo */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
           <div>
             <label className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-600 mb-1">

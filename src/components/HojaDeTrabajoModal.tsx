@@ -1,6 +1,6 @@
 import React from "react";
 import { GeneratedWorksheet } from "../types";
-import { FileText, Printer, X, Loader2, Sparkles, AlertCircle } from "lucide-react";
+import { FileText, Printer, X, Loader2, Sparkles, AlertCircle, Download } from "lucide-react";
 
 interface HojaDeTrabajoModalProps {
   isOpen: boolean;
@@ -45,13 +45,14 @@ export default function HojaDeTrabajoModal({
       return linesHtml;
     };
 
-    return `
-      <html xmlns:o='urn:schemas-microsoft-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+    return `<!DOCTYPE html>
+      <html lang="es">
       <head>
         <meta charset='utf-8'>
         <title>${worksheet.titulo}</title>
         <style>
-          body { font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; margin: 30px; color: #0f172a; line-height: 1.5; }
+          @page { size: letter; margin: 1.5cm; }
+          body { font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; margin: 20px; color: #0f172a; line-height: 1.4; }
           .header-box { border: 2px solid #0f172a; padding: 12px; margin-bottom: 16px; border-radius: 4px; background-color: #f8fafc; }
           .header-title { text-align: center; font-size: 16pt; font-weight: bold; color: #6a1b31; text-transform: uppercase; margin-bottom: 4px; }
           .header-sub { text-align: center; font-size: 11pt; font-weight: bold; color: #334e68; margin-bottom: 12px; }
@@ -60,15 +61,18 @@ export default function HojaDeTrabajoModal({
           .label { font-weight: bold; color: #475569; text-transform: uppercase; font-size: 8pt; display: block; }
           .val { font-weight: bold; color: #0f172a; }
           .instructions-box { border: 1px solid #cbd5e1; background-color: #f1f5f9; padding: 10px; border-radius: 4px; margin-bottom: 16px; font-size: 10pt; font-style: italic; }
-          .section-title { font-size: 12pt; font-weight: bold; color: #6a1b31; text-transform: uppercase; border-bottom: 2px solid #6a1b31; padding-bottom: 2px; margin-top: 18px; margin-bottom: 8px; }
+          .section-title { font-size: 12pt; font-weight: bold; color: #6a1b31; text-transform: uppercase; border-bottom: 2px solid #6a1b31; padding-bottom: 2px; margin-top: 18px; margin-bottom: 8px; page-break-after: avoid; }
           .section-instr { font-size: 9.5pt; color: #475569; font-weight: bold; margin-bottom: 10px; }
-          .exercise-card { border: 1px solid #cbd5e1; padding: 10px; margin-bottom: 12px; border-radius: 4px; background-color: #ffffff; }
+          .exercise-card { border: 1px solid #cbd5e1; padding: 10px; margin-bottom: 12px; border-radius: 4px; background-color: #ffffff; page-break-inside: avoid; }
           .ex-num { font-weight: bold; color: #6a1b31; }
           .ex-text { font-size: 10.5pt; color: #0f172a; font-weight: bold; margin-bottom: 6px; }
           .aux-text { background-color: #f8fafc; border-left: 3px solid #334e68; padding: 8px; margin: 6px 0; font-size: 9.5pt; color: #334e68; }
-          .ticket-box { border: 2px dashed #6a1b31; background-color: #fffaf5; padding: 12px; border-radius: 6px; margin-top: 20px; }
+          .ticket-box { border: 2px dashed #6a1b31; background-color: #fffaf5; padding: 12px; border-radius: 6px; margin-top: 20px; page-break-inside: avoid; }
           .ticket-title { font-weight: bold; color: #9a3412; font-size: 11pt; text-transform: uppercase; margin-bottom: 4px; }
-          .dotted-line { border-bottom: 1px dashed #94a3b8; height: 22px; margin-top: 4px; }
+          @media print {
+            body { margin: 0; }
+            .no-print { display: none; }
+          }
         </style>
       </head>
       <body>
@@ -156,9 +160,25 @@ export default function HojaDeTrabajoModal({
     }
   };
 
+  const handleDownloadDocx = () => {
+    if (!worksheet) return;
+    const htmlContent = buildHtmlDoc();
+    const blob = new Blob(['\ufeff' + htmlContent], {
+      type: 'application/msword'
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Hoja_de_Trabajo_Sesion_${meta.sesionNumero}.doc`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 z-50 animate-fade-in overflow-y-auto">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden my-auto">
         {/* Modal Header */}
         <div className="p-4 sm:p-5 bg-slate-900 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3">
@@ -175,17 +195,28 @@ export default function HojaDeTrabajoModal({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
             {worksheet && !isLoading && (
-              <button
-                type="button"
-                onClick={handlePrint}
-                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm cursor-pointer"
-                title="Imprimir hoja de trabajo"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Imprimir</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={handleDownloadDocx}
+                  className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+                  title="Descargar para Microsoft Word"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Descargar .doc</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+                  title="Imprimir hoja de trabajo"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Imprimir</span>
+                </button>
+              </>
             )}
 
             <button
@@ -199,7 +230,7 @@ export default function HojaDeTrabajoModal({
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto grow space-y-6 bg-slate-50">
+        <div className="p-4 sm:p-6 overflow-y-auto grow space-y-6 bg-slate-50">
           {isLoading && (
             <div className="py-20 flex flex-col items-center justify-center text-center space-y-4">
               <div className="relative">
@@ -235,7 +266,7 @@ export default function HojaDeTrabajoModal({
           )}
 
           {worksheet && !isLoading && (
-            <div className="bg-white p-8 rounded-2xl border border-slate-300 shadow-sm space-y-6 text-slate-900 text-xs">
+            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-300 shadow-sm space-y-6 text-slate-900 text-xs">
               {/* Encabezado Escolar / Matriz */}
               <div className="border-2 border-slate-900 rounded-xl p-4 bg-slate-50/50 space-y-3">
                 <div className="text-center">

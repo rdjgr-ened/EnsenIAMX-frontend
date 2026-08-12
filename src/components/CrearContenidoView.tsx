@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { PenTool, ArrowLeft, RefreshCw, Copy, Check, FileEdit } from "lucide-react";
 
 interface CrearContenidoViewProps {
@@ -14,6 +14,52 @@ interface CrearContenidoViewProps {
   }) => void;
 }
 
+// Helper externo para obtener disciplinas según Nivel y Campo Formativo
+const getDisciplinesList = (nivel: string, campoFormativo: string): string[] => {
+  if (nivel === "Preescolar") {
+    if (campoFormativo === "Lenguajes") {
+      return ["Educación Preescolar", "Lenguajes (Preescolar)"];
+    }
+    if (campoFormativo === "Saberes y Pensamiento Científico") {
+      return ["Pensamiento Matemático", "Exploración del Mundo"];
+    }
+    if (campoFormativo === "Ética, Naturaleza y Sociedades") {
+      return ["Exploración del Mundo"];
+    }
+    if (campoFormativo === "De lo Humano y lo Comunitario") {
+      return ["Educación Socioemocional"];
+    }
+  }
+  if (nivel === "Primaria") {
+    if (campoFormativo === "Lenguajes") {
+      return ["Español / Lenguajes", "Artes", "Inglés"];
+    }
+    if (campoFormativo === "Saberes y Pensamiento Científico") {
+      return ["Matemáticas / Saberes", "Ciencias Naturales / Saberes"];
+    }
+    if (campoFormativo === "Ética, Naturaleza y Sociedades") {
+      return ["Historia / Ética, Nat. y Soc.", "Geografía / Ética, Nat. y Soc.", "Formación Cívica y Ética"];
+    }
+    if (campoFormativo === "De lo Humano y lo Comunitario") {
+      return ["Educación Física / Comunitario", "Tutoría / Socioemocional"];
+    }
+  }
+  // Secundaria
+  if (campoFormativo === "Lenguajes") {
+    return ["Español", "Inglés", "Artes"];
+  }
+  if (campoFormativo === "Saberes y Pensamiento Científico") {
+    return ["Matemáticas", "Biología", "Física", "Química"];
+  }
+  if (campoFormativo === "Ética, Naturaleza y Sociedades") {
+    return ["Geografía", "Historia", "Formación Cívica y Ética"];
+  }
+  if (campoFormativo === "De lo Humano y lo Comunitario") {
+    return ["Tecnología", "Educación Física", "Tutoría y Educación Socioemocional"];
+  }
+  return ["Español", "Matemáticas", "Ciencias", "Historia", "Inglés"];
+};
+
 export default function CrearContenidoView({ onBack, onUseContent }: CrearContenidoViewProps) {
   const [nivel, setNivel] = useState("Secundaria");
   const [grado, setGrado] = useState("Primer Grado");
@@ -26,63 +72,17 @@ export default function CrearContenidoView({ onBack, onUseContent }: CrearConten
   const [createdContent, setCreatedContent] = useState<{ contenido: string; pda: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Sync default grades and available disciplines based on Level/Campo selection
-  const getDisciplines = (): string[] => {
-    if (nivel === "Preescolar") {
-      if (campoFormativo === "Lenguajes") {
-        return ["Educación Preescolar", "Lenguajes (Preescolar)"];
-      }
-      if (campoFormativo === "Saberes y Pensamiento Científico") {
-        return ["Pensamiento Matemático", "Exploración del Mundo"];
-      }
-      if (campoFormativo === "Ética, Naturaleza y Sociedades") {
-        return ["Exploración del Mundo"];
-      }
-      if (campoFormativo === "De lo Humano y lo Comunitario") {
-        return ["Educación Socioemocional"];
-      }
-    }
-    if (nivel === "Primaria") {
-      if (campoFormativo === "Lenguajes") {
-        return ["Español / Lenguajes", "Artes", "Inglés"];
-      }
-      if (campoFormativo === "Saberes y Pensamiento Científico") {
-        return ["Matemáticas / Saberes", "Ciencias Naturales / Saberes"];
-      }
-      if (campoFormativo === "Ética, Naturaleza y Sociedades") {
-        return ["Historia / Ética, Nat. y Soc.", "Geografía / Ética, Nat. y Soc.", "Formación Cívica y Ética"];
-      }
-      if (campoFormativo === "De lo Humano y lo Comunitario") {
-        return ["Educación Física / Comunitario", "Tutoría / Socioemocional"];
-      }
-    }
-    // Secundaria
-    if (campoFormativo === "Lenguajes") {
-      return ["Español", "Inglés", "Artes"];
-    }
-    if (campoFormativo === "Saberes y Pensamiento Científico") {
-      return ["Matemáticas", "Biología", "Física", "Química"];
-    }
-    if (campoFormativo === "Ética, Naturaleza y Sociedades") {
-      return ["Geografía", "Historia", "Formación Cívica y Ética"];
-    }
-    if (campoFormativo === "De lo Humano y lo Comunitario") {
-      return ["Tecnología", "Educación Física", "Tutoría y Educación Socioemocional"];
-    }
-    return ["Español", "Matemáticas", "Ciencias", "Historia", "Inglés"];
-  };
-
+  // Sincronizar grados y disciplinas por defecto cuando cambia el Nivel o Campo Formativo
   useEffect(() => {
     if (nivel === "Preescolar") {
       setGrado("1º de Preescolar");
     } else {
       setGrado("Primer Grado");
     }
-    
-    // Automatically select the first discipline of the new set
-    const available = getDisciplines();
-    if (!available.includes(disciplina)) {
-      setDisciplina(available[0]);
+
+    const availableDisciplines = getDisciplinesList(nivel, campoFormativo);
+    if (!availableDisciplines.includes(disciplina)) {
+      setDisciplina(availableDisciplines[0] || "");
     }
   }, [nivel, campoFormativo]);
 
@@ -132,7 +132,9 @@ export default function CrearContenidoView({ onBack, onUseContent }: CrearConten
 
   const handleCopy = () => {
     if (!createdContent) return;
-    navigator.clipboard.writeText(`Contenido Analítico (Codiseño):\n${createdContent.contenido}\n\nProceso de Desarrollo de Aprendizaje (PDA) a la Medida:\n${createdContent.pda}`);
+    navigator.clipboard.writeText(
+      `Contenido Analítico (Codiseño):\n${createdContent.contenido}\n\nProceso de Desarrollo de Aprendizaje (PDA) a la Medida:\n${createdContent.pda}`
+    );
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -233,7 +235,7 @@ export default function CrearContenidoView({ onBack, onUseContent }: CrearConten
               onChange={(e) => setDisciplina(e.target.value)}
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon focus:ring-2 focus:ring-mex-maroon/20 focus:bg-white rounded text-slate-800 text-xs font-semibold transition outline-none"
             >
-              {getDisciplines().map((option) => (
+              {getDisciplinesList(nivel, campoFormativo).map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>
