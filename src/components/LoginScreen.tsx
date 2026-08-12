@@ -63,7 +63,6 @@ export const LoginScreen: React.FC = () => {
 
     try {
       if (esRegistro) {
-        // Registro completo con perfil profesional y planteles
         const perfilCompleto = {
           nombreDocente,
           escuelas: escuelas.filter(e => e.nombre.trim() !== '' || e.cct.trim() !== '')
@@ -151,7 +150,7 @@ export const LoginScreen: React.FC = () => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="usuario@gmail.com"
+                    placeholder="docente@ejemplo.com"
                     className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400 bg-slate-50/50"
                   />
                 </div>
@@ -209,7 +208,7 @@ export const LoginScreen: React.FC = () => {
                         required
                         value={nombreDocente}
                         onChange={(e) => setNombreDocente(e.target.value)}
-                        placeholder="Ej. René Gaytán"
+                        placeholder="Ej. Juan Pérez"
                         className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400 bg-slate-50/50"
                       />
                     </div>
@@ -256,7 +255,7 @@ export const LoginScreen: React.FC = () => {
                                 required
                                 value={escuela.nombre}
                                 onChange={(e) => handleEscuelaChange(index, 'nombre', e.target.value)}
-                                placeholder="Ej. Esc. Sec. Gral. #3"
+                                placeholder="Ej. Esc. Sec. Gral. No. 1"
                                 className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white"
                               />
                             </div>
@@ -273,7 +272,7 @@ export const LoginScreen: React.FC = () => {
                                 required
                                 value={escuela.cct}
                                 onChange={(e) => handleEscuelaChange(index, 'cct', e.target.value)}
-                                placeholder="EJ. 10DES0021J"
+                                placeholder="EJ. 00DPR0000X"
                                 className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white uppercase"
                               />
                             </div>
