@@ -58,10 +58,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     setEscuelas(nuevasEscuelas);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("-> Iniciando envío de formulario...", { esRegistro, email });
-    
+  const ejecutarAccion = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    console.log("🚀 EJECUTANDO ACCION DE AUTENTICACION");
+    console.log("Datos capturados:", { email, password: password ? '******' : 'Vacio', esRegistro });
+
+    if (!email || !password) {
+      setError('Por favor, ingresa correo y contraseña.');
+      return;
+    }
+
+    if (esRegistro && !nombreDocente) {
+      setError('Por favor, ingresa tu nombre completo.');
+      return;
+    }
+
     setError(null);
     setMensaje(null);
     setCargando(true);
@@ -72,33 +83,32 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           e => e.nombre.trim() !== '' || e.cct.trim() !== ''
         );
 
-        console.log("-> Registrando usuario con perfil:", { nombreDocente, escuelasFiltradas });
+        console.log("Enviando registro a Supabase...");
         const res = await registrarUsuario(email, password, {
           nombreDocente,
           escuelas: escuelasFiltradas
         });
 
-        console.log("-> Respuesta de registro Supabase:", res);
+        console.log("Respuesta de Supabase:", res);
 
         if (res?.session) {
-          console.log("-> Sesión activa detectada. Entrando al sistema...");
+          console.log("Sesión obtenida. Entrando...");
           if (onLoginSuccess) {
             onLoginSuccess();
           } else {
             window.location.reload();
           }
         } else {
-          setMensaje('Cuenta procesada. Intentando iniciar sesión automáticamente...');
-          // Intento de auto-login inmediato
+          console.log("Intentando autologin posterior...");
           const loginRes = await iniciarSesion(email, password);
           if (loginRes?.session) {
             window.location.reload();
           }
         }
       } else {
-        console.log("-> Intentando iniciar sesión...");
+        console.log("Enviando inicio de sesión a Supabase...");
         const res = await iniciarSesion(email, password);
-        console.log("-> Inicio de sesión exitoso:", res);
+        console.log("Inicio de sesión exitoso:", res);
         
         if (onLoginSuccess) {
           onLoginSuccess();
@@ -107,7 +117,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         }
       }
     } catch (err: any) {
-      console.error("❌ Error atrapado en handleSubmit:", err);
+      console.error("❌ ERROR:", err);
       setError(err.message || 'Ocurrió un error al procesar la solicitud');
     } finally {
       setCargando(false);
@@ -169,7 +179,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={ejecutarAccion} className="space-y-5">
             <div className={`grid grid-cols-1 ${esRegistro ? 'md:grid-cols-2' : ''} gap-4`}>
               <div>
                 <label className="block text-[11px] font-bold text-slate-700 mb-1 uppercase">
@@ -179,7 +189,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   <input
                     type="email"
-                    required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="docente@ejemplo.com"
@@ -208,7 +217,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   <input
                     type="password"
-                    required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={esRegistro ? 'Mínimo 6 caracteres' : '••••••••••'}
@@ -236,7 +244,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                       <input
                         type="text"
-                        required={esRegistro}
                         value={nombreDocente}
                         onChange={(e) => setNombreDocente(e.target.value)}
                         placeholder="Ej. Juan Pérez"
@@ -314,7 +321,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             )}
 
             <button
-              type="submit"
+              type="button"
+              onClick={() => ejecutarAccion()}
               disabled={cargando}
               className="w-full bg-[#2A3E54] hover:bg-[#1f2d3d] text-white py-3 rounded-md font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition-colors mt-6 cursor-pointer disabled:opacity-50"
             >
