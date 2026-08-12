@@ -1,15 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
-import { LogOut, User as UserIcon, BookOpen, School } from 'lucide-react';
+import { LogOut, User as UserIcon } from 'lucide-react';
+
+// Importamos todas tus vistas y el Hub principal de AI Studio
+import DashboardHub from './DashboardHub';
+import OrganizadorEscolarView from './OrganizadorEscolarView';
+import PlaneacionForm from './PlaneacionForm';
+import BitacoraIncidenciaView from './BitacoraIncidenciaView';
+import FormatoEvaluacionView from './FormatoEvaluacionView';
+import CrearProgramaAnaliticoView from './CrearProgramaAnaliticoView';
 
 interface MainLayoutProps {
   user: User;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ user }) => {
+  const [vistaActual, setVistaActual] = useState<string>('hub');
   const nombreDocente = user.user_metadata?.nombreDocente || 'Docente';
-  const escuelas = user.user_metadata?.escuelas || [];
 
   const handleCerrarSesion = async () => {
     await supabase.auth.signOut();
@@ -21,7 +29,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ user }) => {
     <div className="min-h-screen bg-slate-100 flex flex-col">
       {/* Navbar Superior */}
       <header className="bg-[#2A3E54] text-white px-6 py-4 shadow-md flex justify-between items-center">
-        <div className="flex items-center gap-3">
+        <div 
+          className="flex items-center gap-3 cursor-pointer"
+          onClick={() => setVistaActual('hub')}
+        >
           <img 
             src="https://i.imgur.com/tv95RC0.png" 
             alt="EnseñIA MX Logo" 
@@ -49,43 +60,34 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ user }) => {
         </div>
       </header>
 
-      {/* Contenido Principal / Dashboard */}
-      <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
-        {/* Banner de Bienvenida */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h2 className="text-xl font-bold text-slate-800 uppercase">
-              ¡Bienvenido(a), {nombreDocente}!
-            </h2>
-            <p className="text-xs text-slate-500 mt-1">
-              Selecciona una herramienta o comienza a estructurar tu planeación didáctica.
-            </p>
-          </div>
+      {/* Contenido Dinámico según la selección en el Dashboard */}
+      <main className="flex-1 p-6 max-w-7xl w-full mx-auto">
+        {vistaActual === 'hub' && (
+          <DashboardHub 
+            user={user} 
+            onNavigate={(vista: string) => setVistaActual(vista)} 
+          />
+        )}
 
-          {escuelas.length > 0 && (
-            <div className="bg-slate-50 p-3 rounded-md border border-slate-200">
-              <p className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 mb-1">
-                <School className="w-3.5 h-3.5" /> Plantel Registrado:
-              </p>
-              <p className="text-xs font-bold text-slate-700">
-                {escuelas[0].nombre} {escuelas[0].cct ? `(${escuelas[0].cct})` : ''}
-              </p>
-            </div>
-          )}
-        </div>
+        {vistaActual === 'organizador' && (
+          <OrganizadorEscolarView onVolver={() => setVistaActual('hub')} />
+        )}
 
-        {/* Tarjetas de Acceso Rápido */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-5 rounded-lg shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
-            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-[#2A3E54] mb-3">
-              <BookOpen className="w-5 h-5" />
-            </div>
-            <h3 className="font-bold text-sm text-slate-800 uppercase">Planeador Didáctico</h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Diseña tus secuencias didácticas alineadas a los programas de estudio.
-            </p>
-          </div>
-        </div>
+        {vistaActual === 'plano-didactico' && (
+          <PlaneacionForm onVolver={() => setVistaActual('hub')} />
+        )}
+
+        {vistaActual === 'bitacora' && (
+          <BitacoraIncidenciaView onVolver={() => setVistaActual('hub')} />
+        )}
+
+        {vistaActual === 'evaluacion' && (
+          <FormatoEvaluacionView onVolver={() => setVistaActual('hub')} />
+        )}
+
+        {vistaActual === 'programa-analitico' && (
+          <CrearProgramaAnaliticoView onVolver={() => setVistaActual('hub')} />
+        )}
       </main>
     </div>
   );
