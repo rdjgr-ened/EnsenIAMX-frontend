@@ -18,6 +18,7 @@ export const registrarUsuario = async (
     email,
     password,
     options: {
+      emailRedirectTo: window.location.origin,
       data: {
         nombre_docente: perfilCompleto?.nombreDocente || '',
         escuelas: perfilCompleto?.escuelas || [],
