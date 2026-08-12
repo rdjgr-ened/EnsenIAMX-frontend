@@ -3,8 +3,8 @@ import { curriculumData, CAMPO_FORMATIVO_LABELS, DISCIPLINA_LABELS } from "../da
 import { Sparkles, BookOpen, User, School, Calendar, RefreshCw, Layers, FileText, Accessibility, Users } from "lucide-react";
 
 interface PlaneacionFormProps {
-  onSubmit: (formData: any) => void;
-  isLoading: boolean;
+  onSubmit?: (formData: any) => void;
+  isLoading?: boolean;
   initialData?: {
     nivel?: string;
     grado?: string;
@@ -17,6 +17,10 @@ interface PlaneacionFormProps {
     ejesArticuladores?: string[];
   } | null;
   onBackToHub?: () => void;
+  onChange?: (data: any) => void;
+  onSelect?: (item: any) => void;
+  toggleOption?: (optionId: string) => void;
+  setFormData?: (data: any) => void;
 }
 
 const EJES_ARTICULADORES = [
@@ -106,8 +110,17 @@ const BAP_CATEGORIES = [
   }
 ];
 
-export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBackToHub }: PlaneacionFormProps) {
-  // Datos Generales
+export default function PlaneacionForm({
+  onSubmit = () => {},
+  isLoading = false,
+  initialData = null,
+  onBackToHub = () => {},
+  onChange = () => {},
+  onSelect = () => {},
+  toggleOption = () => {},
+  setFormData = () => {},
+}: PlaneacionFormProps) {
+  // General details
   const [docenteName, setDocenteName] = useState("René Gaytán");
   const [escuelaName, setEscuelaName] = useState("Esc. Sec. Gral. #3 \"Jaime Torres Bodet\"");
   const [cct, setCct] = useState("10DES0021J");
@@ -121,7 +134,23 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
   const [formError, setFormError] = useState<string | null>(null);
   const [escuelasList, setEscuelasList] = useState<Array<{ escuelaName: string; cct: string }>>([]);
 
-  // Fechas y Calendario
+  // AI Assistant States
+  const [aiNivel, setAiNivel] = useState("Secundaria");
+  const [aiGrado, setAiGrado] = useState("Primer Grado");
+  const [aiCampo, setAiCampo] = useState("Lenguajes");
+  const [aiDisciplina, setAiDisciplina] = useState("Español");
+  const [aiSituacion, setAiSituacion] = useState("");
+  
+  // Suggestion options & loading states
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiSuggestions, setAiSuggestions] = useState<Array<{ contenido: string; pda: string }>>([]);
+  const [selectedAiIndex, setSelectedAiIndex] = useState<number | null>(null);
+  
+  // Custom created content option
+  const [createdContent, setCreatedContent] = useState<{ contenido: string; pda: string } | null>(null);
+
+  // Calendar state
   const [startDate, setStartDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState(() => {
     const date = new Date();
@@ -129,28 +158,48 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     return date.toISOString().split("T")[0];
   });
 
-  // Selección Curricular
+  // Curriculum selections
   const [selectedCampo, setSelectedCampo] = useState("lenguajes");
   const [selectedDisciplina, setSelectedDisciplina] = useState("ESPAÑOL");
   const [selectedContenido, setSelectedContenido] = useState("");
   const [selectedPda, setSelectedPda] = useState("");
 
-  // Modo Currículo Personalizado
+  // Custom curriculum toggling
   const [isCustomCurriculum, setIsCustomCurriculum] = useState<boolean>(false);
   const [customContenido, setCustomContenido] = useState("");
   const [customPda, setCustomPda] = useState("");
 
-  // Otros Elementos NEM
+  // Other NEM details
   const [selectedEjes, setSelectedEjes] = useState<string[]>(["Artes y experiencias estéticas"]);
   const [selectedMetodologia, setSelectedMetodologia] = useState("Aprendizaje Basado en Proyectos Comunitarios (ABPC)");
   const [situacionProblema, setSituacionProblema] = useState("Dificultad de los estudiantes para valorar y difundir las manifestaciones culturales locales en un segundo idioma.");
 
-  // Listas filtradas dinámicamente
-  const [disciplinas, setDisciplinas] = useState<string[]>([]);
-  const [contenidos, setContenidos] = useState<string[]>([]);
-  const [pdas, setPdas] = useState<string[]>([]);
+  // Helper toggle for BAP / Aptitudes Sobresalientes with full safety
+  const handleToggleBap = (formattedValue: string) => {
+    if (!formattedValue) return;
+    setSelectedBap((prev) => {
+      const safePrev = Array.isArray(prev) ? prev : [];
+      if (safePrev.includes(formattedValue)) {
+        return safePrev.filter((val) => val !== formattedValue);
+      } else {
+        return [...safePrev, formattedValue];
+      }
+    });
 
-  // Cargar perfil desde localStorage
+    if (typeof toggleOption === "function") {
+      toggleOption(formattedValue);
+    }
+  };
+
+  const handleEjeChange = (ejeId: string) => {
+    if (!ejeId) return;
+    setSelectedEjes((prev) => {
+      const safePrev = Array.isArray(prev) ? prev : [];
+      return safePrev.includes(ejeId) ? safePrev.filter((id) => id !== ejeId) : [...safePrev, ejeId];
+    });
+  };
+
+  // Load profile from localStorage if exists
   useEffect(() => {
     const savedProfile = localStorage.getItem("nem_secundaria_profile");
     if (savedProfile) {
@@ -170,23 +219,34 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
           setEscuelasList([{ escuelaName: profile.escuelaName, cct: profile.cct }]);
         }
       } catch (e) {
-        console.error("Error al cargar perfil:", e);
+        console.error("Error loading profile:", e);
       }
     }
   }, []);
 
-  // Sincronizar initialData si proviene de otras vistas
+  // Sync initialData if provided
   useEffect(() => {
     if (initialData) {
-      if (initialData.nivel) setNivel(initialData.nivel);
-      if (initialData.grado) setGrado(initialData.grado);
-      if (initialData.situacionProblema) setSituacionProblema(initialData.situacionProblema);
+      if (initialData.nivel) {
+        setNivel(initialData.nivel);
+        setAiNivel(initialData.nivel);
+      }
+      if (initialData.grado) {
+        setGrado(initialData.grado);
+        setAiGrado(initialData.grado);
+      }
+      if (initialData.situacionProblema) {
+        setSituacionProblema(initialData.situacionProblema);
+        setAiSituacion(initialData.situacionProblema);
+      }
       
       setIsCustomCurriculum(true);
       if (initialData.contenido) setCustomContenido(initialData.contenido);
       if (initialData.pda) setCustomPda(initialData.pda);
 
-      if (initialData.metodologia) setSelectedMetodologia(initialData.metodologia);
+      if (initialData.metodologia) {
+        setSelectedMetodologia(initialData.metodologia);
+      }
       if (initialData.ejesArticuladores && Array.isArray(initialData.ejesArticuladores)) {
         setSelectedEjes(initialData.ejesArticuladores);
       }
@@ -206,7 +266,7 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     }
   }, [initialData]);
 
-  // Sincronizar cálculo de duración en semanas
+  // Sync dates to duracionSemanas
   useEffect(() => {
     if (startDate && endDate) {
       const start = new Date(startDate);
@@ -227,7 +287,6 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     }
   }, [startDate, endDate]);
 
-  // Ajustes automáticos por nivel educativo
   useEffect(() => {
     if (nivel === "Preescolar") {
       setGrado("1º de Preescolar");
@@ -244,7 +303,24 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     }
   }, [nivel]);
 
-  // Obtener disciplinas únicas cuando cambia el campo o nivel
+  useEffect(() => {
+    if (aiNivel === "Preescolar") {
+      setAiGrado("1º de Preescolar");
+      setAiDisciplina("Educación Preescolar");
+    } else if (aiNivel === "Primaria") {
+      setAiGrado("Primer Grado");
+      setAiDisciplina("Lenguajes / Primaria");
+    } else {
+      setAiGrado("Primer Grado");
+      setAiDisciplina("Español");
+    }
+  }, [aiNivel]);
+
+  // Lists dynamically filtered
+  const [disciplinas, setDisciplinas] = useState<string[]>([]);
+  const [contenidos, setContenidos] = useState<string[]>([]);
+  const [pdas, setPdas] = useState<string[]>([]);
+
   useEffect(() => {
     const uniqueDisciplinas = Array.from(
       new Set(
@@ -264,12 +340,11 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     );
     setDisciplinas(uniqueDisciplinas);
 
-    if (uniqueDisciplinas.length > 0 && !uniqueDisciplinas.includes(selectedDisciplina)) {
+    if (uniqueDisciplinas.length > 0) {
       setSelectedDisciplina(uniqueDisciplinas[0]);
     }
   }, [selectedCampo, nivel]);
 
-  // Asignación de metodología predeterminada según el Campo Formativo
   useEffect(() => {
     if (nivel !== "Preescolar") {
       if (selectedCampo === "lenguajes") {
@@ -284,7 +359,6 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     }
   }, [selectedCampo, nivel]);
 
-  // Filtrar contenidos de la base de datos
   useEffect(() => {
     const filteredContents = Array.from(
       new Set(
@@ -307,7 +381,6 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     }
   }, [selectedCampo, selectedDisciplina, grado]);
 
-  // Filtrar PDAs correspondientes al contenido seleccionado
   useEffect(() => {
     if (!selectedContenido) {
       setPdas([]);
@@ -334,18 +407,16 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
     }
   }, [selectedCampo, selectedDisciplina, grado, selectedContenido]);
 
-  const handleEjeChange = (ejeId: string) => {
-    setSelectedEjes((prev) =>
-      prev.includes(ejeId) ? prev.filter((id) => id !== ejeId) : [...prev, ejeId]
-    );
-  };
-
   const selectProblemPreset = (problem: string) => {
-    setSituacionProblema(problem);
+    if (typeof problem === "string" && problem) {
+      setSituacionProblema(problem);
+    }
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    if (e && typeof e.preventDefault === "function") {
+      e.preventDefault();
+    }
     setFormError(null);
     
     if (isCustomCurriculum) {
@@ -368,7 +439,7 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
       ? (DISCIPLINA_LABELS[selectedDisciplina] || selectedDisciplina || "General")
       : (DISCIPLINA_LABELS[selectedDisciplina] || selectedDisciplina);
 
-    onSubmit({
+    const formDataPayload = {
       nivel,
       docenteName,
       escuelaName,
@@ -386,7 +457,18 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
       metodologia: selectedMetodologia,
       situacionProblema,
       bapSelected: selectedBap,
-    });
+    };
+
+    if (typeof onChange === "function") {
+      onChange(formDataPayload);
+    }
+    if (typeof setFormData === "function") {
+      setFormData(formDataPayload);
+    }
+
+    if (typeof onSubmit === "function") {
+      onSubmit(formDataPayload);
+    }
   };
 
   return (
@@ -413,7 +495,8 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
                   <button
                     key={index}
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      if (e && typeof e.preventDefault === "function") e.preventDefault();
                       setEscuelaName(esc.escuelaName);
                       setCct(esc.cct);
                     }}
@@ -517,8 +600,11 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setNumSesiones(Math.max(1, numSesiones - 1))}
-                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-extrabold text-sm rounded transition"
+                  onClick={(e) => {
+                    if (e && typeof e.preventDefault === "function") e.preventDefault();
+                    setNumSesiones(Math.max(1, numSesiones - 1));
+                  }}
+                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-extrabold text-sm rounded transition cursor-pointer"
                 >
                   -
                 </button>
@@ -531,8 +617,11 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
                 />
                 <button
                   type="button"
-                  onClick={() => setNumSesiones(Math.min(40, numSesiones + 1))}
-                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-extrabold text-sm rounded transition"
+                  onClick={(e) => {
+                    if (e && typeof e.preventDefault === "function") e.preventDefault();
+                    setNumSesiones(Math.min(40, numSesiones + 1));
+                  }}
+                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-extrabold text-sm rounded transition cursor-pointer"
                 >
                   +
                 </button>
@@ -587,8 +676,11 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
           </div>
           <button
             type="button"
-            onClick={() => setIsCustomCurriculum(!isCustomCurriculum)}
-            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-950 rounded border border-slate-200 font-extrabold text-[10px] uppercase tracking-wider transition"
+            onClick={(e) => {
+              if (e && typeof e.preventDefault === "function") e.preventDefault();
+              setIsCustomCurriculum(!isCustomCurriculum);
+            }}
+            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-950 rounded border border-slate-200 font-extrabold text-[10px] uppercase tracking-wider transition cursor-pointer"
           >
             {isCustomCurriculum ? "✓ Usar Base de Datos" : "✍ Escribir Personalizado"}
           </button>
@@ -768,7 +860,15 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
                     {pdas.map((pdaOption, index) => (
                       <label
                         key={index}
-                        className={`flex items-start gap-3 p-3.5 rounded border text-sm font-normal cursor-pointer transition ${
+                        onClick={(e) => {
+                          if ((e.target as HTMLElement).tagName !== "INPUT") {
+                            setSelectedPda(pdaOption);
+                            if (typeof onSelect === "function") {
+                              onSelect(pdaOption);
+                            }
+                          }
+                        }}
+                        className={`flex items-start gap-3 p-3.5 rounded border text-sm font-normal cursor-pointer transition select-none ${
                           selectedPda === pdaOption
                             ? "bg-mex-maroon/5 border-l-4 border-l-mex-maroon border-y-mex-maroon/20 border-r-mex-maroon/20 text-slate-900 ring-1 ring-mex-maroon/10"
                             : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100/50"
@@ -778,7 +878,13 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
                           type="radio"
                           name="pda_selection"
                           checked={selectedPda === pdaOption}
-                          onChange={() => setSelectedPda(pdaOption)}
+                          onChange={(e) => {
+                            if (e && typeof e.stopPropagation === "function") e.stopPropagation();
+                            setSelectedPda(pdaOption);
+                            if (typeof onSelect === "function") {
+                              onSelect(pdaOption);
+                            }
+                          }}
                           className="mt-0.5 text-mex-maroon focus:ring-mex-maroon"
                         />
                         <span className="text-xs leading-relaxed font-semibold">{pdaOption}</span>
@@ -807,11 +913,17 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {EJES_ARTICULADORES.map((eje) => {
-            const isChecked = selectedEjes.includes(eje.id);
+            const isChecked = Array.isArray(selectedEjes) && selectedEjes.includes(eje.id);
             return (
               <label
                 key={eje.id}
-                className={`flex items-start gap-3 p-3.5 rounded border cursor-pointer transition ${
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).tagName !== "INPUT") {
+                    e.preventDefault();
+                    handleEjeChange(eje.id);
+                  }
+                }}
+                className={`flex items-start gap-3 p-3.5 rounded border cursor-pointer transition select-none ${
                   isChecked
                     ? "bg-mex-maroon/5 border-mex-maroon/20 text-mex-maroon"
                     : "bg-slate-50/50 border-slate-200 text-slate-600 hover:bg-slate-50"
@@ -820,7 +932,10 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
                 <input
                   type="checkbox"
                   checked={isChecked}
-                  onChange={() => handleEjeChange(eje.id)}
+                  onChange={(e) => {
+                    if (e && typeof e.stopPropagation === "function") e.stopPropagation();
+                    handleEjeChange(eje.id);
+                  }}
                   className="mt-1 h-4 w-4 rounded border-slate-300 text-mex-maroon focus:ring-mex-maroon"
                 />
                 <div>
@@ -852,8 +967,13 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
             return (
               <div
                 key={meto.id}
-                onClick={() => setSelectedMetodologia(meto.id)}
-                className={`p-4 rounded border cursor-pointer transition relative overflow-hidden flex flex-col justify-between ${
+                onClick={(e) => {
+                  if (e && typeof e.stopPropagation === "function") e.stopPropagation();
+                  if (meto && meto.id) {
+                    setSelectedMetodologia(meto.id);
+                  }
+                }}
+                className={`p-4 rounded border cursor-pointer transition relative overflow-hidden flex flex-col justify-between select-none ${
                   isSelected
                     ? "bg-mex-maroon/5 border-mex-maroon/25 ring-1 ring-mex-maroon/10 text-mex-maroon"
                     : "bg-slate-50/50 border-slate-200 hover:bg-slate-50 text-slate-600"
@@ -895,6 +1015,7 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
           required
         />
 
+        {/* Sugerencias de problemáticas contextuales */}
         <div className="mt-4">
           <span className="block text-slate-500 font-bold text-[10px] mb-2.5 uppercase tracking-wider">
             Sugerencias de Problemáticas del Contexto Nacional/Escolar:
@@ -904,8 +1025,11 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
               <button
                 type="button"
                 key={i}
-                onClick={() => selectProblemPreset(problem)}
-                className="text-slate-600 hover:text-mex-maroon bg-slate-50 hover:bg-mex-maroon/5 border border-slate-200 hover:border-mex-maroon/20 rounded px-3 py-1.5 text-xs text-left transition font-normal"
+                onClick={(e) => {
+                  if (e && typeof e.preventDefault === "function") e.preventDefault();
+                  selectProblemPreset(problem);
+                }}
+                className="text-slate-600 hover:text-mex-maroon bg-slate-50 hover:bg-mex-maroon/5 border border-slate-200 hover:border-mex-maroon/20 rounded px-3 py-1.5 text-xs text-left transition font-normal cursor-pointer"
               >
                 {problem}
               </button>
@@ -914,7 +1038,7 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
         </div>
       </div>
 
-      {/* Sección 6: BAP y Aptitudes Sobresalientes */}
+      {/* Sección 6: Barreras para el Aprendizaje y la Participación (BAP) y Aptitudes Sobresalientes */}
       <div>
         <div className="flex items-center gap-2 pb-4 mb-5 border-b border-slate-100">
           <Accessibility className="w-5 h-5 text-mex-maroon" />
@@ -946,10 +1070,16 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
                     <div className="space-y-2.5">
                       {subcat.items.map((item) => {
                         const formattedValue = `${subcat.name}: ${item.label} (${item.code})`;
-                        const isChecked = selectedBap.includes(formattedValue);
+                        const isChecked = Array.isArray(selectedBap) && selectedBap.includes(formattedValue);
                         return (
                           <label
                             key={item.id}
+                            onClick={(e) => {
+                              if ((e.target as HTMLElement).tagName !== "INPUT") {
+                                e.preventDefault();
+                                handleToggleBap(formattedValue);
+                              }
+                            }}
                             className={`flex items-start gap-2.5 p-2 rounded border cursor-pointer transition select-none text-xs ${
                               isChecked
                                 ? "bg-mex-maroon/5 border-mex-maroon/20 text-mex-maroon font-semibold"
@@ -959,14 +1089,13 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
                             <input
                               type="checkbox"
                               checked={isChecked}
-                              onChange={() => {
-                                if (isChecked) {
-                                  setSelectedBap(selectedBap.filter((val) => val !== formattedValue));
-                                } else {
-                                  setSelectedBap([...selectedBap, formattedValue]);
+                              onChange={(e) => {
+                                if (e && typeof e.stopPropagation === "function") {
+                                  e.stopPropagation();
                                 }
+                                handleToggleBap(formattedValue);
                               }}
-                              className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 text-mex-maroon focus:ring-mex-maroon"
+                              className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 text-mex-maroon focus:ring-mex-maroon cursor-pointer"
                             />
                             <div className="flex-1 min-w-0 flex items-center justify-between gap-1.5">
                               <span className="truncate">{item.label}</span>
@@ -987,30 +1116,37 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
           ))}
         </div>
 
-        {selectedBap.length > 0 && (
+        {Array.isArray(selectedBap) && selectedBap.length > 0 && (
           <div className="mt-4 p-3 bg-mex-gold/5 border border-mex-gold/20 rounded-lg flex items-start gap-2.5">
             <span className="text-xs">
               <span className="font-extrabold text-mex-maroon">Seleccionados para la planeación ({selectedBap.length}):</span>{" "}
-              <span className="text-slate-700 font-medium">{selectedBap.map(val => val.split(": ")[1]).join(", ")}</span>
+              <span className="text-slate-700 font-medium">
+                {selectedBap.map(val => (val && typeof val === "string" && val.includes(": ") ? val.split(": ")[1] : val)).join(", ")}
+              </span>
             </span>
           </div>
         )}
       </div>
 
-      {/* Banner de error */}
+      {/* Error banner if validation fails */}
       {formError && (
         <div className="p-4 bg-slate-50 border-l-4 border-mex-maroon rounded text-slate-800 text-xs font-semibold">
           {formError}
         </div>
       )}
 
-      {/* Botones de acción */}
+      {/* Botón de Enviar */}
       <div className="pt-4 flex flex-col sm:flex-row items-center gap-3">
-        {onBackToHub && (
+        {onBackToHub && typeof onBackToHub === "function" && (
           <button
             type="button"
-            onClick={onBackToHub}
-            className="w-full sm:w-auto px-6 py-3.5 rounded border border-slate-200 hover:border-slate-300 bg-white text-slate-700 font-extrabold text-xs uppercase tracking-widest transition flex items-center justify-center gap-2"
+            onClick={(e) => {
+              if (e && typeof e.preventDefault === "function") e.preventDefault();
+              if (typeof onBackToHub === "function") {
+                onBackToHub();
+              }
+            }}
+            className="w-full sm:w-auto px-6 py-3.5 rounded border border-slate-200 hover:border-slate-300 bg-white text-slate-700 font-extrabold text-xs uppercase tracking-widest transition flex items-center justify-center gap-2 cursor-pointer"
           >
             Volver al Panel
           </button>
@@ -1018,7 +1154,7 @@ export default function PlaneacionForm({ onSubmit, isLoading, initialData, onBac
         <button
           type="submit"
           disabled={isLoading || (!isCustomCurriculum && (!selectedContenido || !selectedPda)) || (isCustomCurriculum && (!customContenido.trim() || !customPda.trim()))}
-          className="flex-1 w-full py-3.5 px-6 rounded bg-slate-900 hover:bg-black text-white font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-3 shadow-md hover:shadow-lg transition active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 w-full py-3.5 px-6 rounded bg-slate-900 hover:bg-black text-white font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-3 shadow-md hover:shadow-lg transition active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           {isLoading ? (
             <>
