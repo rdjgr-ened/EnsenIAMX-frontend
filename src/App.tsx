@@ -10,8 +10,11 @@ import CrearProgramaAnaliticoView from "./components/CrearProgramaAnaliticoView"
 import FormatoEvaluacionView from "./components/FormatoEvaluacionView";
 import BitacoraIncidenciaView from "./components/BitacoraIncidenciaView";
 import OrganizadorEscolarView from "./components/OrganizadorEscolarView";
+import { AuthModal } from "./components/AuthModal";
+import { supabase } from "./lib/supabase";
+import { cerrarSesion } from "./services/authService";
 import { CompletePlan } from "./types";
-import { FileText, LogOut } from "lucide-react";
+import { FileText, LogOut, UserCheck } from "lucide-react";
 
 const LOGO_IMG = "https://i.imgur.com/tv95RC0.png";
 const STORAGE_PROFILE_KEY = "nem_secundaria_profile";
@@ -38,6 +41,10 @@ type ActiveTab =
 type OrganizadorTab = "planeaciones" | "grupos" | "bitacora" | "seguimiento" | "evaluacion";
 
 export default function App() {
+  // Estado para autenticación de Supabase
+  const [usuarioSupabase, setUsuarioSupabase] = useState<any>(null);
+  const [mostrarAuthModal, setMostrarAuthModal] = useState(false);
+
   // Inicialización perezosa de planes desde localStorage
   const [plans, setPlans] = useState<CompletePlan[]>(() => {
     const savedPlans = localStorage.getItem(STORAGE_PLANS_KEY);
@@ -72,6 +79,19 @@ export default function App() {
   const [organizadorTab, setOrganizadorTab] = useState<OrganizadorTab>("planeaciones");
   const [prefilledData, setPrefilledData] = useState<Record<string, unknown> | null>(null);
 
+  // Escuchar sesión activa de Supabase al cargar el componente
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUsuarioSupabase(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUsuarioSupabase(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   const handleLogin = (profile: UserProfile) => {
     localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(profile));
     setUserProfile(profile);
@@ -79,7 +99,8 @@ export default function App() {
     setPrefilledData(null);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await cerrarSesion();
     localStorage.removeItem(STORAGE_PROFILE_KEY);
     setUserProfile(null);
     setActiveTab("hub");
@@ -314,6 +335,20 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {usuarioSupabase ? (
+              <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded text-xs font-semibold">
+                <UserCheck className="w-3.5 h-3.5 text-mex-gold" />
+                <span className="hidden sm:inline max-w-[150px] truncate">{usuarioSupabase.email}</span>
+              </div>
+            ) : (
+              <button
+                onClick={() => setMostrarAuthModal(true)}
+                className="text-xs bg-mex-gold/20 hover:bg-mex-gold/30 border border-mex-gold/50 px-3 py-1.5 rounded text-white font-bold transition flex items-center gap-2 cursor-pointer"
+              >
+                <span>Acceder a Supabase</span>
+              </button>
+            )}
+
             <button
               onClick={handleLogout}
               className="text-xs bg-white/10 hover:bg-white/20 border border-white/15 px-3 py-1.5 rounded text-white font-bold transition flex items-center gap-2 hover:text-mex-gold hover:border-mex-gold/40 cursor-pointer"
@@ -380,6 +415,13 @@ export default function App() {
           </span>
         </div>
       </footer>
+
+      {/* Modal de Autenticación Supabase */}
+      <AuthModal
+        isOpen={mostrarAuthModal}
+        onClose={() => setMostrarAuthModal(false)}
+        onSuccess={() => console.log("Sesión iniciada con éxito en Supabase")}
+      />
     </div>
   );
 }
