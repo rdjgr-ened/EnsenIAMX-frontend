@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
 import { LoginScreen } from './components/LoginScreen';
-import MainLayout from './components/MainLayout'; // O el nombre de tu componente principal del Dashboard
+import MainLayout from './components/MainLayout';
 import { User } from '@supabase/supabase-js';
 
 export const App: React.FC = () => {
@@ -9,19 +9,30 @@ export const App: React.FC = () => {
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    // 1. Obtener la sesión actual al cargar la app
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // 1. Verificar si ya existe una sesión activa al cargar la app
+    const inicializarSesion = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user ?? null);
+      } catch (error) {
+        console.error("Error al obtener la sesión de Supabase:", error);
+      } finally {
+        setCargando(false);
+      }
+    };
+
+    inicializarSesion();
+
+    // 2. Suscribirse a cambios en la autenticación (Login / Logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("🔄 Evento Auth detectado:", event);
       setUser(session?.user ?? null);
       setCargando(false);
     });
 
-    // 2. Escuchar cambios de estado en la autenticación (Login, Logout, Registro)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setCargando(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   if (cargando) {
@@ -35,7 +46,7 @@ export const App: React.FC = () => {
     );
   }
 
-  // Si no hay usuario autenticado, muestra la pantalla de inicio de sesión
+  // Si no hay usuario autenticado, renderiza el Login
   if (!user) {
     return <LoginScreen onLoginSuccess={() => setCargando(true)} />;
   }
