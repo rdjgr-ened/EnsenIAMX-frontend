@@ -9,10 +9,20 @@ export const iniciarSesion = async (email: string, password: string) => {
   return data;
 };
 
-export const registrarUsuario = async (email: string, password: string) => {
+export const registrarUsuario = async (
+  email: string, 
+  password: string, 
+  perfilCompleto?: { nombreDocente: string; escuelas: Array<{ nombre: string; cct: string }> }
+) => {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
+    options: {
+      data: {
+        nombre_docente: perfilCompleto?.nombreDocente || '',
+        escuelas: perfilCompleto?.escuelas || [],
+      },
+    },
   });
   if (error) throw error;
   return data;
