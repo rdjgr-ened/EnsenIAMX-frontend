@@ -25,7 +25,7 @@ interface Escuela {
 }
 
 interface LoginScreenProps {
-  onLoginSuccess?: () => void;
+  onLoginSuccess?: (user?: any) => void;
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
@@ -90,8 +90,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
         console.log("Respuesta de Supabase:", res);
 
-        if (res?.session) {
-          if (onLoginSuccess) onLoginSuccess();
+        if (res?.session?.user) {
+          if (onLoginSuccess) onLoginSuccess(res.session.user);
         } else {
           setMensaje('Registro completado. Por favor, inicia sesión con tus credenciales.');
           setEsRegistro(false);
@@ -101,7 +101,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         const res = await iniciarSesion(email, password);
         console.log("Inicio de sesión exitoso:", res);
         
-        if (onLoginSuccess) {
+        if (res?.session?.user && onLoginSuccess) {
+          onLoginSuccess(res.session.user);
+        } else if (res?.user && onLoginSuccess) {
+          onLoginSuccess(res.user);
+        } else if (onLoginSuccess) {
           onLoginSuccess();
         }
       }

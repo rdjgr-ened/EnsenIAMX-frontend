@@ -9,27 +9,30 @@ export const App: React.FC = () => {
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    // 1. Obtener sesión activa al cargar la aplicación por primera vez
-    const comprobarSesionInicial = async () => {
+    // Verificar sesión al cargar la app
+    const cargarSesionInicial = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error("Error al recuperar la sesión inicial:", error);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          console.log("Sesión previa detectada:", session.user.email);
+          setUser(session.user);
         }
-        setUser(session?.user ?? null);
       } catch (err) {
-        console.error("Excepción al validar sesión:", err);
+        console.error("Error al obtener sesión inicial:", err);
       } finally {
         setCargando(false);
       }
     };
 
-    comprobarSesionInicial();
+    cargarSesionInicial();
 
-    // 2. Escuchador en tiempo real para eventos de autenticación (SIGNED_IN, SIGNED_OUT, INITIAL_SESSION)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("⚡ Evento de autenticación registrado:", event);
-      setUser(session?.user ?? null);
+    // Escuchar eventos globales de Supabase
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+      } else {
+        setUser(null);
+      }
       setCargando(false);
     });
 
@@ -38,34 +41,37 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  // Pantalla de carga profesional mientras Supabase valida el almacenamiento local
   if (cargando) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100 p-4">
-        <div className="text-center bg-white p-8 rounded-lg shadow-md border border-slate-200">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#2A3E54] mx-auto mb-4"></div>
-          <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-            Cargando asistente docente...
-          </p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#2A3E54] mx-auto mb-3"></div>
+          <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Cargando EnseñIA MX...</p>
         </div>
       </div>
     );
   }
 
-  // Si no hay sesión válida, muestra la pantalla de acceso
+  // Si NO hay usuario, muestra el Login
   if (!user) {
     return (
       <LoginScreen 
-        onLoginSuccess={async () => {
-          // Callback de respaldo: fuerza la relectura de sesión activa si la suscripción tarda milisegundos
-          const { data: { session } } = await supabase.auth.getSession();
-          setUser(session?.user ?? null);
+        onLoginSuccess={(usuarioAutenticado) => {
+          console.log("onLoginSuccess activado. Cambiando a MainLayout...");
+          if (usuarioAutenticado) {
+            setUser(usuarioAutenticado);
+          } else {
+            // Reintento directo si no se pasó por parámetro
+            supabase.auth.getUser().then(({ data }) => {
+              if (data.user) setUser(data.user);
+            });
+          }
         }} 
       />
     );
   }
 
-  // Si hay usuario autenticado, renderiza el panel de control principal (MainLayout)
+  // Si SÍ hay usuario, renderiza la app
   return <MainLayout user={user} />;
 };
 
