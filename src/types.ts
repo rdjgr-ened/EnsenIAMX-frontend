@@ -262,3 +262,274 @@ export interface ContinuousEvalGroupData {
   calificaciones: Record<string, number>;
 }
 
+export interface ExamQuestionOption {
+  inciso: "A" | "B" | "C" | "D";
+  texto: string;
+}
+
+export interface ExamQuestionItem {
+  numero: number;
+  tipo: "opcion_multiple" | "pregunta_abierta";
+  contenidoEvaluado: string;
+  pdaEvaluado?: string;
+  planteamiento: string;
+  opciones?: ExamQuestionOption[];
+  lineasRespuesta?: number;
+  espacioRespuesta?: string;
+  respuestaCorrecta: string;
+  justificacionPedagogica: string;
+  criterioEvaluacion?: string;
+  puntos: number;
+}
+
+export interface ExamSpecificationItem {
+  numero: number;
+  contenido: string;
+  pda: string;
+  nivelCognitivo: string;
+  tipoReactivo: string;
+  puntos: number;
+}
+
+export interface GeneratedExam {
+  id?: string;
+  createdAt?: string;
+  titulo: string;
+  subtitulo?: string;
+  tipoExamen: "diagnostico" | "parcial" | "trimestral";
+  periodoTrimestre?: string;
+  nivel: string;
+  grado: string;
+  grupo?: string;
+  disciplina: string;
+  campoFormativo: string;
+  escuelaName: string;
+  cct: string;
+  docenteName: string;
+  fechaAplicacion?: string;
+  tiempoEstimado?: string;
+  instruccionesGenerales: string;
+  reactivos: ExamQuestionItem[];
+  tablaEspecificaciones?: ExamSpecificationItem[];
+  hojaRespuestasDocente?: Array<{
+    numero: number;
+    respuesta: string;
+    contenido: string;
+    justificacion: string;
+  }>;
+}
+
+export type PlanTier = "gratuito" | "basico" | "oro" | "platino";
+
+export type BillingCycle = "mensual" | "trimestral" | "anual";
+
+export type CreditActionType = 
+  | "disenar_planeacion"
+  | "adecuacion_curricular"
+  | "disenar_examenes"
+  | "programa_analitico"
+  | "hoja_trabajo"
+  | "instrumento_evaluacion"
+  | "modificar_planeacion"
+  | "crear_contenidos"
+  | "asistente_chatbot"
+  | "sugerir_contenidos";
+
+export interface UserSubscription {
+  plan: PlanTier;
+  credits: number;
+  billingCycle: BillingCycle;
+  planStartDate: string;
+  lastCreditRenewalDate?: string;
+  historyDays: number;
+  bitacoraCount?: number;
+}
+
+export interface PlanFeatureConfig {
+  id: PlanTier;
+  name: string;
+  badgeLabel: string;
+  badgeColor: string;
+  priceMonthly: number;
+  priceQuarterly: number;
+  priceYearly: number;
+  creditsPerMonth: number;
+  isInitialOnly?: boolean;
+  historyDays: number;
+  historyLabel: string;
+  bitacoraLimit: number; // 0 = disabled, 5, 15, Infinity
+  allowGroups: boolean;
+  allowBitacora: boolean;
+  allowClassTracking: boolean;
+  allowEvaluationFormat: boolean;
+  allowContinuousEvaluation: boolean;
+  description: string;
+  features: string[];
+}
+
+export type PaywallReason = 
+  | { type: "credits"; action: CreditActionType; required: number; current: number; customMessage?: string }
+  | { type: "feature"; featureName: string; requiredPlan: PlanTier; message: string }
+  | { type: "limit"; featureName: string; limitName?: string; currentCount: number; maxAllowed: number; requiredPlan: PlanTier; message: string }
+  | { type: "manual_upgrade" };
+
+// ==================== MERCADO PAGO CHECKOUT TYPES ====================
+
+export interface CreditPackage {
+  id: string;
+  name: string;
+  credits: number;
+  price: number;
+  popular?: boolean;
+  savings?: string;
+  description: string;
+}
+
+export interface CheckoutRequest {
+  itemType: "plan" | "credits";
+  planId?: PlanTier;
+  billingCycle?: BillingCycle;
+  creditPackageId?: string;
+  creditAmount?: number;
+  price?: number;
+  title?: string;
+  userEmail?: string;
+  userName?: string;
+  userId?: string;
+  returnUrl?: string;
+}
+
+export interface CheckoutResponse {
+  success: boolean;
+  preferenceId?: string;
+  initPoint?: string;
+  sandboxInitPoint?: string;
+  error?: string;
+  isMockDemo?: boolean;
+}
+
+// ==================== SUPABASE DATABASE MODELS (EnseñIA MX) ====================
+
+export interface DbProfile {
+  id: string;
+  email: string;
+  plan: PlanTier;
+  creditos_disponibles: number;
+  fecha_renovacion?: string | null;
+  docente_nombre?: string | null;
+  escuela_nombre?: string | null;
+  cct?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DbGrupo {
+  id: string;
+  user_id: string;
+  grado_grupo: string;
+  materia: string;
+  ciclo_escolar: string;
+  created_at?: string;
+}
+
+export interface DbAlumno {
+  id: string;
+  grupo_id: string;
+  user_id: string;
+  nombre_completo: string;
+  bap_diagnostico?: string | null;
+  created_at?: string;
+}
+
+export interface DbIncidencia {
+  id: string;
+  alumno_id: string;
+  user_id: string;
+  fecha: string;
+  categoria: string;
+  descripcion: string;
+  created_at?: string;
+}
+
+export interface DbPlaneacion {
+  id: string;
+  user_id: string;
+  titulo: string;
+  campo_formativo: string;
+  pda: string;
+  contenido_json: any;
+  created_at?: string;
+}
+
+export type TipoRecursoGenerado =
+  | "examen"
+  | "hoja_de_trabajo"
+  | "rubrica"
+  | "instrumento_evaluacion"
+  | "programa_analitico"
+  | "otro";
+
+export interface DbRecursoGenerado {
+  id: string;
+  user_id: string;
+  tipo_recurso: TipoRecursoGenerado;
+  contenido_json: any;
+  created_at?: string;
+}
+
+export interface DbEvaluacionContinua {
+  id: string;
+  user_id: string;
+  grupo_id?: string | null;
+  alumno_id?: string | null;
+  fecha?: string | null;
+  criterio?: string | null;
+  calificacion?: string | number | null;
+  observaciones?: string | null;
+  contenido_json: any;
+  created_at?: string;
+}
+
+export interface DatabaseSchema {
+  public: {
+    Tables: {
+      profiles: {
+        Row: DbProfile;
+        Insert: Partial<DbProfile> & { id: string; email: string };
+        Update: Partial<DbProfile>;
+      };
+      grupos: {
+        Row: DbGrupo;
+        Insert: Omit<DbGrupo, "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<DbGrupo>;
+      };
+      alumnos: {
+        Row: DbAlumno;
+        Insert: Omit<DbAlumno, "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<DbAlumno>;
+      };
+      incidencias: {
+        Row: DbIncidencia;
+        Insert: Omit<DbIncidencia, "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<DbIncidencia>;
+      };
+      planeaciones: {
+        Row: DbPlaneacion;
+        Insert: Omit<DbPlaneacion, "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<DbPlaneacion>;
+      };
+      recursos_generados: {
+        Row: DbRecursoGenerado;
+        Insert: Omit<DbRecursoGenerado, "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<DbRecursoGenerado>;
+      };
+      evaluacion_continua: {
+        Row: DbEvaluacionContinua;
+        Insert: Omit<DbEvaluacionContinua, "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<DbEvaluacionContinua>;
+      };
+    };
+  };
+}
+
+

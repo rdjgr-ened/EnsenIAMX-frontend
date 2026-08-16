@@ -1,6 +1,17 @@
-import React, { useState, useEffect } from "react";
-import { curriculumData, CAMPO_FORMATIVO_LABELS, DISCIPLINA_LABELS } from "../data/fase6sintetico";
-import { Sparkles, BookOpen, User, School, Calendar, RefreshCw, Layers, FileText, Accessibility, Users } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { 
+  getGradosPorNivel, 
+  getCamposFormativos, 
+  getAsignaturasPorCampo, 
+  getContenidosPorFiltro, 
+  getPdasPorContenido,
+  getFaseByNivelGrado,
+  CAMPO_FORMATIVO_LABELS,
+  NemCampoFormativo,
+  NemAsignatura,
+  NemContenido
+} from "../data/nemData";
+import { Sparkles, BookOpen, User, School, Calendar, RefreshCw, Layers, FileText, Accessibility, Users, Coins, GraduationCap, Zap } from "lucide-react";
 
 interface PlaneacionFormProps {
   onSubmit?: (formData: any) => void;
@@ -110,73 +121,418 @@ const BAP_CATEGORIES = [
   }
 ];
 
-export default function PlaneacionForm({
-  onSubmit = () => {},
-  isLoading = false,
-  initialData = null,
-  onBackToHub = () => {},
-  onChange = () => {},
-  onSelect = () => {},
-  toggleOption = () => {},
-  setFormData = () => {},
-}: PlaneacionFormProps) {
+export default function PlaneacionForm(props: PlaneacionFormProps) {
+  // Safe default callbacks guarantees that no callback is undefined in production
+  const safeOnSubmit = props.onSubmit || (() => {});
+  const safeOnBackToHub = props.onBackToHub || (() => {});
+  const safeOnChange = props.onChange || (() => {});
+  const safeOnSelect = props.onSelect || (() => {});
+  const safeToggleOption = props.toggleOption || (() => {});
+  const safeSetFormData = props.setFormData || (() => {});
+
+  const isLoading = props.isLoading ?? false;
+  const initialData = props.initialData ?? null;
+
   // General details
-  const [docenteName, setDocenteName] = useState("René Gaytán");
-  const [escuelaName, setEscuelaName] = useState("Esc. Sec. Gral. #3 \"Jaime Torres Bodet\"");
-  const [cct, setCct] = useState("10DES0021J");
-  const [grupo, setGrupo] = useState("A");
-  const [nivel, setNivel] = useState("Secundaria");
-  const [grado, setGrado] = useState("Primer Grado");
-  const [duracionSemanas, setDuracionSemanas] = useState("2 semanas");
+  const [docenteName, setDocenteName] = useState<string>("René Gaytán");
+  const [escuelaName, setEscuelaName] = useState<string>("Esc. Sec. Gral. #3 \"Jaime Torres Bodet\"");
+  const [cct, setCct] = useState<string>("10DES0021J");
+  const [grupo, setGrupo] = useState<string>("A");
+  const [nivel, setNivel] = useState<string>("Secundaria");
+  const [grado, setGrado] = useState<string>("Primer Grado");
+  const [duracionSemanas, setDuracionSemanas] = useState<string>("2 semanas");
   const [numSesiones, setNumSesiones] = useState<number>(8);
   const [duracionSesion, setDuracionSesion] = useState<string>("50 minutos");
+
+  // Arrays strictly initialized to []
   const [selectedBap, setSelectedBap] = useState<string[]>([]);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [selectedEjes, setSelectedEjes] = useState<string[]>(["Artes y experiencias estéticas"]);
   const [escuelasList, setEscuelasList] = useState<Array<{ escuelaName: string; cct: string }>>([]);
 
-  // AI Assistant States
-  const [aiNivel, setAiNivel] = useState("Secundaria");
-  const [aiGrado, setAiGrado] = useState("Primer Grado");
-  const [aiCampo, setAiCampo] = useState("Lenguajes");
-  const [aiDisciplina, setAiDisciplina] = useState("Español");
-  const [aiSituacion, setAiSituacion] = useState("");
-  
-  // Suggestion options & loading states
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [aiSuggestions, setAiSuggestions] = useState<Array<{ contenido: string; pda: string }>>([]);
-  const [selectedAiIndex, setSelectedAiIndex] = useState<number | null>(null);
-  
-  // Custom created content option
-  const [createdContent, setCreatedContent] = useState<{ contenido: string; pda: string } | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Calendar state
-  const [startDate, setStartDate] = useState(() => new Date().toISOString().split("T")[0]);
-  const [endDate, setEndDate] = useState(() => {
+  const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
+  const [endDate, setEndDate] = useState<string>(() => {
     const date = new Date();
     date.setDate(date.getDate() + 14);
     return date.toISOString().split("T")[0];
   });
 
   // Curriculum selections
-  const [selectedCampo, setSelectedCampo] = useState("lenguajes");
-  const [selectedDisciplina, setSelectedDisciplina] = useState("ESPAÑOL");
-  const [selectedContenido, setSelectedContenido] = useState("");
-  const [selectedPda, setSelectedPda] = useState("");
+  const [selectedCampo, setSelectedCampo] = useState<string>("lenguajes");
+  const [selectedDisciplina, setSelectedDisciplina] = useState<string>("ESPAÑOL");
+  const [selectedContenido, setSelectedContenido] = useState<string>("");
+  const [selectedPda, setSelectedPda] = useState<string>("");
+  const [selectedPdas, setSelectedPdas] = useState<string[]>([]);
+
+  // Persistent localStorage helper functions for NEM Curriculum
+  const NEM_STORAGE_KEY = "nem_curriculum_cache_v2";
+
+  // Dynamic Gemini Curriculum State & Cache (initialized with localStorage)
+  const [isFetchingCurriculum, setIsFetchingCurriculum] = useState<boolean>(false);
+  const [dynamicContenidosMap, setDynamicContenidosMap] = useState<Record<string, Array<{ id: string; contenido: string; pdas: string[] }>>>(() => {
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        const saved = window.localStorage.getItem("nem_curriculum_cache_v2");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === "object") {
+            return parsed;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Could not read NEM curriculum from localStorage:", e);
+    }
+    return {};
+  });
+  const [curriculumSource, setCurriculumSource] = useState<"ai" | "cache" | "static">("static");
 
   // Custom curriculum toggling
   const [isCustomCurriculum, setIsCustomCurriculum] = useState<boolean>(false);
-  const [customContenido, setCustomContenido] = useState("");
-  const [customPda, setCustomPda] = useState("");
+  const [customContenido, setCustomContenido] = useState<string>("");
+  const [customPda, setCustomPda] = useState<string>("");
 
   // Other NEM details
-  const [selectedEjes, setSelectedEjes] = useState<string[]>(["Artes y experiencias estéticas"]);
-  const [selectedMetodologia, setSelectedMetodologia] = useState("Aprendizaje Basado en Proyectos Comunitarios (ABPC)");
-  const [situacionProblema, setSituacionProblema] = useState("Dificultad de los estudiantes para valorar y difundir las manifestaciones culturales locales en un segundo idioma.");
+  const [selectedMetodologia, setSelectedMetodologia] = useState<string>("Aprendizaje Basado en Proyectos Comunitarios (ABPC)");
+  const [situacionProblema, setSituacionProblema] = useState<string>(
+    "Dificultad de los estudiantes para valorar y difundir las manifestaciones culturales locales en un segundo idioma."
+  );
+
+  // Dynamic calculated cascading options based on current state
+  const currentFaseObj = useMemo(() => {
+    return getFaseByNivelGrado(nivel, grado);
+  }, [nivel, grado]);
+
+  const availableGrados = useMemo(() => {
+    return getGradosPorNivel(nivel);
+  }, [nivel]);
+
+  const availableCampos = useMemo(() => {
+    return getCamposFormativos(nivel, grado);
+  }, [nivel, grado]);
+
+  const availableDisciplinas = useMemo(() => {
+    return getAsignaturasPorCampo(nivel, grado, selectedCampo);
+  }, [nivel, grado, selectedCampo]);
+
+  // Combined Contenidos: Use dynamic AI/localStorage contents if present; fallback to static nemData
+  const cacheKey = useMemo(() => {
+    return `${nivel}__${grado}__${selectedCampo}__${selectedDisciplina}`;
+  }, [nivel, grado, selectedCampo, selectedDisciplina]);
+
+  const availableContenidos = useMemo(() => {
+    const officialList = getContenidosPorFiltro(nivel, grado, selectedCampo, selectedDisciplina);
+    if (officialList && officialList.length > 0) {
+      return officialList;
+    }
+    const cached = dynamicContenidosMap[cacheKey];
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      return cached;
+    }
+    return [];
+  }, [dynamicContenidosMap, cacheKey, nivel, grado, selectedCampo, selectedDisciplina]);
+
+  // Combined PDAs for the currently selected Contenido
+  const availablePdas = useMemo(() => {
+    const officialPdas = getPdasPorContenido(nivel, grado, selectedCampo, selectedDisciplina, selectedContenido);
+    if (officialPdas && officialPdas.length > 0) {
+      return officialPdas;
+    }
+    const cached = dynamicContenidosMap[cacheKey];
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      const match = cached.find((item) => item.contenido === selectedContenido);
+      if (match && Array.isArray(match.pdas) && match.pdas.length > 0) {
+        return match.pdas;
+      }
+    }
+    return [];
+  }, [dynamicContenidosMap, cacheKey, nivel, grado, selectedCampo, selectedDisciplina, selectedContenido]);
+
+  // Function to fetch official contents and PDAs: checks React state & localStorage first ($0 cost, 0 latency)
+  const fetchCurriculumFromGemini = async (
+    targetNivel: string,
+    targetGrado: string,
+    targetCampoId: string,
+    targetDisciplinaId: string,
+    forceRefresh: boolean = false
+  ) => {
+    const targetKey = `${targetNivel}__${targetGrado}__${targetCampoId}__${targetDisciplinaId}`;
+    
+    // 1. Check in React Memory State
+    if (!forceRefresh && dynamicContenidosMap[targetKey] && dynamicContenidosMap[targetKey].length > 0) {
+      setCurriculumSource("cache");
+      return;
+    }
+
+    // 2. Check in Browser localStorage
+    if (!forceRefresh && typeof window !== "undefined" && window.localStorage) {
+      try {
+        const raw = window.localStorage.getItem(NEM_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed[targetKey] && Array.isArray(parsed[targetKey]) && parsed[targetKey].length > 0) {
+            const list = parsed[targetKey];
+            setDynamicContenidosMap((prev) => ({
+              ...prev,
+              [targetKey]: list,
+            }));
+            setCurriculumSource("cache");
+
+            // Auto-select valid first content & PDA if not matching
+            setSelectedContenido((curr) => {
+              const exists = list.some((item: any) => item.contenido === curr);
+              if (exists) return curr;
+              const firstCont = list[0]?.contenido || "";
+              const firstPdas = list[0]?.pdas || [];
+              if (firstPdas.length > 0) {
+                setSelectedPda(firstPdas[0]);
+              }
+              return firstCont;
+            });
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Error reading from localStorage cache:", e);
+      }
+    }
+
+    // 3. Not in cache: Perform lightweight API call with PDF prompt caching
+    const campoObj = availableCampos.find((c) => c.id === targetCampoId);
+    const campoNombre = campoObj?.nombre || CAMPO_FORMATIVO_LABELS[targetCampoId] || targetCampoId;
+    
+    const asigObj = availableDisciplinas.find((a) => a.id === targetDisciplinaId);
+    const disciplinaNombre = asigObj?.nombre || targetDisciplinaId || "General";
+
+    try {
+      setIsFetchingCurriculum(true);
+      const res = await fetch("/api/fetch-nem-curriculum", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nivel: targetNivel,
+          grado: targetGrado,
+          campoFormativo: campoNombre,
+          disciplina: disciplinaNombre,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Error en la respuesta del servidor.");
+      }
+
+      const data = await res.json();
+      if (data.success && Array.isArray(data.contenidos) && data.contenidos.length > 0) {
+        const fetchedList = data.contenidos.map((c: any, index: number) => ({
+          id: c.id || `dyn-cont-${index}`,
+          contenido: c.contenido,
+          pdas: Array.isArray(c.pdas) ? c.pdas : [],
+        }));
+
+        // Update React State
+        setDynamicContenidosMap((prev) => {
+          const updated = {
+            ...prev,
+            [targetKey]: fetchedList,
+          };
+          // Persist to localStorage for future zero-cost zero-latency access
+          try {
+            if (typeof window !== "undefined" && window.localStorage) {
+              window.localStorage.setItem(NEM_STORAGE_KEY, JSON.stringify(updated));
+            }
+          } catch (e) {
+            console.warn("Could not save to localStorage:", e);
+          }
+          return updated;
+        });
+
+        setCurriculumSource("ai");
+
+        // Automatically update the selected Contenido and PDA
+        setSelectedContenido((curr) => {
+          const exists = fetchedList.some((item: any) => item.contenido === curr);
+          if (exists) return curr;
+          const firstCont = fetchedList[0]?.contenido || "";
+          const firstPdas = fetchedList[0]?.pdas || [];
+          if (firstPdas.length > 0) {
+            setSelectedPda(firstPdas[0]);
+          }
+          return firstCont;
+        });
+      }
+    } catch (err) {
+      console.warn("Could not fetch dynamic curriculum from Gemini, using static catalogue:", err);
+    } finally {
+      setIsFetchingCurriculum(false);
+    }
+  };
+
+  // Trigger Gemini API dynamic query whenever Nivel, Grado, Campo or Disciplina changes
+  useEffect(() => {
+    if (isCustomCurriculum) return;
+    const timer = setTimeout(() => {
+      fetchCurriculumFromGemini(nivel, grado, selectedCampo, selectedDisciplina);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [nivel, grado, selectedCampo, selectedDisciplina, isCustomCurriculum]);
+
+  // CASCADING HANDLERS WITH AUTOMATIC DOWNSTREAM RESET
+  const handleNivelChange = (newNivel: string) => {
+    setNivel(newNivel);
+    const newGrados = getGradosPorNivel(newNivel);
+    const newGrado = newGrados[0] || "Primer Grado";
+    setGrado(newGrado);
+
+    if (newNivel === "Preescolar") {
+      setDuracionSesion("45 minutos");
+      setSelectedMetodologia("Aprendizaje Basado en el Juego");
+    } else {
+      setDuracionSesion("50 minutos");
+      setSelectedMetodologia("Aprendizaje Basado en Proyectos Comunitarios (ABPC)");
+    }
+
+    const campos = getCamposFormativos(newNivel, newGrado);
+    const firstCampo = campos[0]?.id || "lenguajes";
+    setSelectedCampo(firstCampo);
+
+    const asigs = getAsignaturasPorCampo(newNivel, newGrado, firstCampo);
+    const firstAsig = asigs[0]?.id || "";
+    setSelectedDisciplina(firstAsig);
+
+    const conts = getContenidosPorFiltro(newNivel, newGrado, firstCampo, firstAsig);
+    const firstCont = conts[0]?.contenido || "";
+    setSelectedContenido(firstCont);
+
+    const pdasForCont = getPdasPorContenido(newNivel, newGrado, firstCampo, firstAsig, firstCont);
+    setSelectedPda(pdasForCont[0] || "");
+    setSelectedPdas(pdasForCont.length > 0 ? [pdasForCont[0]] : []);
+  };
+
+  const handleGradoChange = (newGrado: string) => {
+    setGrado(newGrado);
+
+    // Recompute valid campo
+    const campos = getCamposFormativos(nivel, newGrado);
+    const isCampoValid = campos.some((c) => c.id === selectedCampo);
+    const validCampo = isCampoValid ? selectedCampo : (campos[0]?.id || "lenguajes");
+    if (!isCampoValid) setSelectedCampo(validCampo);
+
+    // Recompute valid disciplina
+    const asigs = getAsignaturasPorCampo(nivel, newGrado, validCampo);
+    const isAsigValid = asigs.some((a) => a.id === selectedDisciplina);
+    const validAsig = isAsigValid ? selectedDisciplina : (asigs[0]?.id || "");
+    setSelectedDisciplina(validAsig);
+
+    // Reset contenido & pda for new grade to guarantee consistency
+    const conts = getContenidosPorFiltro(nivel, newGrado, validCampo, validAsig);
+    const firstCont = conts[0]?.contenido || "";
+    setSelectedContenido(firstCont);
+
+    const pdasForCont = getPdasPorContenido(nivel, newGrado, validCampo, validAsig, firstCont);
+    setSelectedPda(pdasForCont[0] || "");
+    setSelectedPdas(pdasForCont.length > 0 ? [pdasForCont[0]] : []);
+  };
+
+  const handleCampoChange = (newCampo: string) => {
+    setSelectedCampo(newCampo);
+
+    // Automatic methodology recommendation
+    if (nivel === "Preescolar") {
+      setSelectedMetodologia("Aprendizaje Basado en el Juego");
+    } else {
+      if (newCampo === "lenguajes") {
+        setSelectedMetodologia("Aprendizaje Basado en Proyectos Comunitarios (ABPC)");
+      } else if (newCampo === "SABERES") {
+        setSelectedMetodologia("Aprendizaje Basado en Indagación (STEAM)");
+      } else if (newCampo === "ETICA" || newCampo === "ETICA NyS") {
+        setSelectedMetodologia("Aprendizaje Basado en Problemas (ABP)");
+      } else if (newCampo === "HUMANO" || newCampo === "HUMANO Y C") {
+        setSelectedMetodologia("Aprendizaje Servicio (AS)");
+      }
+    }
+
+    // Cascading reset downstream: disciplina -> contenido -> pda
+    const asigs = getAsignaturasPorCampo(nivel, grado, newCampo);
+    const firstAsig = asigs[0]?.id || "";
+    setSelectedDisciplina(firstAsig);
+
+    const conts = getContenidosPorFiltro(nivel, grado, newCampo, firstAsig);
+    const firstCont = conts[0]?.contenido || "";
+    setSelectedContenido(firstCont);
+
+    const pdasForCont = getPdasPorContenido(nivel, grado, newCampo, firstAsig, firstCont);
+    setSelectedPda(pdasForCont[0] || "");
+    setSelectedPdas(pdasForCont.length > 0 ? [pdasForCont[0]] : []);
+  };
+
+  const handleDisciplinaChange = (newDisciplina: string) => {
+    setSelectedDisciplina(newDisciplina);
+
+    // Cascading reset downstream: contenido -> pda
+    const conts = getContenidosPorFiltro(nivel, grado, selectedCampo, newDisciplina);
+    const firstCont = conts[0]?.contenido || "";
+    setSelectedContenido(firstCont);
+
+    const pdasForCont = getPdasPorContenido(nivel, grado, selectedCampo, newDisciplina, firstCont);
+    setSelectedPda(pdasForCont[0] || "");
+    setSelectedPdas(pdasForCont.length > 0 ? [pdasForCont[0]] : []);
+  };
+
+  const handleContenidoChange = (newContenido: string) => {
+    setSelectedContenido(newContenido);
+
+    // Cascading reset downstream: pda
+    const matchAi = dynamicContenidosMap[cacheKey]?.find((item) => item.contenido === newContenido);
+    if (matchAi && matchAi.pdas.length > 0) {
+      setSelectedPda(matchAi.pdas[0] || "");
+      setSelectedPdas([matchAi.pdas[0]]);
+    } else {
+      const pdasForCont = getPdasPorContenido(nivel, grado, selectedCampo, selectedDisciplina, newContenido);
+      setSelectedPda(pdasForCont[0] || "");
+      setSelectedPdas(pdasForCont.length > 0 ? [pdasForCont[0]] : []);
+    }
+  };
+
+  // Helper toggle for multi-PDA selection
+  const handleTogglePda = (pdaText: string) => {
+    setSelectedPdas((prev) => {
+      let updated: string[];
+      if (prev.includes(pdaText)) {
+        updated = prev.filter((p) => p !== pdaText);
+      } else {
+        updated = [...prev, pdaText];
+      }
+      if (updated.length > 0) {
+        setSelectedPda(updated[0]);
+      } else {
+        setSelectedPda("");
+      }
+      safeOnSelect(updated.join(" // "));
+      return updated;
+    });
+  };
+
+  const handleSelectAllPdas = () => {
+    if (availablePdas.length > 0) {
+      setSelectedPdas([...availablePdas]);
+      setSelectedPda(availablePdas[0]);
+      safeOnSelect(availablePdas.join(" // "));
+    }
+  };
+
+  const handleClearPdas = () => {
+    if (availablePdas.length > 0) {
+      setSelectedPdas([availablePdas[0]]);
+      setSelectedPda(availablePdas[0]);
+      safeOnSelect(availablePdas[0]);
+    }
+  };
 
   // Helper toggle for BAP / Aptitudes Sobresalientes with full safety
   const handleToggleBap = (formattedValue: string) => {
-    if (!formattedValue) return;
+    if (!formattedValue || typeof formattedValue !== "string") return;
     setSelectedBap((prev) => {
       const safePrev = Array.isArray(prev) ? prev : [];
       if (safePrev.includes(formattedValue)) {
@@ -186,13 +542,11 @@ export default function PlaneacionForm({
       }
     });
 
-    if (typeof toggleOption === "function") {
-      toggleOption(formattedValue);
-    }
+    safeToggleOption(formattedValue);
   };
 
   const handleEjeChange = (ejeId: string) => {
-    if (!ejeId) return;
+    if (!ejeId || typeof ejeId !== "string") return;
     setSelectedEjes((prev) => {
       const safePrev = Array.isArray(prev) ? prev : [];
       return safePrev.includes(ejeId) ? safePrev.filter((id) => id !== ejeId) : [...safePrev, ejeId];
@@ -201,44 +555,35 @@ export default function PlaneacionForm({
 
   // Load profile from localStorage if exists
   useEffect(() => {
-    const savedProfile = localStorage.getItem("nem_secundaria_profile");
-    if (savedProfile) {
-      try {
+    try {
+      const savedProfile = localStorage.getItem("nem_secundaria_profile");
+      if (savedProfile) {
         const profile = JSON.parse(savedProfile);
-        if (profile.docenteName) setDocenteName(profile.docenteName);
-        if (profile.escuelaName) setEscuelaName(profile.escuelaName);
-        if (profile.cct) setCct(profile.cct);
-        if (profile.escuelas && profile.escuelas.length > 0) {
+        if (profile?.docenteName) setDocenteName(profile.docenteName);
+        if (profile?.escuelaName) setEscuelaName(profile.escuelaName);
+        if (profile?.cct) setCct(profile.cct);
+        if (profile?.escuelas && Array.isArray(profile.escuelas) && profile.escuelas.length > 0) {
           setEscuelasList(profile.escuelas);
-          const matched = profile.escuelas.find((e: any) => e.escuelaName === profile.escuelaName && e.cct === profile.cct);
+          const matched = profile.escuelas.find((e: any) => e?.escuelaName === profile.escuelaName && e?.cct === profile.cct);
           if (!matched) {
-            setEscuelaName(profile.escuelas[0].escuelaName);
-            setCct(profile.escuelas[0].cct);
+            setEscuelaName(profile.escuelas[0]?.escuelaName || "");
+            setCct(profile.escuelas[0]?.cct || "");
           }
-        } else if (profile.escuelaName && profile.cct) {
+        } else if (profile?.escuelaName && profile?.cct) {
           setEscuelasList([{ escuelaName: profile.escuelaName, cct: profile.cct }]);
         }
-      } catch (e) {
-        console.error("Error loading profile:", e);
       }
+    } catch (e) {
+      console.error("Error loading profile from localStorage:", e);
     }
   }, []);
 
   // Sync initialData if provided
   useEffect(() => {
     if (initialData) {
-      if (initialData.nivel) {
-        setNivel(initialData.nivel);
-        setAiNivel(initialData.nivel);
-      }
-      if (initialData.grado) {
-        setGrado(initialData.grado);
-        setAiGrado(initialData.grado);
-      }
-      if (initialData.situacionProblema) {
-        setSituacionProblema(initialData.situacionProblema);
-        setAiSituacion(initialData.situacionProblema);
-      }
+      if (initialData.nivel) setNivel(initialData.nivel);
+      if (initialData.grado) setGrado(initialData.grado);
+      if (initialData.situacionProblema) setSituacionProblema(initialData.situacionProblema);
       
       setIsCustomCurriculum(true);
       if (initialData.contenido) setCustomContenido(initialData.contenido);
@@ -252,15 +597,15 @@ export default function PlaneacionForm({
       }
 
       if (initialData.campoFormativo) {
-        const normCampo = initialData.campoFormativo.toLowerCase();
+        const normCampo = String(initialData.campoFormativo).toLowerCase();
         if (normCampo.includes("lenguaje")) {
           setSelectedCampo("lenguajes");
         } else if (normCampo.includes("saberes") || normCampo.includes("científico") || normCampo.includes("cientifico")) {
           setSelectedCampo("SABERES");
         } else if (normCampo.includes("ética") || normCampo.includes("etica") || normCampo.includes("naturaleza")) {
-          setSelectedCampo("ETICA NyS");
+          setSelectedCampo("ETICA");
         } else if (normCampo.includes("humano") || normCampo.includes("comunitario")) {
-          setSelectedCampo("HUMANO Y C");
+          setSelectedCampo("HUMANO");
         }
       }
     }
@@ -269,143 +614,41 @@ export default function PlaneacionForm({
   // Sync dates to duracionSemanas
   useEffect(() => {
     if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const diffTime = Math.abs(end.getTime() - start.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      const weeks = Math.round(diffDays / 7);
-      
-      const options: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
-      const startStr = start.toLocaleDateString("es-MX", options);
-      const endStr = end.toLocaleDateString("es-MX", options);
+      try {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const diffTime = Math.abs(end.getTime() - start.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const weeks = Math.round(diffDays / 7);
+        
+        const options: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
+        const startStr = start.toLocaleDateString("es-MX", options);
+        const endStr = end.toLocaleDateString("es-MX", options);
 
-      if (weeks <= 1) {
-        setDuracionSemanas(`${diffDays} días (del ${startStr} al ${endStr})`);
-      } else {
-        setDuracionSemanas(`${weeks} semanas (del ${startStr} al ${endStr})`);
+        if (weeks <= 1) {
+          setDuracionSemanas(`${diffDays} días (del ${startStr} al ${endStr})`);
+        } else {
+          setDuracionSemanas(`${weeks} semanas (del ${startStr} al ${endStr})`);
+        }
+      } catch (e) {
+        setDuracionSemanas("2 semanas");
       }
     }
   }, [startDate, endDate]);
 
-  useEffect(() => {
-    if (nivel === "Preescolar") {
-      setGrado("1º de Preescolar");
-      setDuracionSesion("45 minutos");
-      setSelectedMetodologia("Aprendizaje Basado en el Juego");
-    } else if (nivel === "Primaria") {
-      setGrado("Primer Grado");
-      setDuracionSesion("50 minutos");
-      setSelectedMetodologia("Aprendizaje Basado en Proyectos Comunitarios (ABPC)");
-    } else {
-      setGrado("Primer Grado");
-      setDuracionSesion("50 minutos");
-      setSelectedMetodologia("Aprendizaje Basado en Proyectos Comunitarios (ABPC)");
-    }
-  }, [nivel]);
-
-  useEffect(() => {
-    if (aiNivel === "Preescolar") {
-      setAiGrado("1º de Preescolar");
-      setAiDisciplina("Educación Preescolar");
-    } else if (aiNivel === "Primaria") {
-      setAiGrado("Primer Grado");
-      setAiDisciplina("Lenguajes / Primaria");
-    } else {
-      setAiGrado("Primer Grado");
-      setAiDisciplina("Español");
-    }
-  }, [aiNivel]);
-
-  // Lists dynamically filtered
-  const [disciplinas, setDisciplinas] = useState<string[]>([]);
-  const [contenidos, setContenidos] = useState<string[]>([]);
-  const [pdas, setPdas] = useState<string[]>([]);
-
-  useEffect(() => {
-    const uniqueDisciplinas = Array.from(
-      new Set(
-        curriculumData
-          .filter((item) => {
-            const matchesCampo = item.campoFormativo === selectedCampo;
-            if (nivel === "Preescolar") {
-              return matchesCampo && item.disciplina === "PREESCOLAR";
-            } else if (nivel === "Primaria") {
-              return matchesCampo && item.disciplina === "PRIMARIA";
-            } else {
-              return matchesCampo && item.disciplina !== "PREESCOLAR" && item.disciplina !== "PRIMARIA";
-            }
-          })
-          .map((item) => item.disciplina)
-      )
-    );
-    setDisciplinas(uniqueDisciplinas);
-
-    if (uniqueDisciplinas.length > 0) {
-      setSelectedDisciplina(uniqueDisciplinas[0]);
-    }
-  }, [selectedCampo, nivel]);
-
-  useEffect(() => {
-    if (nivel !== "Preescolar") {
-      if (selectedCampo === "lenguajes") {
-        setSelectedMetodologia("Aprendizaje Basado en Proyectos Comunitarios (ABPC)");
-      } else if (selectedCampo === "SABERES") {
-        setSelectedMetodologia("Aprendizaje Basado en Indagación (STEAM)");
-      } else if (selectedCampo === "ETICA NyS") {
-        setSelectedMetodologia("Aprendizaje Basado en Problemas (ABP)");
-      } else if (selectedCampo === "HUMANO Y C") {
-        setSelectedMetodologia("Aprendizaje Servicio (AS)");
-      }
-    }
-  }, [selectedCampo, nivel]);
-
-  useEffect(() => {
-    const filteredContents = Array.from(
-      new Set(
-        curriculumData
-          .filter(
-            (item) =>
-              item.campoFormativo === selectedCampo &&
-              item.disciplina === selectedDisciplina &&
-              item.grado.toLowerCase() === grado.toLowerCase()
-          )
-          .map((item) => item.contenido)
-      )
-    );
-    setContenidos(filteredContents);
-
-    if (filteredContents.length > 0) {
-      setSelectedContenido(filteredContents[0]);
-    } else {
-      setSelectedContenido("");
-    }
-  }, [selectedCampo, selectedDisciplina, grado]);
-
+  // Initialize first selection on mount
   useEffect(() => {
     if (!selectedContenido) {
-      setPdas([]);
-      setSelectedPda("");
-      return;
+      const conts = getContenidosPorFiltro(nivel, grado, selectedCampo, selectedDisciplina);
+      if (conts.length > 0) {
+        setSelectedContenido(conts[0].contenido);
+        const pdasForCont = getPdasPorContenido(nivel, grado, selectedCampo, selectedDisciplina, conts[0].contenido);
+        if (pdasForCont.length > 0) {
+          setSelectedPda(pdasForCont[0]);
+        }
+      }
     }
-
-    const filteredPdas = curriculumData
-      .filter(
-        (item) =>
-          item.campoFormativo === selectedCampo &&
-          item.disciplina === selectedDisciplina &&
-          item.grado.toLowerCase() === grado.toLowerCase() &&
-          item.contenido === selectedContenido
-      )
-      .map((item) => item.pda);
-
-    setPdas(filteredPdas);
-
-    if (filteredPdas.length > 0) {
-      setSelectedPda(filteredPdas[0]);
-    } else {
-      setSelectedPda("");
-    }
-  }, [selectedCampo, selectedDisciplina, grado, selectedContenido]);
+  }, []);
 
   const selectProblemPreset = (problem: string) => {
     if (typeof problem === "string" && problem) {
@@ -431,13 +674,21 @@ export default function PlaneacionForm({
       }
     }
 
+    const foundCampo = availableCampos.find((c) => c.id === selectedCampo);
     const finalCampo = isCustomCurriculum
-      ? (CAMPO_FORMATIVO_LABELS[selectedCampo] || selectedCampo || "General")
-      : (CAMPO_FORMATIVO_LABELS[selectedCampo] || selectedCampo);
+      ? (foundCampo?.nombre || CAMPO_FORMATIVO_LABELS[selectedCampo] || selectedCampo || "General")
+      : (foundCampo?.nombre || CAMPO_FORMATIVO_LABELS[selectedCampo] || selectedCampo);
 
+    const foundAsig = availableDisciplinas.find((a) => a.id === selectedDisciplina);
     const finalDisciplina = isCustomCurriculum
-      ? (DISCIPLINA_LABELS[selectedDisciplina] || selectedDisciplina || "General")
-      : (DISCIPLINA_LABELS[selectedDisciplina] || selectedDisciplina);
+      ? (foundAsig?.nombre || selectedDisciplina || "General")
+      : (foundAsig?.nombre || selectedDisciplina);
+
+    const effectivePda = isCustomCurriculum
+      ? customPda
+      : selectedPdas.length > 0
+      ? selectedPdas.join(" \n• ")
+      : selectedPda;
 
     const formDataPayload = {
       nivel,
@@ -452,23 +703,16 @@ export default function PlaneacionForm({
       campoFormativo: finalCampo,
       disciplina: finalDisciplina,
       contenido: isCustomCurriculum ? customContenido : selectedContenido,
-      pda: isCustomCurriculum ? customPda : selectedPda,
+      pda: effectivePda,
       ejesArticuladores: selectedEjes,
       metodologia: selectedMetodologia,
       situacionProblema,
       bapSelected: selectedBap,
     };
 
-    if (typeof onChange === "function") {
-      onChange(formDataPayload);
-    }
-    if (typeof setFormData === "function") {
-      setFormData(formDataPayload);
-    }
-
-    if (typeof onSubmit === "function") {
-      onSubmit(formDataPayload);
-    }
+    safeOnChange(formDataPayload);
+    safeSetFormData(formDataPayload);
+    safeOnSubmit(formDataPayload);
   };
 
   return (
@@ -478,11 +722,11 @@ export default function PlaneacionForm({
         <div className="flex items-center gap-2 pb-4 mb-5 border-b border-slate-100">
           <School className="w-5 h-5 text-mex-maroon" />
           <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wider">
-            {escuelasList.length > 1 ? "Datos de la Institución y del Proyecto" : "Datos de la Planeación"}
+            {Array.isArray(escuelasList) && escuelasList.length > 1 ? "Datos de la Institución y del Proyecto" : "Datos de la Planeación"}
           </h2>
         </div>
 
-        {escuelasList.length > 1 && (
+        {Array.isArray(escuelasList) && escuelasList.length > 1 && (
           <div className="bg-slate-50 p-4 border border-slate-200/60 rounded-xl space-y-2.5 mb-5">
             <label className="block text-slate-500 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5">
               <School className="w-4 h-4 text-mex-maroon animate-pulse" />
@@ -490,15 +734,15 @@ export default function PlaneacionForm({
             </label>
             <div className="flex flex-wrap gap-2">
               {escuelasList.map((esc, index) => {
-                const isSelected = escuelaName === esc.escuelaName && cct === esc.cct;
+                const isSelected = escuelaName === esc?.escuelaName && cct === esc?.cct;
                 return (
                   <button
                     key={index}
                     type="button"
                     onClick={(e) => {
                       if (e && typeof e.preventDefault === "function") e.preventDefault();
-                      setEscuelaName(esc.escuelaName);
-                      setCct(esc.cct);
+                      if (esc?.escuelaName) setEscuelaName(esc.escuelaName);
+                      if (esc?.cct) setCct(esc.cct);
                     }}
                     className={`px-3.5 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-2 ${
                       isSelected
@@ -507,9 +751,9 @@ export default function PlaneacionForm({
                     }`}
                   >
                     <div className="text-left">
-                      <div className="font-extrabold">{esc.escuelaName}</div>
+                      <div className="font-extrabold">{esc?.escuelaName}</div>
                       <div className={`text-[9px] font-medium mt-0.5 ${isSelected ? "text-mex-gold" : "text-slate-400"}`}>
-                        CCT: {esc.cct}
+                        CCT: {esc?.cct}
                       </div>
                     </div>
                   </button>
@@ -543,7 +787,7 @@ export default function PlaneacionForm({
             <select
               value={nivel}
               onChange={(e) => {
-                setNivel(e.target.value);
+                handleNivelChange(e.target.value);
                 setIsCustomCurriculum(false);
               }}
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon focus:ring-2 focus:ring-mex-maroon/20 focus:bg-white rounded text-slate-800 text-sm font-medium transition outline-none"
@@ -665,14 +909,19 @@ export default function PlaneacionForm({
         </div>
       </div>
 
-      {/* Sección 2: Selección Curricular NEM */}
+      {/* Sección 2: Selección Curricular Dinámica NEM (Cascading Dropdowns) */}
       <div>
         <div className="flex items-center justify-between pb-4 mb-5 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-mex-maroon" />
             <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wider">
-              Elementos Curriculares ({nivel})
+              Elementos Curriculares
             </h2>
+            {currentFaseObj && (
+              <span className="ml-2 px-2.5 py-0.5 bg-mex-maroon/10 text-mex-maroon text-[11px] font-extrabold rounded-full border border-mex-maroon/20">
+                {currentFaseObj.fase} • {currentFaseObj.nivel}
+              </span>
+            )}
           </div>
           <button
             type="button"
@@ -682,7 +931,7 @@ export default function PlaneacionForm({
             }}
             className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-950 rounded border border-slate-200 font-extrabold text-[10px] uppercase tracking-wider transition cursor-pointer"
           >
-            {isCustomCurriculum ? "✓ Usar Base de Datos" : "✍ Escribir Personalizado"}
+            {isCustomCurriculum ? "✓ Usar Base de Datos Curricular" : "✍ Escribir Personalizado"}
           </button>
         </div>
 
@@ -693,45 +942,26 @@ export default function PlaneacionForm({
                 <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">Grado Escolar</label>
                 <select
                   value={grado}
-                  onChange={(e) => setGrado(e.target.value)}
+                  onChange={(e) => handleGradoChange(e.target.value)}
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon focus:ring-2 focus:ring-mex-maroon/20 focus:bg-white rounded text-slate-800 text-sm font-medium transition outline-none"
                 >
-                  {nivel === "Preescolar" && (
-                    <>
-                      <option value="1º de Preescolar">1º de Preescolar (3 años)</option>
-                      <option value="2º de Preescolar">2º de Preescolar (4 años)</option>
-                      <option value="3º de Preescolar">3º de Preescolar (5 años)</option>
-                    </>
-                  )}
-                  {nivel === "Secundaria" && (
-                    <>
-                      <option value="Primer Grado">Primer Grado (1º)</option>
-                      <option value="Segundo Grado">Segundo Grado (2º)</option>
-                      <option value="Tercer Grado">Tercer Grado (3º)</option>
-                    </>
-                  )}
-                  {nivel === "Primaria" && (
-                    <>
-                      <option value="Primer Grado">Primer Grado (1º)</option>
-                      <option value="Segundo Grado">Segundo Grado (2º)</option>
-                      <option value="Tercer Grado">Tercer Grado (3º)</option>
-                      <option value="Cuarto Grado">Cuarto Grado (4º)</option>
-                      <option value="Quinto Grado">Quinto Grado (5º)</option>
-                      <option value="Sexto Grado">Sexto Grado (6º)</option>
-                    </>
-                  )}
+                  {availableGrados.map((g) => (
+                    <option key={g} value={g}>
+                      {g}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
                 <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">Campo Formativo</label>
                 <select
                   value={selectedCampo}
-                  onChange={(e) => setSelectedCampo(e.target.value)}
+                  onChange={(e) => handleCampoChange(e.target.value)}
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon focus:ring-2 focus:ring-mex-maroon/20 focus:bg-white rounded text-slate-800 text-sm font-medium transition outline-none"
                 >
-                  {Object.entries(CAMPO_FORMATIVO_LABELS).map(([key, label]) => (
-                    <option key={key} value={key}>
-                      {label}
+                  {availableCampos.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
                     </option>
                   ))}
                 </select>
@@ -762,138 +992,182 @@ export default function PlaneacionForm({
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-5">
+            {/* Cascading selectors: Grado -> Campo Formativo -> Asignatura */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">Campo Formativo</label>
-                <select
-                  value={selectedCampo}
-                  onChange={(e) => setSelectedCampo(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon focus:ring-2 focus:ring-mex-maroon/20 focus:bg-white rounded text-slate-800 text-sm font-medium transition outline-none"
-                >
-                  {Object.entries(CAMPO_FORMATIVO_LABELS).map(([key, label]) => (
-                    <option key={key} value={key}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">Disciplina / Asignatura</label>
-                <select
-                  value={selectedDisciplina}
-                  onChange={(e) => setSelectedDisciplina(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon focus:ring-2 focus:ring-mex-maroon/20 focus:bg-white rounded text-slate-800 text-sm font-medium transition outline-none"
-                >
-                  {disciplinas.map((dis) => (
-                    <option key={dis} value={dis}>
-                      {DISCIPLINA_LABELS[dis] || dis}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">Grado Escolar</label>
+                <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">
+                  1. Grado Escolar
+                </label>
                 <select
                   value={grado}
-                  onChange={(e) => setGrado(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon focus:ring-2 focus:ring-mex-maroon/20 focus:bg-white rounded text-slate-800 text-sm font-medium transition outline-none"
+                  onChange={(e) => handleGradoChange(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon focus:ring-2 focus:ring-mex-maroon/20 focus:bg-white rounded text-slate-800 text-sm font-semibold transition outline-none"
                 >
-                  {nivel === "Preescolar" && (
-                    <>
-                      <option value="1º de Preescolar">1º de Preescolar (3 años)</option>
-                      <option value="2º de Preescolar">2º de Preescolar (4 años)</option>
-                      <option value="3º de Preescolar">3º de Preescolar (5 años)</option>
-                    </>
-                  )}
-                  {nivel === "Secundaria" && (
-                    <>
-                      <option value="Primer Grado">Primer Grado (1º)</option>
-                      <option value="Segundo Grado">Segundo Grado (2º)</option>
-                      <option value="Tercer Grado">Tercer Grado (3º)</option>
-                    </>
-                  )}
-                  {nivel === "Primaria" && (
-                    <>
-                      <option value="Primer Grado">Primer Grado (1º)</option>
-                      <option value="Segundo Grado">Segundo Grado (2º)</option>
-                      <option value="Tercer Grado">Tercer Grado (3º)</option>
-                      <option value="Cuarto Grado">Cuarto Grado (4º)</option>
-                      <option value="Quinto Grado">Quinto Grado (5º)</option>
-                      <option value="Sexto Grado">Sexto Grado (6º)</option>
-                    </>
-                  )}
+                  {availableGrados.map((g) => (
+                    <option key={g} value={g}>
+                      {g}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">
+                  2. Campo Formativo
+                </label>
+                <select
+                  value={selectedCampo}
+                  onChange={(e) => handleCampoChange(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon focus:ring-2 focus:ring-mex-maroon/20 focus:bg-white rounded text-slate-800 text-sm font-semibold transition outline-none"
+                >
+                  {availableCampos.map((campo) => (
+                    <option key={campo.id} value={campo.id}>
+                      {campo.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">
+                  3. Disciplina / Asignatura
+                </label>
+                <select
+                  value={selectedDisciplina}
+                  onChange={(e) => handleDisciplinaChange(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon focus:ring-2 focus:ring-mex-maroon/20 focus:bg-white rounded text-slate-800 text-sm font-semibold transition outline-none"
+                >
+                  {availableDisciplinas.map((asig) => (
+                    <option key={asig.id} value={asig.id}>
+                      {asig.nombre}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
 
+            {/* Cascading Contenido Selector */}
             <div>
-              <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">
-                Contenido Oficial
-              </label>
-              {contenidos.length > 0 ? (
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-slate-500 font-bold text-[10px] uppercase">
+                  4. Contenido Curricular Sintético (NEM)
+                </label>
+              </div>
+
+              {Array.isArray(availableContenidos) && availableContenidos.length > 0 ? (
                 <select
                   value={selectedContenido}
-                  onChange={(e) => setSelectedContenido(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon focus:ring-2 focus:ring-mex-maroon/20 focus:bg-white rounded text-slate-800 text-sm font-medium transition outline-none"
+                  onChange={(e) => handleContenidoChange(e.target.value)}
+                  disabled={isFetchingCurriculum && availableContenidos.length === 0}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon focus:ring-2 focus:ring-mex-maroon/20 focus:bg-white rounded text-slate-800 text-sm font-medium transition outline-none leading-relaxed"
                 >
-                  {contenidos.map((cont, i) => (
-                    <option key={i} value={cont}>
-                      {cont}
+                  {availableContenidos.map((cont, i) => (
+                    <option key={cont.id || i} value={cont.contenido}>
+                      {cont.contenido}
                     </option>
                   ))}
                 </select>
+              ) : isFetchingCurriculum ? (
+                <div className="p-3.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-medium border border-slate-200 flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin text-mex-maroon" />
+                  <span>Consultando el Catálogo Oficial de la Nueva Escuela Mexicana con la API de Gemini...</span>
+                </div>
               ) : (
-                <div className="p-3 bg-slate-50 text-slate-500 rounded-xl text-xs font-medium border border-slate-200">
-                  No se encontraron contenidos para los filtros seleccionados de la base de datos oficial.
+                <div className="p-3.5 bg-amber-50 text-amber-800 rounded-lg text-xs font-medium border border-amber-200 flex items-center gap-2">
+                  <span>No se encontraron contenidos curriculares para la combinación seleccionada.</span>
                 </div>
               )}
             </div>
 
+            {/* Cascading PDA Selector */}
             {selectedContenido && (
-              <div>
-                <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">
-                  Proceso de Desarrollo de Aprendizaje (PDA) correspondiente
-                </label>
-                {pdas.length > 0 ? (
-                  <div className="space-y-2">
-                    {pdas.map((pdaOption, index) => (
-                      <label
-                        key={index}
-                        onClick={(e) => {
-                          if ((e.target as HTMLElement).tagName !== "INPUT") {
-                            setSelectedPda(pdaOption);
-                            if (typeof onSelect === "function") {
-                              onSelect(pdaOption);
-                            }
-                          }
-                        }}
-                        className={`flex items-start gap-3 p-3.5 rounded border text-sm font-normal cursor-pointer transition select-none ${
-                          selectedPda === pdaOption
-                            ? "bg-mex-maroon/5 border-l-4 border-l-mex-maroon border-y-mex-maroon/20 border-r-mex-maroon/20 text-slate-900 ring-1 ring-mex-maroon/10"
-                            : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100/50"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="pda_selection"
-                          checked={selectedPda === pdaOption}
-                          onChange={(e) => {
-                            if (e && typeof e.stopPropagation === "function") e.stopPropagation();
-                            setSelectedPda(pdaOption);
-                            if (typeof onSelect === "function") {
-                              onSelect(pdaOption);
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="block text-slate-500 font-bold text-[10px] uppercase">
+                    5. Proceso de Desarrollo de Aprendizaje (PDA) Vinculado
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {availablePdas.length > 1 && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <button
+                          type="button"
+                          onClick={handleSelectAllPdas}
+                          className="text-[10px] text-mex-maroon hover:underline font-semibold"
+                        >
+                          Seleccionar todos
+                        </button>
+                        <span className="text-slate-300">|</span>
+                        <button
+                          type="button"
+                          onClick={handleClearPdas}
+                          className="text-[10px] text-slate-500 hover:underline"
+                        >
+                          Reiniciar
+                        </button>
+                      </div>
+                    )}
+                    {availablePdas.length > 1 && (
+                      <span className="text-[9px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-semibold">
+                        {selectedPdas.length} seleccionado(s)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {Array.isArray(availablePdas) && availablePdas.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {availablePdas.map((pdaOption, index) => {
+                      const isChecked = selectedPdas.includes(pdaOption);
+
+                      return (
+                        <label
+                          key={index}
+                          onClick={(e) => {
+                            if ((e.target as HTMLElement).tagName !== "INPUT") {
+                              e.preventDefault();
+                              handleTogglePda(pdaOption);
                             }
                           }}
-                          className="mt-0.5 text-mex-maroon focus:ring-mex-maroon"
-                        />
-                        <span className="text-xs leading-relaxed font-semibold">{pdaOption}</span>
-                      </label>
-                    ))}
+                          className={`flex items-start gap-3 p-3.5 rounded-lg border text-sm font-normal cursor-pointer transition select-none ${
+                            isChecked
+                              ? "bg-mex-maroon/5 border-l-4 border-l-mex-maroon border-y-mex-maroon/20 border-r-mex-maroon/20 text-slate-900 ring-1 ring-mex-maroon/10 shadow-sm"
+                              : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100/70"
+                          }`}
+                        >
+                          <div className="mt-0.5 flex-shrink-0">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e && typeof e.stopPropagation === "function") e.stopPropagation();
+                                handleTogglePda(pdaOption);
+                              }}
+                              className="h-4 w-4 rounded border-slate-300 text-mex-maroon focus:ring-mex-maroon cursor-pointer"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200/80 text-slate-700">
+                                #{index + 1}
+                              </span>
+                              {availablePdas.length === 1 && (
+                                <span className="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                  PDA Oficial Asignado
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs leading-relaxed font-semibold text-slate-800 block">
+                              {pdaOption}
+                            </span>
+                          </div>
+                        </label>
+                      );
+                    })}
                   </div>
                 ) : (
-                  <div className="p-3 bg-slate-50 text-slate-500 rounded-xl text-xs font-medium border border-slate-200">
-                    No se encontraron PDAs correspondientes.
+                  <div className="p-3.5 bg-amber-50 text-amber-800 rounded-lg text-xs font-medium border border-amber-200">
+                    No se encontraron PDAs específicos para este grado en el contenido seleccionado.
                   </div>
                 )}
               </div>
@@ -1137,14 +1411,12 @@ export default function PlaneacionForm({
 
       {/* Botón de Enviar */}
       <div className="pt-4 flex flex-col sm:flex-row items-center gap-3">
-        {onBackToHub && typeof onBackToHub === "function" && (
+        {props.onBackToHub && (
           <button
             type="button"
             onClick={(e) => {
               if (e && typeof e.preventDefault === "function") e.preventDefault();
-              if (typeof onBackToHub === "function") {
-                onBackToHub();
-              }
+              safeOnBackToHub();
             }}
             className="w-full sm:w-auto px-6 py-3.5 rounded border border-slate-200 hover:border-slate-300 bg-white text-slate-700 font-extrabold text-xs uppercase tracking-widest transition flex items-center justify-center gap-2 cursor-pointer"
           >
@@ -1153,7 +1425,7 @@ export default function PlaneacionForm({
         )}
         <button
           type="submit"
-          disabled={isLoading || (!isCustomCurriculum && (!selectedContenido || !selectedPda)) || (isCustomCurriculum && (!customContenido.trim() || !customPda.trim()))}
+          disabled={isLoading || (!isCustomCurriculum && (!selectedContenido || (selectedPdas.length === 0 && !selectedPda))) || (isCustomCurriculum && (!customContenido.trim() || !customPda.trim()))}
           className="flex-1 w-full py-3.5 px-6 rounded bg-slate-900 hover:bg-black text-white font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-3 shadow-md hover:shadow-lg transition active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           {isLoading ? (
@@ -1165,6 +1437,10 @@ export default function PlaneacionForm({
             <>
               <Sparkles className="w-4 h-4 text-mex-gold fill-mex-gold" />
               <span>Diseñar Secuencia con Gemini</span>
+              <span className="text-[11px] font-black bg-white/20 px-2 py-0.5 rounded-full text-mex-gold flex items-center gap-1">
+                <Coins className="w-3 h-3" />
+                10 créditos
+              </span>
             </>
           )}
         </button>

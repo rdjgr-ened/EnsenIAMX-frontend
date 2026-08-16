@@ -3,6 +3,13 @@ import path from "path";
 import dotenv from "dotenv";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createServer as createViteServer } from "vite";
+import {
+  getOrCreateNemPromptCache,
+  NEM_STATIC_CURRICULUM_SYSTEM_INSTRUCTION,
+} from "./src/utils/nemContextCache";
+import { getOficialContenidos } from "./src/data/nemCurriculumService";
+import { handleCheckout } from "./api/checkout";
+import { handleMercadoPagoWebhook } from "./api/mercadopago-webhook";
 
 // Load environment variables
 dotenv.config();
@@ -12,14 +19,122 @@ const PORT = 3000;
 
 app.use(express.json({ limit: "10mb" }));
 
+// Mercado Pago Checkout Preference Endpoint
+app.post("/api/checkout", async (req, res) => {
+  return handleCheckout(req, res);
+});
+
+// Mercado Pago Webhook Notification Endpoint
+app.all(["/api/mercadopago-webhook", "/api/mercadopago-webhook.js"], async (req, res) => {
+  return handleMercadoPagoWebhook(req, res);
+});
+
 // Initialize Google Gen AI
+const geminiApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
 const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
+  apiKey: geminiApiKey,
   httpOptions: {
     headers: {
       "User-Agent": "aistudio-build",
     },
   },
+});
+
+// Generic /api/generate Serverless-compatible endpoint with Prompt Caching
+app.post("/api/generate", async (req, res) => {
+  try {
+    const {
+      prompt,
+      contents,
+      systemInstruction,
+      responseSchema,
+      responseMimeType,
+      temperature,
+      model,
+      useNemCache = true,
+    } = req.body || {};
+
+    const promptContent = prompt || contents;
+    if (!promptContent) {
+      return res.status(400).json({
+        success: false,
+        error: "El campo 'prompt' o 'contents' es requerido para generar la respuesta.",
+      });
+    }
+
+    const selectedModel = model || "gemini-2.5-flash";
+    const generationConfig: any = {};
+
+    // 1. Context Caching (Prompt Caching) Implementation
+    if (useNemCache) {
+      try {
+        const cacheResourceName = await getOrCreateNemPromptCache(ai, selectedModel);
+        if (cacheResourceName) {
+          generationConfig.cachedContent = cacheResourceName;
+          console.log(`[Prompt Caching Server] Applied cachedContent: ${cacheResourceName}`);
+        } else {
+          generationConfig.systemInstruction =
+            systemInstruction || NEM_STATIC_CURRICULUM_SYSTEM_INSTRUCTION;
+        }
+      } catch (cacheErr) {
+        console.warn("[Prompt Caching Server] Fallback to direct systemInstruction:", cacheErr);
+        generationConfig.systemInstruction =
+          systemInstruction || NEM_STATIC_CURRICULUM_SYSTEM_INSTRUCTION;
+      }
+    } else if (systemInstruction) {
+      generationConfig.systemInstruction = systemInstruction;
+    }
+
+    if (responseMimeType) {
+      generationConfig.responseMimeType = responseMimeType;
+    }
+    if (responseSchema) {
+      generationConfig.responseSchema = responseSchema;
+    }
+    if (typeof temperature === "number") {
+      generationConfig.temperature = temperature;
+    }
+
+    const result = await ai.models.generateContent({
+      model: selectedModel,
+      contents: promptContent,
+      config: generationConfig,
+    });
+
+    const responseText = result.text || "";
+
+    if (responseMimeType === "application/json" && responseText.trim()) {
+      try {
+        const parsedData = JSON.parse(responseText.trim());
+        return res.json({
+          success: true,
+          text: responseText,
+          data: parsedData,
+          cached: !!generationConfig.cachedContent,
+        });
+      } catch (parseErr) {
+        return res.json({
+          success: true,
+          text: responseText,
+          data: null,
+          cached: !!generationConfig.cachedContent,
+          warning: "La respuesta no pudo ser parseada automáticamente a JSON.",
+        });
+      }
+    }
+
+    return res.json({
+      success: true,
+      text: responseText,
+      cached: !!generationConfig.cachedContent,
+    });
+  } catch (error: any) {
+    console.error("Error in /api/generate:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Ocurrió un error al comunicarse con Gemini.",
+    });
+  }
 });
 
 // API endpoint for Lesson Plan Generation
@@ -216,14 +331,28 @@ app.post("/api/generate-plan", async (req, res) => {
       required: ["proposito", "producto", "fases", "evaluacionFormativa", "sugerenciasAdecuacion"],
     };
 
+    const selectedModel = "gemini-2.5-flash";
+    const planConfig: any = {
+      responseMimeType: "application/json",
+      responseSchema: responseSchema,
+      temperature: 0.2, // Low temperature for consistent structural planning
+    };
+
+    try {
+      const cacheResourceName = await getOrCreateNemPromptCache(ai, selectedModel);
+      if (cacheResourceName) {
+        planConfig.cachedContent = cacheResourceName;
+      } else {
+        planConfig.systemInstruction = NEM_STATIC_CURRICULUM_SYSTEM_INSTRUCTION;
+      }
+    } catch (cacheErr) {
+      planConfig.systemInstruction = NEM_STATIC_CURRICULUM_SYSTEM_INSTRUCTION;
+    }
+
     const result = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: selectedModel,
       contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: responseSchema,
-        temperature: 0.2, // Low temperature for consistent structural planning
-      },
+      config: planConfig,
     });
 
     const responseText = result.text;
@@ -232,7 +361,7 @@ app.post("/api/generate-plan", async (req, res) => {
     }
 
     const planData = JSON.parse(responseText.trim());
-    return res.json({ success: true, plan: planData });
+    return res.json({ success: true, plan: planData, cached: !!planConfig.cachedContent });
   } catch (error: any) {
     console.error("Error generating plan:", error);
     return res.status(500).json({ error: error.message || "Ocurrió un error en el servidor al generar la planeación." });
@@ -381,6 +510,118 @@ app.post("/api/modify-plan", async (req, res) => {
   } catch (error: any) {
     console.error("Error modifying plan:", error);
     return res.status(500).json({ error: error.message || "Ocurrió un error en el servidor al modificar la planeación." });
+  }
+});
+
+// API endpoint to fetch official NEM Contenidos & PDAs dynamically with Gemini & Prompt Caching
+app.post("/api/fetch-nem-curriculum", async (req, res) => {
+  try {
+    const { nivel, grado, campoFormativo, disciplina } = req.body;
+
+    if (!nivel || !grado || !campoFormativo) {
+      return res.status(400).json({ 
+        error: "Nivel, grado y campo formativo son requeridos para la consulta curricular." 
+      });
+    }
+
+    // 1. Try local verified comprehensive catalogue first (<1ms response time, 100% fidelity)
+    try {
+      const officialList = getOficialContenidos(nivel, grado, campoFormativo, disciplina);
+      if (officialList && officialList.length > 0) {
+        return res.json({
+          success: true,
+          source: "official_nem_catalogue",
+          contenidos: officialList,
+          cached: true
+        });
+      }
+    } catch (catErr) {
+      console.warn("Could not query local official catalogue:", catErr);
+    }
+
+    const selectedModel = "gemini-3.7-flash";
+    const prompt = `
+      Eres el Catálogo Curricular Oficial de la Nueva Escuela Mexicana (NEM) y el Plan de Estudio 2022-2026 de la Secretaría de Educación Pública (SEP) de México.
+
+      SOLICITUD DOCENTE:
+      Extrae y devuelve la lista oficial completa de TODOS los Contenidos Sintéticos Curriculares de la NEM y sus respectivos Procesos de Desarrollo de Aprendizaje (PDA) correspondientes con exactitud a la siguiente combinación:
+      
+      - Nivel Educativo: ${nivel}
+      - Grado Escolar: ${grado}
+      - Campo Formativo: ${campoFormativo}
+      - Disciplina / Asignatura: ${disciplina || "General / Todas las correspondientes al campo"}
+
+      DIRECTRICES RIGUROSAS:
+      1. Extrae del Programa Sintético oficial de la NEM todos los Contenidos vigentes para esta combinación.
+      2. Para cada Contenido, extrae la lista de TODOS los Procesos de Desarrollo de Aprendizaje (PDA) oficiales estipulados para este grado específico (${grado}).
+      3. No resumas ni inventes contenidos. Devuelve los textos oficiales con redacción completa en Español de México y acentuación impecable (á, é, í, ó, ú, ñ).
+      4. Si la disciplina es general (ej. en Preescolar o Primaria), incluye los contenidos de dicho Campo Formativo para el grado.
+    `;
+
+    const responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        contenidos: {
+          type: Type.ARRAY,
+          description: "Lista de contenidos sintéticos oficiales de la NEM con sus PDAs para el grado",
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.STRING, description: "Identificador del contenido" },
+              contenido: { type: Type.STRING, description: "Texto íntegro del contenido sintético oficial de la SEP" },
+              pdas: {
+                type: Type.ARRAY,
+                description: "Lista de PDAs oficiales específicos para este grado",
+                items: { type: Type.STRING }
+              }
+            },
+            required: ["id", "contenido", "pdas"]
+          }
+        }
+      },
+      required: ["contenidos"]
+    };
+
+    const generationConfig: any = {
+      responseMimeType: "application/json",
+      responseSchema: responseSchema,
+      temperature: 0.1, // Near-zero for deterministic curriculum retrieval
+    };
+
+    try {
+      const cacheResourceName = await getOrCreateNemPromptCache(ai, selectedModel);
+      if (cacheResourceName) {
+        generationConfig.cachedContent = cacheResourceName;
+        console.log(`[Fetch Curriculum API] Using prompt cache: ${cacheResourceName}`);
+      } else {
+        generationConfig.systemInstruction = NEM_STATIC_CURRICULUM_SYSTEM_INSTRUCTION;
+      }
+    } catch (cacheErr) {
+      generationConfig.systemInstruction = NEM_STATIC_CURRICULUM_SYSTEM_INSTRUCTION;
+    }
+
+    const result = await ai.models.generateContent({
+      model: selectedModel,
+      contents: prompt,
+      config: generationConfig,
+    });
+
+    const responseText = result.text;
+    if (!responseText) {
+      throw new Error("No se recibió respuesta de Gemini.");
+    }
+
+    const parsed = JSON.parse(responseText.trim());
+    return res.json({
+      success: true,
+      contenidos: parsed.contenidos || [],
+      cached: !!generationConfig.cachedContent,
+    });
+  } catch (error: any) {
+    console.error("Error fetching NEM curriculum dynamically:", error);
+    return res.status(500).json({
+      error: error.message || "Error al consultar los contenidos curriculares oficiales de la NEM.",
+    });
   }
 });
 
@@ -966,6 +1207,228 @@ app.post("/api/generate-worksheet", async (req, res) => {
   } catch (error: any) {
     console.error("Error generating worksheet:", error);
     return res.status(500).json({ error: error.message || "Error al generar la hoja de trabajo." });
+  }
+});
+
+// API endpoint for generating Exams (Diagnóstico, Parcial, Trimestral)
+app.post("/api/generate-exam", async (req, res) => {
+  try {
+    const {
+      nivel,
+      grado,
+      disciplina,
+      campoFormativo,
+      tipoExamen, // "diagnostico" | "parcial" | "trimestral"
+      periodoTrimestre, // "Trimestre 1" | "Trimestre 2" | "Trimestre 3" | "1er Parcial" etc.
+      contenidosSeleccionados, // Array of { contenido: string, pda: string }
+      gradoAnterior,
+      numReactivos,
+      tipoPreguntas, // "opcion_multiple" | "pregunta_abierta" | "ambas"
+      escuelaName,
+      cct,
+      docenteName,
+      grupo,
+    } = req.body;
+
+    if (!nivel || !grado || !disciplina || !tipoExamen) {
+      return res.status(400).json({ error: "Faltan parámetros obligatorios (nivel, grado, disciplina o tipo de examen)." });
+    }
+
+    const totalReactivos = Math.min(Math.max(Number(numReactivos) || 10, 3), 60);
+    const nivelEducativo = nivel || "Secundaria";
+
+    let descripcionTipo = "";
+    if (tipoExamen === "diagnostico") {
+      descripcionTipo = `
+        TIPO DE EXAMEN: DIAGNÓSTICO INICIAL.
+        OBJETIVO: Evaluar los aprendizajes previos y prerrequisitos fundamentales del GRADO ANTERIOR INMEDIATO (${gradoAnterior || "grado previo"}).
+        El examen debe identificar el nivel de dominio de los contenidos y habilidades esenciales con los que el estudiante ingresa al ciclo escolar.
+      `;
+    } else if (tipoExamen === "parcial") {
+      descripcionTipo = `
+        TIPO DE EXAMEN: EVALUACIÓN PARCIAL / FORMATIVA.
+        OBJETIVO: Evaluar el avance en los Contenidos y Procesos de Desarrollo de Aprendizaje (PDA) específicos seleccionados por el docente para este corte.
+      `;
+    } else {
+      descripcionTipo = `
+        TIPO DE EXAMEN: EVALUACIÓN TRIMESTRAL (${periodoTrimestre || "Trimestre Actual"}).
+        OBJETIVO: Evaluar de manera integradora y formativa los Contenidos y PDA abordados a lo largo del periodo trimestral.
+      `;
+    }
+
+    let descripcionPreguntas = "";
+    if (tipoPreguntas === "opcion_multiple") {
+      descripcionPreguntas = `
+        TIPO DE PREGUNTAS: EXCLUSIVAMENTE OPCIÓN MÚLTIPLE (A, B, C, D).
+        - Genera los ${totalReactivos} reactivos en formato de Opción Múltiple con exactamente 4 incisos: A, B, C y D.
+        - 1 sola opción es inequívocamente correcta. Las otras 3 son distractores plausibles que reflejan concepciones alternativas o errores conceptuales comunes.
+        - Plantea situaciones contextualizadas, casos, lecturas breves o problemas aplicados acordes al enfoque de la NEM.
+      `;
+    } else if (tipoPreguntas === "pregunta_abierta") {
+      descripcionPreguntas = `
+        TIPO DE PREGUNTAS: EXCLUSIVAMENTE PREGUNTAS ABIERTAS / RESPUESTA CONSTRUIDA.
+        - Genera los ${totalReactivos} reactivos en formato de Pregunta Abierta.
+        - Exigen argumentación, procedimiento, análisis crítico, redacción o resolución paso a paso.
+        - Asigna el número sugerido de líneas/renglones para la respuesta del alumno (ej. 3 a 6 líneas).
+        - Proporciona la respuesta modelo esperada y los criterios de evaluación formativa/rúbrica para calificar.
+      `;
+    } else {
+      const halfMulti = Math.ceil(totalReactivos / 2);
+      const halfOpen = totalReactivos - halfMulti;
+      descripcionPreguntas = `
+        TIPO DE PREGUNTAS: COMBINADAS (OPCIÓN MÚLTIPLE + PREGUNTAS ABIERTAS).
+        - Distribución: Genera aproximadamente ${halfMulti} reactivos de Opción Múltiple (A, B, C, D) y ${halfOpen} reactivos de Pregunta Abierta.
+        - Agrupa o intercala los reactivos coherentemente según su nivel de profundidad pedagógica.
+      `;
+    }
+
+    const listaContenidos = (contenidosSeleccionados && contenidosSeleccionados.length > 0)
+      ? contenidosSeleccionados.map((c: any, i: number) => `   Contenido ${i + 1}: ${c.contenido || 'Contenido general'}\n   PDA ${i + 1}: ${c.pda || 'PDA general'}`).join("\n")
+      : "   Contenidos y PDAs sintéticos oficiales de la NEM para " + disciplina + " en " + grado + " de " + nivelEducativo + (tipoExamen === 'diagnostico' ? ' (enfocado en el grado anterior)' : '');
+
+    const prompt = `
+      Eres un Asesor Técnico Pedagógico (ATP) y Especialista en Evaluación Educativa de la Nueva Escuela Mexicana (NEM) y el Plan de Estudio 2022 de la SEP en México.
+
+      Diseña un instrumento de evaluación formal tipo EXAMEN ESCOLAR contextualizado, riguroso y alineado a los principios de la NEM.
+
+      DATOS DE LA EVALUACIÓN:
+      - Nivel Educativo: ${nivelEducativo}
+      - Grado: ${grado}
+      - Grupo: ${grupo || "A"}
+      - Disciplina / Asignatura: ${disciplina}
+      - Campo Formativo: ${campoFormativo || "Curricular NEM"}
+      - Escuela: ${escuelaName || "Escuela Secundaria"}
+      - C.C.T.: ${cct || "CCT"}
+      - Docente: ${docenteName || "Docente Titular"}
+      - Número Total de Reactivos: Exactamente ${totalReactivos} reactivos
+      - ${descripcionTipo}
+      - ${descripcionPreguntas}
+
+      CONTENIDOS Y PROCESOS DE DESARROLLO DE APRENDIZAJE (PDA) A EVALUAR:
+      ${listaContenidos}
+
+      REGLAS PEDAGÓGICAS DE REDACCIÓN DE LOS REACTIVOS:
+      1. Evita reactivos puramente memorísticos o descontextualizados. Redacta reactivos basados en situaciones problemáticas, análisis de textos breves, gráficos conceptuales, dilemas éticos o aplicaciones científicas/matemáticas cotidianas.
+      2. En opción múltiple: las 4 opciones (A, B, C, D) deben ser homogéneas en longitud y gramaticalmente concordantes con el enunciado.
+      3. En preguntas abiertas: la instrucción debe ser explícita (ej. 'Explica...', 'Calcula y argumenta...', 'Compara...', 'Justifica tu postura...').
+      4. Para CADA reactivo, debes incluir en la clave del docente:
+         - La respuesta correcta (inciso exacto o respuesta modelo).
+         - La justificación pedagógica explicando por qué esa es la respuesta correcta y qué indicador del PDA demuestra.
+         - El contenido y PDA evaluado.
+      5. La tabla de especificaciones debe mapear cada reactivo con su nivel cognitivo (Conocimiento, Comprensión, Aplicación, Análisis / Pensamiento Crítico) y puntaje.
+
+      RESPONDE ÚNICAMENTE EN ESPAÑOL (MÉXICO) CON ORTOGRAFÍA IMPECABLE Y ACENTOS COMPLETOS.
+    `;
+
+    const responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        titulo: { type: Type.STRING, description: "Título oficial del examen (ej. 'Examen Diagnóstico de Matemáticas - 2º de Secundaria' o 'Examen Trimestral I de Lenguajes')" },
+        subtitulo: { type: Type.STRING, description: "Subtítulo descriptivo o periodo evaluado" },
+        tipoExamen: { type: Type.STRING, description: "diagnostico, parcial o trimestral" },
+        instruccionesGenerales: { type: Type.STRING, description: "Instrucciones claras para el alumno al responder el examen" },
+        tiempoEstimado: { type: Type.STRING, description: "Tiempo estimado de aplicación (ej. '50 a 60 minutos')" },
+        reactivos: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              numero: { type: Type.INTEGER, description: "Número correlativo del reactivo (1 a N)" },
+              tipo: { type: Type.STRING, description: "'opcion_multiple' o 'pregunta_abierta'" },
+              contenidoEvaluado: { type: Type.STRING, description: "Contenido sintético curricular evaluado" },
+              pdaEvaluado: { type: Type.STRING, description: "PDA correspondiente" },
+              planteamiento: { type: Type.STRING, description: "Texto completo del reactivo, problema o pregunta" },
+              opciones: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    inciso: { type: Type.STRING, description: "A, B, C o D" },
+                    texto: { type: Type.STRING, description: "Texto de la opción de respuesta" },
+                  },
+                  required: ["inciso", "texto"],
+                },
+                description: "Lista de 4 opciones para reactivos de opción múltiple",
+              },
+              lineasRespuesta: { type: Type.INTEGER, description: "Número de líneas sugeridas para preguntas abiertas" },
+              espacioRespuesta: { type: Type.STRING, description: "Indicación del espacio de respuesta" },
+              respuestaCorrecta: { type: Type.STRING, description: "Inciso correcto (A, B, C o D) o respuesta modelo desarrollada" },
+              justificacionPedagogica: { type: Type.STRING, description: "Explicación pedagógica de la respuesta y el error en distractores" },
+              criterioEvaluacion: { type: Type.STRING, description: "Criterio o rúbrica de puntaje para calificar este reactivo" },
+              puntos: { type: Type.NUMBER, description: "Valor en puntos del reactivo (ej. 1 punto o 2 puntos)" },
+            },
+            required: ["numero", "tipo", "contenidoEvaluado", "planteamiento", "respuestaCorrecta", "justificacionPedagogica", "puntos"],
+          },
+        },
+        tablaEspecificaciones: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              numero: { type: Type.INTEGER },
+              contenido: { type: Type.STRING },
+              pda: { type: Type.STRING },
+              nivelCognitivo: { type: Type.STRING, description: "Conocimiento, Comprensión, Aplicación o Análisis / Pensamiento Crítico" },
+              tipoReactivo: { type: Type.STRING },
+              puntos: { type: Type.NUMBER },
+            },
+            required: ["numero", "contenido", "pda", "nivelCognitivo", "tipoReactivo", "puntos"],
+          },
+        },
+        hojaRespuestasDocente: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              numero: { type: Type.INTEGER },
+              respuesta: { type: Type.STRING },
+              contenido: { type: Type.STRING },
+              justificacion: { type: Type.STRING },
+            },
+            required: ["numero", "respuesta", "contenido", "justificacion"],
+          },
+        },
+      },
+      required: ["titulo", "instruccionesGenerales", "reactivos", "hojaRespuestasDocente"],
+    };
+
+    const result = await ai.models.generateContent({
+      model: "gemini-3.6-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: responseSchema,
+        temperature: 0.25,
+      },
+    });
+
+    const responseText = result.text;
+    if (!responseText) {
+      throw new Error("No se pudo generar el examen con Gemini.");
+    }
+
+    const examData = JSON.parse(responseText.trim());
+    return res.json({
+      success: true,
+      exam: {
+        ...examData,
+        id: Math.random().toString(36).substring(2, 11),
+        createdAt: new Date().toISOString(),
+        nivel: nivelEducativo,
+        grado,
+        grupo: grupo || "A",
+        disciplina,
+        campoFormativo,
+        escuelaName: escuelaName || "Escuela Secundaria",
+        cct: cct || "CCT",
+        docenteName: docenteName || "Docente Titular",
+        tipoExamen,
+        periodoTrimestre,
+      },
+    });
+  } catch (error: any) {
+    console.error("Error generating exam:", error);
+    return res.status(500).json({ error: error.message || "Error al generar el examen institucional." });
   }
 });
 

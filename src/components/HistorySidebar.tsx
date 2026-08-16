@@ -3,22 +3,27 @@ import { CompletePlan } from "../types";
 import { ArrowRight, FolderKanban } from "lucide-react";
 
 interface HistorySidebarProps {
-  plans: CompletePlan[];
-  onSelectPlan: (plan: CompletePlan) => void;
-  onDeletePlan: (id: string) => void;
+  plans?: CompletePlan[];
+  onSelectPlan?: (plan: CompletePlan) => void;
+  onDeletePlan?: (id: string) => void;
   currentPlanId?: string;
   onOpenOrganizador?: (folder?: "planeaciones" | "grupos" | "bitacora" | "seguimiento" | "evaluacion") => void;
 }
 
-export default function HistorySidebar({ plans, onSelectPlan, onDeletePlan, currentPlanId, onOpenOrganizador }: HistorySidebarProps) {
+export default function HistorySidebar(props: HistorySidebarProps) {
+  const safePlans = Array.isArray(props.plans) ? props.plans : [];
+  const safeOnSelectPlan = props.onSelectPlan || (() => {});
+  const safeOnDeletePlan = props.onDeletePlan || (() => {});
+  const safeOnOpenOrganizador = props.onOpenOrganizador || (() => {});
+
   return (
     <div id="history-sidebar" className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col space-y-4">
       {/* Prominent Organizer Access Card */}
-      {onOpenOrganizador && (
+      {props.onOpenOrganizador && (
         <div className="space-y-3">
           <button
             type="button"
-            onClick={() => onOpenOrganizador("planeaciones")}
+            onClick={() => safeOnOpenOrganizador("planeaciones")}
             className="w-full p-4 bg-gradient-to-br from-mex-maroon via-[#541221] to-[#1f2e3d] hover:opacity-95 text-white rounded-xl font-extrabold text-xs uppercase tracking-wider flex items-center justify-between transition shadow-md cursor-pointer group"
           >
             <div className="flex items-center gap-3">
@@ -36,31 +41,31 @@ export default function HistorySidebar({ plans, onSelectPlan, onDeletePlan, curr
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
             <ul className="text-xs text-slate-700 font-bold space-y-1.5">
               <li 
-                onClick={() => onOpenOrganizador("planeaciones")}
+                onClick={() => safeOnOpenOrganizador("planeaciones")}
                 className="flex items-center justify-between hover:text-mex-maroon cursor-pointer transition p-1 rounded hover:bg-white"
               >
                 <span>1. Mis Planeaciones</span>
               </li>
               <li 
-                onClick={() => onOpenOrganizador("grupos")}
+                onClick={() => safeOnOpenOrganizador("grupos")}
                 className="flex items-center justify-between hover:text-blue-600 cursor-pointer transition p-1 rounded hover:bg-white"
               >
                 <span>2. Mis Grupos</span>
               </li>
               <li 
-                onClick={() => onOpenOrganizador("bitacora")}
+                onClick={() => safeOnOpenOrganizador("bitacora")}
                 className="flex items-center justify-between hover:text-rose-600 cursor-pointer transition p-1 rounded hover:bg-white"
               >
                 <span>3. Bitácora de Incidencias</span>
               </li>
               <li 
-                onClick={() => onOpenOrganizador("seguimiento")}
+                onClick={() => safeOnOpenOrganizador("seguimiento")}
                 className="flex items-center justify-between hover:text-emerald-600 cursor-pointer transition p-1 rounded hover:bg-white"
               >
                 <span>4. Seguimiento de Clases</span>
               </li>
               <li 
-                onClick={() => onOpenOrganizador("evaluacion")}
+                onClick={() => safeOnOpenOrganizador("evaluacion")}
                 className="flex items-center justify-between hover:text-amber-600 cursor-pointer transition p-1 rounded hover:bg-white"
               >
                 <span>5. Evaluación Continua</span>
@@ -72,4 +77,5 @@ export default function HistorySidebar({ plans, onSelectPlan, onDeletePlan, curr
     </div>
   );
 }
+
 

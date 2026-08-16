@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Sparkles, ArrowLeft, RefreshCw, Copy, Check, FileEdit } from "lucide-react";
+import { Sparkles, ArrowLeft, RefreshCw, Copy, Check, FileEdit, HelpCircle } from "lucide-react";
 
 interface SugerirContenidosViewProps {
-  onBack: () => void;
-  onUseContent: (data: {
+  onBack?: () => void;
+  onUseContent?: (data: {
     nivel: string;
     grado: string;
     campoFormativo: string;
@@ -14,7 +14,9 @@ interface SugerirContenidosViewProps {
   }) => void;
 }
 
-export default function SugerirContenidosView({ onBack, onUseContent }: SugerirContenidosViewProps) {
+export default function SugerirContenidosView(props: SugerirContenidosViewProps) {
+  const safeOnBack = props.onBack || (() => {});
+  const safeOnUseContent = props.onUseContent || (() => {});
   const [nivel, setNivel] = useState("Secundaria");
   const [grado, setGrado] = useState("Primer Grado");
   const [campoFormativo, setCampoFormativo] = useState("Lenguajes");
@@ -143,7 +145,7 @@ export default function SugerirContenidosView({ onBack, onUseContent }: SugerirC
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
         <div className="flex items-center gap-3">
           <button
-            onClick={onBack}
+            onClick={() => safeOnBack()}
             className="p-2 hover:bg-slate-100 text-slate-500 hover:text-slate-900 rounded-lg transition"
             title="Volver"
           >
@@ -347,9 +349,9 @@ export default function SugerirContenidosView({ onBack, onUseContent }: SugerirC
               type="button"
               disabled={selectedIndex === null}
               onClick={() => {
-                if (selectedIndex !== null) {
+                if (selectedIndex !== null && suggestions[selectedIndex]) {
                   const s = suggestions[selectedIndex];
-                  onUseContent({
+                  safeOnUseContent({
                     nivel,
                     grado,
                     campoFormativo,

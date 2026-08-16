@@ -1,16 +1,26 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   FileSpreadsheet, Plus, Minus, Trash2, Printer, Check, 
   RotateCcw, Table, Users, Award, HelpCircle, ArrowLeft, 
   Calculator, CheckCircle2, AlertCircle, RefreshCw, Lock,
-  FileCheck, ShieldCheck, CheckSquare, Layers, BookOpen
+  FileCheck, ShieldCheck, CheckSquare, Layers, BookOpen, Gem, Crown
 } from "lucide-react";
+import AccionesDocumento from "./AccionesDocumento";
+import { UserSubscription, PaywallReason } from "../types";
+import { checkFeatureAccess } from "../utils/planManager";
+import { 
+  getEvaluacionContinua as fetchSupabaseEvaluacionContinua,
+  saveEvaluacionContinua as saveSupabaseEvaluacionContinua,
+  isSupabaseConfigured
+} from "../utils/supabaseClient";
 
 interface FormatoEvaluacionViewProps {
   onBack: () => void;
   escuelaName: string;
   cct: string;
   docenteName: string;
+  subscription?: UserSubscription;
+  onTriggerPaywall?: (reason: PaywallReason) => void;
 }
 
 export interface EvaluationElement {
@@ -101,7 +111,13 @@ export default function FormatoEvaluacionView({
   escuelaName: initialEscuela,
   cct: initialCct,
   docenteName: initialDocente,
+  subscription,
+  onTriggerPaywall,
 }: FormatoEvaluacionViewProps) {
+  const userPlan = subscription?.plan || "gratuito";
+  const isPlatino = userPlan === "platino";
+  const safeTriggerPaywall = onTriggerPaywall || (() => {});
+
   // Datos Generales (Precargados y bloqueados para docente, escuela y CCT)
   const escuelaName = initialEscuela || "Escuela Educación Básica";
   const cct = initialCct || "CCT Sin Registrar";
@@ -135,6 +151,79 @@ export default function FormatoEvaluacionView({
   const isSecundaria = grado.includes("Secundaria");
   const firmaAutoridad = isSecundaria ? "Coordinación Académica" : "Dirección Escolar";
   const firmaDocente = isSecundaria ? "Docente de la Asignatura" : "Docente de Grupo";
+
+  // Load saved state or Supabase on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem("nem_formato_evaluacion_state");
+    if (savedState) {
+      try {
+        const parsed = JSON.parse(savedState);
+        if (parsed.grado) setGrado(parsed.grado);
+        if (parsed.grupo) setGrupo(parsed.grupo);
+        if (parsed.periodo) setPeriodo(parsed.periodo);
+        if (parsed.disciplina) setDisciplina(parsed.disciplina);
+        if (parsed.elements && Array.isArray(parsed.elements)) setElements(parsed.elements);
+        if (parsed.students && Array.isArray(parsed.students)) setStudents(parsed.students);
+      } catch (e) {
+        console.error("Error parsing saved evaluation format state:", e);
+      }
+    }
+
+    // If Supabase configured and user is Oro/Platino, load latest
+    if (isSupabaseConfigured && (userPlan === "oro" || userPlan === "platino")) {
+      const userProfileStr = localStorage.getItem("nem_secundaria_profile");
+      const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
+      const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
+
+      fetchSupabaseEvaluacionContinua(userId, userPlan).then(records => {
+        if (records && records.length > 0) {
+          const latest = records[0];
+          if (latest.contenido_json) {
+            const data = latest.contenido_json;
+            if (data.grado) setGrado(data.grado);
+            if (data.grupo) setGrupo(data.grupo);
+            if (data.periodo) setPeriodo(data.periodo);
+            if (data.disciplina) setDisciplina(data.disciplina);
+            if (data.elements) setElements(data.elements);
+            if (data.students) setStudents(data.students);
+          }
+        }
+      }).catch(err => console.warn("Supabase evaluacion continua load error:", err));
+    }
+  }, []);
+
+  // Auto-save changes to localStorage and Supabase (debounced)
+  useEffect(() => {
+    const payload = {
+      grado,
+      grupo,
+      periodo,
+      disciplina,
+      elements,
+      students,
+      updatedAt: new Date().toISOString()
+    };
+    localStorage.setItem("nem_formato_evaluacion_state", JSON.stringify(payload));
+
+    if (isSupabaseConfigured && (userPlan === "oro" || userPlan === "platino") && (elements.length > 0 || students.length > 0)) {
+      const userProfileStr = localStorage.getItem("nem_secundaria_profile");
+      const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
+      const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
+
+      const timer = setTimeout(() => {
+        saveSupabaseEvaluacionContinua({
+          id: `eval_format_${grado.replace(/\s+/g, '_')}_${grupo}`,
+          user_id: userId,
+          grupo_id: `${grado} ${grupo}`,
+          fecha: new Date().toISOString().split('T')[0],
+          criterio: periodo,
+          contenido_json: payload
+        }, userPlan).catch(err => console.warn("Error auto-saving evaluacion continua to Supabase:", err));
+      }, 1500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [grado, grupo, periodo, disciplina, elements, students]);
 
   // Active weight calculations
   const totalWeight = elements.reduce((acc, el) => acc + el.weightPercentage, 0);
@@ -210,6 +299,7 @@ export default function FormatoEvaluacionView({
 
   // Open modal for elements catalog
   const handleOpenAddElementsModal = () => {
+    // pre-select elements that are already added
     setSelectedCatalogIds(elements.map((e) => e.id));
     setShowAddElementsModal(true);
   };
@@ -404,6 +494,31 @@ export default function FormatoEvaluacionView({
             </h2>
           </div>
         </div>
+
+        {!isPlatino && (
+          <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-indigo-900 text-xs">
+              <Gem className="w-4 h-4 text-indigo-600 shrink-0" />
+              <span>
+                Esta herramienta completa está optimizada para usuarios con <strong>Plan Platino</strong>.
+              </span>
+            </div>
+            <button
+              onClick={() =>
+                safeTriggerPaywall({
+                  type: "feature",
+                  featureName: "Evaluación Continua",
+                  requiredPlan: "platino",
+                  message: "La herramienta de Formato de Evaluación Integral es exclusiva del Plan Platino."
+                })
+              }
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0"
+            >
+              <Crown className="w-3.5 h-3.5" />
+              <span>Mejorar Plan</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* PASO 1: Datos Generales de la Escuela y Grupo */}
@@ -479,7 +594,7 @@ export default function FormatoEvaluacionView({
           </div>
         </div>
 
-        {/* Disciplina, Grado, Grupo y Periodo */}
+        {/* Disciplina, Grado (Preescolar a Secundaria), Grupo y Periodo */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
           <div>
             <label className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-600 mb-1">
@@ -1089,33 +1204,35 @@ export default function FormatoEvaluacionView({
       {/* MODAL POP-UP: Print Preview / Formato Terminado */}
       {showPrintModal && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-4xl w-full p-8 shadow-2xl space-y-6 border border-slate-200 my-8">
-            <div className="flex items-center justify-between border-b pb-4 print:hidden">
-              <div className="flex items-center gap-2">
-                <FileCheck className="w-6 h-6 text-mex-maroon" />
-                <h3 className="font-black text-lg text-slate-900">
-                  Formato de Evaluación y Registro de Calificaciones - Listo para Imprimir
-                </h3>
-              </div>
-              <div className="flex items-center gap-2">
+          <div className="bg-white rounded-2xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl space-y-6 border border-slate-200 my-8">
+            <AccionesDocumento
+              targetId="documento-resultado"
+              tipoRecurso="Formato_Evaluacion"
+              customSuffix={`${disciplina}_${grado}_${grupo}`}
+              title={
+                <div className="flex items-center gap-2">
+                  <FileCheck className="w-5 h-5 text-mex-maroon" />
+                  <span className="font-black text-sm text-slate-900">
+                    Formato de Evaluación y Calificaciones ({grado} {grupo})
+                  </span>
+                </div>
+              }
+              extraActions={
                 <button
-                  onClick={() => window.print()}
-                  className="px-4 py-2 bg-mex-maroon hover:bg-mex-maroon/90 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-sm"
-                >
-                  <Printer className="w-4 h-4 text-mex-gold" />
-                  <span>Imprimir / Guardar PDF</span>
-                </button>
-                <button
+                  type="button"
                   onClick={() => setShowPrintModal(false)}
-                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-extrabold"
+                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
                 >
-                  Cerrar
+                  Cerrar Vista
                 </button>
-              </div>
-            </div>
+              }
+            />
 
             {/* Printable Document Body */}
-            <div className="space-y-6 text-slate-900 p-4 border border-slate-200 rounded-xl">
+            <div
+              id="documento-resultado"
+              className="space-y-6 text-slate-900 p-6 bg-white border border-slate-200 rounded-xl printable-document"
+            >
               {/* Document Header */}
               <div className="border-b-2 border-slate-900 pb-4 text-center space-y-1">
                 <h2 className="text-base font-black uppercase tracking-wider">{escuelaName}</h2>
