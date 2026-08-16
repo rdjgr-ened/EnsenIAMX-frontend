@@ -35,6 +35,7 @@ import {
   isSupabaseConfigured
 } from "./utils/supabaseClient";
 import { Sparkles, FileText, CheckCircle, LogOut, FolderKanban, Coins, Crown, Gem, Zap, User } from "lucide-react";
+import { Analytics } from '@vercel/analytics/react';
 const logoImg = "https://i.imgur.com/tv95RC0.png";
 
 const normalizePath = (path: string): string => {
@@ -811,6 +812,7 @@ export default function App() {
           </a>
         </div>
       </footer>
+      <Analytics />
     </div>
   );
 }
