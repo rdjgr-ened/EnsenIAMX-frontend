@@ -487,7 +487,7 @@ export default function LoginScreen(props: LoginScreenProps) {
                     type="text"
                     value={regDocenteName}
                     onChange={(e) => setRegDocenteName(e.target.value)}
-                    placeholder="Ej. René Gaytán"
+                    placeholder="Ej. Juan Pérez"
                     className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 focus:border-mex-maroon focus:ring-2 focus:ring-mex-maroon/20 focus:bg-white rounded text-slate-800 text-xs font-semibold transition outline-none"
                     required
                   />
