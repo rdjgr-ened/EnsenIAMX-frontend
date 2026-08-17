@@ -76,7 +76,7 @@ export default async function handler(req: any, res: any) {
       },
     });
 
-    const selectedModel = model || "gemini-2.5-flash";
+    const selectedModel = model || "gemini-3.6-flash";
     const generationConfig: any = {};
 
     // 1. Context Caching (Prompt Caching) Implementation

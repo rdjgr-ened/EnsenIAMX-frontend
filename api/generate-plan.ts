@@ -148,7 +148,7 @@ export default async function handler(req: any, res: any) {
       required: ["proposito", "producto", "fases", "evaluacionFormativa", "sugerenciasAdecuacion"],
     };
 
-    const selectedModel = "gemini-2.5-flash";
+    const selectedModel = "gemini-3.6-flash";
     const planConfig: any = {
       responseMimeType: "application/json",
       responseSchema: responseSchema,

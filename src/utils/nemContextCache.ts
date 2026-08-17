@@ -158,7 +158,7 @@ let cacheCreationPromise: Promise<string | null> | null = null;
  */
 export async function getOrCreateNemPromptCache(
   ai: GoogleGenAI,
-  modelName: string = "gemini-2.5-flash"
+  modelName: string = "gemini-3.6-flash"
 ): Promise<string | null> {
   const now = Date.now();
 
