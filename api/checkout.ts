@@ -1,5 +1,5 @@
-import { PlanTier, BillingCycle, CheckoutRequest } from "../src/types";
-import { PLAN_CONFIGS, CREDIT_PACKAGES, getPlanPrice, getPlanPeriodLabel } from "../src/utils/planManager";
+import { PlanTier, BillingCycle, CheckoutRequest } from "../src/types.js";
+import { PLAN_CONFIGS, CREDIT_PACKAGES, getPlanPrice, getPlanPeriodLabel } from "../src/utils/planManager.js";
 
 export async function handleCheckout(req: any, res: any) {
   // CORS configuration

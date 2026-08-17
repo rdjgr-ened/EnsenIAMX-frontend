@@ -2,8 +2,8 @@ import { GoogleGenAI, Type } from "@google/genai";
 import {
   getOrCreateNemPromptCache,
   NEM_STATIC_CURRICULUM_SYSTEM_INSTRUCTION,
-} from "../src/utils/nemContextCache";
-import { getOficialContenidos } from "../src/data/nemCurriculumService";
+} from "../src/utils/nemContextCache.js";
+import { getOficialContenidos } from "../src/data/nemCurriculumService.js";
 
 export default async function handler(req: any, res: any) {
   res.setHeader?.("Access-Control-Allow-Credentials", "true");
