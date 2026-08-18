@@ -30,7 +30,34 @@ export const registrarUsuario = async (
   });
 
   if (error) throw error;
+
+  // 1. Detectar si el usuario ya existe (Supabase no lanza error, pero envía identities vacío)
+  if (data.user && data.user.identities && data.user.identities.length === 0) {
+    throw new Error('Este correo ya está registrado. Por favor, inicia sesión.');
+  }
+
+  // 2. Si se requiere confirmación por correo y no hay sesión activa
+  if (!data.session && data.user) {
+    return { ...data, requiresEmailConfirmation: true };
+  }
+
   return data;
+};
+
+/**
+ * Valida en tiempo real si el usuario actual sigue existiendo en Supabase.
+ * Si el usuario fue eliminado desde el panel, cierra la sesión local.
+ */
+export const obtenerUsuarioActual = async () => {
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    // Si el usuario fue eliminado en Supabase o el token venció, cerrar sesión
+    await supabase.auth.signOut();
+    return null;
+  }
+
+  return user;
 };
 
 /**

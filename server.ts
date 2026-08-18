@@ -62,7 +62,7 @@ app.post("/api/generate", async (req, res) => {
       });
     }
 
-    const selectedModel = model || "gemini-2.5-flash";
+    const selectedModel = model || "gemini-3.6-flash";
     const generationConfig: any = {};
 
     // 1. Context Caching (Prompt Caching) Implementation
@@ -331,7 +331,7 @@ app.post("/api/generate-plan", async (req, res) => {
       required: ["proposito", "producto", "fases", "evaluacionFormativa", "sugerenciasAdecuacion"],
     };
 
-    const selectedModel = "gemini-2.5-flash";
+    const selectedModel = "gemini-3.6-flash";
     const planConfig: any = {
       responseMimeType: "application/json",
       responseSchema: responseSchema,
