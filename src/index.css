@@ -7,7 +7,7 @@
   --color-mex-gold: #627d98;
 }
 
-/* Custom CSS Scrollbar for elegance */
+/* Scrollbar personalizada */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -27,7 +27,7 @@
 }
 
 /* =========================================================
-   GLOBAL PRINT STYLESHEET (NEM / SEP - EnseñIA MX)
+   HOJA DE ESTILOS DE IMPRESIÓN (EnseñIA MX)
    ========================================================= */
 @page {
   size: letter portrait;
@@ -35,34 +35,7 @@
 }
 
 @media print {
-  /* 1. Ocultar absolutamente todo en la pantalla por defecto */
-  body * {
-    visibility: hidden !important;
-  }
-
-  /* 2. Hacer visible ÚNICAMENTE la hoja de trabajo (#documento-resultado) y su contenido */
-  #documento-resultado,
-  #documento-resultado *,
-  .printable-document,
-  .printable-document * {
-    visibility: visible !important;
-  }
-
-  /* 3. Posicionar el documento a imprimir en la parte superior izquierda de la página vacía */
-  #documento-resultado,
-  .printable-document {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-    border: none !important;
-    background-color: #ffffff !important;
-  }
-
-  /* 4. Estilos de página base */
+  /* 1. Configuración global del papel */
   html, body {
     background-color: #ffffff !important;
     background: #ffffff !important;
@@ -71,47 +44,59 @@
     line-height: 1.4 !important;
     margin: 0 !important;
     padding: 0 !important;
+    height: auto !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* 5. Evitar cortes de página en elementos importantes */
-  .break-inside-avoid,
-  .page-break-inside-avoid,
-  table,
-  tr,
-  tbody,
-  thead,
-  .card-avoid-break,
-  .pda-block,
-  .sesion-card,
-  .criterio-card,
-  .rubrica-fila {
+  /* 2. Ocultar todos los elementos de la interfaz */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* 3. Hacer visible ÚNICAMENTE la hoja de trabajo */
+  #documento-resultado,
+  #documento-resultado * {
+    visibility: visible !important;
+  }
+
+  /* 4. Posicionar la hoja de trabajo al inicio del documento */
+  #documento-resultado {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+
+  /* 5. Colapsar totalmente el espacio y saltos de página de la planeación que está al fondo */
+  #root,
+  main,
+  nav,
+  header,
+  aside,
+  footer,
+  .app-container {
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    page-break-before: avoid !important;
+    page-break-after: avoid !important;
+    break-before: avoid !important;
+    break-after: avoid !important;
+  }
+
+  /* 6. Mantener legibilidad de saltos dentro de la hoja de trabajo si excede 1 página */
+  #documento-resultado .break-inside-avoid {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
-  }
-
-  .page-break-before {
-    break-before: page !important;
-    page-break-before: always !important;
-  }
-
-  .page-break-after {
-    break-after: page !important;
-    page-break-after: always !important;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    break-after: avoid !important;
-    page-break-after: avoid !important;
-  }
-
-  /* Bordes y colores de apoyo */
-  .border-print-solid {
-    border: 1px solid #0f172a !important;
-  }
-
-  .bg-print-subtle {
-    background-color: #f8fafc !important;
   }
 }
