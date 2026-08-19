@@ -31,11 +31,38 @@
    ========================================================= */
 @page {
   size: letter portrait;
-  margin: 1.2cm 1.2cm 1.2cm 1.2cm;
+  margin: 1.2cm;
 }
 
 @media print {
-  /* 1. Force exact colors and clean paper background */
+  /* 1. Ocultar absolutamente todo en la pantalla por defecto */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* 2. Hacer visible ÚNICAMENTE la hoja de trabajo (#documento-resultado) y su contenido */
+  #documento-resultado,
+  #documento-resultado *,
+  .printable-document,
+  .printable-document * {
+    visibility: visible !important;
+  }
+
+  /* 3. Posicionar el documento a imprimir en la parte superior izquierda de la página vacía */
+  #documento-resultado,
+  .printable-document {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background-color: #ffffff !important;
+  }
+
+  /* 4. Estilos de página base */
   html, body {
     background-color: #ffffff !important;
     background: #ffffff !important;
@@ -46,43 +73,9 @@
     padding: 0 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-    color-adjust: exact !important;
   }
 
-  /* 2. Hide all navigation, sidebars, headers, app bars, modal backdrops & action buttons */
-  .no-print,
-  .print\\:hidden,
-  nav,
-  header,
-  aside,
-  footer,
-  [role="dialog"] > div:first-child:not(.printable-dialog),
-  .history-sidebar,
-  .navbar-container,
-  button,
-  .chat-widget,
-  .interactive-buttons {
-    display: none !important;
-    visibility: hidden !important;
-  }
-
-  /* 3. Expand main container to 100% available page width, removing shadows & artificial borders */
-  main,
-  #root,
-  .app-container,
-  .printable-document,
-  #documento-resultado,
-  .documento-imprimible {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-    background-color: transparent !important;
-    border: none !important;
-  }
-
-  /* 4. Page Break Controls: Prevent inappropriate breaks in tables, headers, and cards */
+  /* 5. Evitar cortes de página en elementos importantes */
   .break-inside-avoid,
   .page-break-inside-avoid,
   table,
@@ -113,7 +106,7 @@
     page-break-after: avoid !important;
   }
 
-  /* 5. Ensure high-contrast borders and sharp lines in print */
+  /* Bordes y colores de apoyo */
   .border-print-solid {
     border: 1px solid #0f172a !important;
   }
@@ -122,4 +115,3 @@
     background-color: #f8fafc !important;
   }
 }
-
