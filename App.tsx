@@ -8,7 +8,7 @@ export const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [cargando, setCargando] = useState(true);
 
-  // Función para obtener al usuario del storage de Supabase o direct de la API
+  // Función para obtener al usuario del storage de Supabase o directo de la API
   const comprobarUsuario = async () => {
     try {
       // 1. Preguntar a Supabase si hay sesión activa
