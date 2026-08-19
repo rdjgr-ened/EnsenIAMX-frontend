@@ -79,39 +79,21 @@ export default function AccionesDocumento({
     printDocument();
   };
 
-  const handleDownloadPdf = async () => {
-    if (isExporting) return;
+  const handleDownloadPdf = () => {
+  try {
+    setIsExporting(true);
     
-    try {
-      setIsExporting(true);
-      setErrorMessage(null);
-      setExportSuccess(false);
+    // Dispara la impresión nativa del navegador ("Guardar como PDF")
+    window.print();
 
-      if (onBeforeExport) onBeforeExport();
-
-      const elementOrId = targetRef?.current || targetId;
-      const result = await exportElementToPdf({
-        elementOrId: elementOrId as any,
-        tipoRecurso,
-        customFileName: calculatedFilename,
-        orientation,
-      });
-
-      if (result.success) {
-        setExportSuccess(true);
-        setTimeout(() => setExportSuccess(false), 4000);
-      } else {
-        setErrorMessage(result.error || "No se pudo generar el PDF.");
-      }
-
-      if (onAfterExport) onAfterExport(result.success);
-    } catch (err: any) {
-      console.error("Error al descargar PDF:", err);
-      setErrorMessage(err.message || "Error al exportar.");
-      if (onAfterExport) onAfterExport(false);
-    } finally {
-      setIsExporting(false);
-    }
+    if (onAfterExport) onAfterExport(true);
+  } catch (err: any) {
+    console.error("Error al descargar PDF:", err);
+    setErrorMessage(err.message || "Error al exportar.");
+    if (onAfterExport) onAfterExport(false);
+  } finally {
+    setIsExporting(false);
+  }
   };
 
   // Button styles based on variant
