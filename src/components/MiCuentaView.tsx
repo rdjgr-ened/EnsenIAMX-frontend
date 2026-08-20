@@ -52,7 +52,7 @@ export default function MiCuentaView({
   onNavigateToPrivacy,
   onNavigateToTerms
 }: MiCuentaViewProps) {
-  // Conversión explícita a minúsculas para prevenir discrepancias con la BD ("Platino" vs "platino")[cite: 2]
+  // Conversión explícita a minúsculas para prevenir discrepancias ("Platino" vs "platino")[cite: 3]
   const currentPlan = (subscription?.plan || "gratuito").toLowerCase();
   const planConfig = PLAN_CONFIGS[currentPlan] || PLAN_CONFIGS.gratuito;
   const isPremium = currentPlan !== "gratuito";
@@ -127,7 +127,9 @@ export default function MiCuentaView({
   };
 
   const maxQuota = planConfig.creditsPerMonth || 20;
-  const userCredits = subscription?.credits ?? 0;
+  
+  // Soporte dual para 'creditos_disponibles' (Supabase) y 'credits'[cite: 3]
+  const userCredits = (subscription as any)?.creditos_disponibles ?? subscription?.credits ?? 0;
   const creditPercent = Math.min(100, Math.round((userCredits / maxQuota) * 100));
 
   const planBadgeIcon = () => {
