@@ -14,13 +14,15 @@ import {
   AlertCircle,
   Edit3,
   Save,
-  X
+  X,
+  Loader2
 } from "lucide-react";
 import { UserSubscription, PaywallReason } from "../types";
 import { PLAN_CONFIGS } from "../utils/planManager";
 
 interface MiCuentaViewProps {
   userProfile: {
+    id?: string;
     docenteName: string;
     escuelaName: string;
     cct: string;
@@ -62,6 +64,10 @@ export default function MiCuentaView({
   const [email, setEmail] = useState(userProfile?.email || "docente@enseniamx.app");
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  // Payment Processing States
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     if (onUpdateProfile) {
@@ -78,16 +84,48 @@ export default function MiCuentaView({
     setTimeout(() => setSavedSuccess(false), 3000);
   };
 
-  const handleOpenSubscriptionManager = () => {
-    onTriggerPaywall({
-      type: "feature",
-      featureName: "Gestión de Planes y Suscripción",
-      requiredPlan: isPremium ? "platino" : "oro",
-      message: "Personaliza tu plan, amplía tu cuota mensual de créditos o cambia tu ciclo de facturación."
-    });
+  const handleDirectPayment = async () => {
+    const userId = userProfile?.id || (subscription as any).userId;
+
+    if (!userId) {
+      onTriggerPaywall({
+        type: "feature",
+        featureName: "Gestión de Planes y Suscripción",
+        requiredPlan: isPremium ? "platino" : "oro",
+        message: "Personaliza tu plan, amplía tu cuota mensual de créditos o cambia tu ciclo de facturación."
+      });
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    setPaymentError(null);
+
+    try {
+      const response = await fetch('/api/create-preference', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userId,
+          planName: 'Plan Platino',
+          price: 149
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.init_point) {
+        throw new Error(data.error || 'No se pudo generar la orden de pago.');
+      }
+
+      // Redirección segura al Checkout de Mercado Pago
+      window.location.href = data.init_point;
+    } catch (err: any) {
+      console.error('Error al procesar el pago:', err);
+      setPaymentError(err.message || 'Ocurrió un error al conectar con Mercado Pago.');
+      setIsProcessingPayment(false);
+    }
   };
 
-  // Calculate percentage of credits remaining based on plan monthly quota
   const maxQuota = planConfig.creditsPerMonth || 20;
   const creditPercent = Math.min(100, Math.round((subscription.credits / maxQuota) * 100));
 
@@ -136,6 +174,13 @@ export default function MiCuentaView({
         </div>
       )}
 
+      {paymentError && (
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
+          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+          <span>{paymentError}</span>
+        </div>
+      )}
+
       {/* Main Grid: User Profile & Subscription Status */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
@@ -168,7 +213,6 @@ export default function MiCuentaView({
 
             {!isEditing ? (
               <div className="space-y-4">
-                {/* Avatar & Full Name */}
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-mex-maroon to-red-900 text-white flex items-center justify-center font-black text-xl shadow-inner shrink-0">
                     {docenteName.charAt(0).toUpperCase() || "D"}
@@ -184,7 +228,6 @@ export default function MiCuentaView({
                   </div>
                 </div>
 
-                {/* Email Display */}
                 <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
                   <div className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider flex items-center gap-1.5">
                     <Mail className="w-3.5 h-3.5 text-slate-500" />
@@ -195,7 +238,6 @@ export default function MiCuentaView({
                   </p>
                 </div>
 
-                {/* Workplace Info */}
                 <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
                   <div className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider flex items-center gap-1.5">
                     <School className="w-3.5 h-3.5 text-slate-500" />
@@ -209,7 +251,6 @@ export default function MiCuentaView({
                   </p>
                 </div>
 
-                {/* Secondary Schools if present */}
                 {userProfile?.escuelas && userProfile.escuelas.length > 0 && (
                   <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
                     <div className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">
@@ -225,7 +266,6 @@ export default function MiCuentaView({
                     </div>
                   </div>
                 )}
-
               </div>
             ) : (
               <form onSubmit={handleSaveProfile} className="space-y-3.5">
@@ -300,7 +340,6 @@ export default function MiCuentaView({
               </form>
             )}
 
-            {/* Quick Security Badge */}
             <div className="mt-6 pt-4 border-t border-slate-100 flex items-center gap-2 text-[11px] text-slate-500">
               <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>Tus datos institucionales están protegidos bajo estricta confidencialidad.</span>
@@ -308,12 +347,10 @@ export default function MiCuentaView({
           </div>
         </div>
 
-        {/* Right Column (7 cols): Subscription, Credits & Feature Matrix */}
+        {/* Right Column (7 cols): Subscription & Payment Card */}
         <div className="lg:col-span-7 space-y-6">
 
-          {/* Current Subscription Card */}
           <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white rounded-2xl p-6 sm:p-8 shadow-md relative overflow-hidden">
-            {/* Background glowing sphere */}
             <div className="absolute right-0 top-0 w-72 h-72 bg-mex-gold/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
             
             <div className="relative z-10 space-y-6">
@@ -348,7 +385,7 @@ export default function MiCuentaView({
                 </div>
               </div>
 
-              {/* Credits & Usage Gauge */}
+              {/* Credits Usage Bar */}
               <div className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -365,7 +402,6 @@ export default function MiCuentaView({
                   </div>
                 </div>
 
-                {/* Progress Bar */}
                 <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden p-0.5">
                   <div 
                     className={`h-full rounded-full transition-all duration-500 ${
@@ -383,19 +419,28 @@ export default function MiCuentaView({
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {/* Checkout Action Button */}
               <div className="pt-2">
                 <button
                   type="button"
-                  onClick={handleOpenSubscriptionManager}
-                  className="w-full bg-gradient-to-r from-mex-gold to-amber-400 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition shadow-sm hover:shadow flex items-center justify-center gap-2 cursor-pointer"
+                  disabled={isProcessingPayment}
+                  onClick={handleDirectPayment}
+                  className="w-full bg-gradient-to-r from-mex-gold to-amber-400 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition shadow-sm hover:shadow flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Crown className="w-4 h-4" />
-                  <span>{isPremium ? "Gestionar o Cambiar de Plan" : "Actualizar a Plan Premium"}</span>
+                  {isProcessingPayment ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                      <span>Conectando con Mercado Pago...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Crown className="w-4 h-4" />
+                      <span>{isPremium ? "Gestionar o Cambiar de Plan" : "Actualizar a Plan Premium"}</span>
+                    </>
+                  )}
                 </button>
               </div>
 
-              {/* Mercado Pago Security Indicator */}
               <div className="pt-1 flex items-center justify-center gap-2 text-[11px] text-slate-400">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Cobro seguro y protegido con <strong>Mercado Pago</strong></span>
@@ -404,7 +449,7 @@ export default function MiCuentaView({
             </div>
           </div>
 
-          {/* Included Features Matrix */}
+          {/* Unlocked Features List */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
             <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
