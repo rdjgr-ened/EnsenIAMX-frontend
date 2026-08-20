@@ -52,11 +52,12 @@ export default function MiCuentaView({
   onNavigateToPrivacy,
   onNavigateToTerms
 }: MiCuentaViewProps) {
-  const currentPlan = subscription.plan || "gratuito";
+  // Conversión explícita a minúsculas para prevenir discrepancias con la BD ("Platino" vs "platino")[cite: 2]
+  const currentPlan = (subscription?.plan || "gratuito").toLowerCase();
   const planConfig = PLAN_CONFIGS[currentPlan] || PLAN_CONFIGS.gratuito;
   const isPremium = currentPlan !== "gratuito";
 
-  // Editable Profile States
+  // Estados del Perfil
   const [isEditing, setIsEditing] = useState(false);
   const [docenteName, setDocenteName] = useState(userProfile?.docenteName || "Docente");
   const [escuelaName, setEscuelaName] = useState(userProfile?.escuelaName || "");
@@ -64,7 +65,7 @@ export default function MiCuentaView({
   const [email, setEmail] = useState(userProfile?.email || "docente@enseniamx.app");
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  // Payment Processing States
+  // Estados de Pago
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
@@ -85,7 +86,7 @@ export default function MiCuentaView({
   };
 
   const handleDirectPayment = async () => {
-    const userId = userProfile?.id || (subscription as any).userId;
+    const userId = userProfile?.id || (subscription as any)?.userId;
 
     if (!userId) {
       onTriggerPaywall({
@@ -117,7 +118,6 @@ export default function MiCuentaView({
         throw new Error(data.error || 'No se pudo generar la orden de pago.');
       }
 
-      // Redirección segura al Checkout de Mercado Pago
       window.location.href = data.init_point;
     } catch (err: any) {
       console.error('Error al procesar el pago:', err);
@@ -127,7 +127,8 @@ export default function MiCuentaView({
   };
 
   const maxQuota = planConfig.creditsPerMonth || 20;
-  const creditPercent = Math.min(100, Math.round((subscription.credits / maxQuota) * 100));
+  const userCredits = subscription?.credits ?? 0;
+  const creditPercent = Math.min(100, Math.round((userCredits / maxQuota) * 100));
 
   const planBadgeIcon = () => {
     switch (currentPlan) {
@@ -145,7 +146,7 @@ export default function MiCuentaView({
   return (
     <div className="space-y-8 animate-fade-in max-w-6xl mx-auto pb-12">
       
-      {/* Top Header Navigation */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs">
         <div className="flex items-center gap-3.5">
           <button
@@ -181,10 +182,10 @@ export default function MiCuentaView({
         </div>
       )}
 
-      {/* Main Grid: User Profile & Subscription Status */}
+      {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        {/* Left Column (5 cols): User Profile Card */}
+        {/* Columna Izquierda: Perfil del Docente */}
         <div className="lg:col-span-5 space-y-6">
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 relative overflow-hidden">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
@@ -347,7 +348,7 @@ export default function MiCuentaView({
           </div>
         </div>
 
-        {/* Right Column (7 cols): Subscription & Payment Card */}
+        {/* Columna Derecha: Estado de Membresía y Pago */}
         <div className="lg:col-span-7 space-y-6">
 
           <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white rounded-2xl p-6 sm:p-8 shadow-md relative overflow-hidden">
@@ -365,12 +366,12 @@ export default function MiCuentaView({
                       {planBadgeIcon()}
                     </div>
                     <div>
-                      <h3 className="text-2xl font-black text-white tracking-tight">
+                      <h3 className="text-2xl font-black text-white tracking-tight capitalize">
                         {planConfig.name}
                       </h3>
                       <p className="text-xs text-slate-300 font-medium">
                         {isPremium 
-                          ? `Ciclo ${subscription.billingCycle} • Renovación activa`
+                          ? `Ciclo ${subscription?.billingCycle || 'mensual'} • Renovación activa`
                           : "Periodo de evaluación inicial"}
                       </p>
                     </div>
@@ -385,7 +386,7 @@ export default function MiCuentaView({
                 </div>
               </div>
 
-              {/* Credits Usage Bar */}
+              {/* Barra de Créditos */}
               <div className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -394,7 +395,7 @@ export default function MiCuentaView({
                   </div>
                   <div className="text-right">
                     <span className="text-2xl font-black text-mex-gold">
-                      {subscription.credits}
+                      {userCredits}
                     </span>
                     <span className="text-xs text-slate-400 font-bold ml-1">
                       / {maxQuota} mes
@@ -405,7 +406,7 @@ export default function MiCuentaView({
                 <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden p-0.5">
                   <div 
                     className={`h-full rounded-full transition-all duration-500 ${
-                      subscription.credits > 10
+                      userCredits > 10
                         ? "bg-gradient-to-r from-mex-gold to-amber-300"
                         : "bg-gradient-to-r from-red-500 to-rose-400"
                     }`}
@@ -419,7 +420,7 @@ export default function MiCuentaView({
                 </div>
               </div>
 
-              {/* Checkout Action Button */}
+              {/* Botón de Mercado Pago */}
               <div className="pt-2">
                 <button
                   type="button"
@@ -449,7 +450,7 @@ export default function MiCuentaView({
             </div>
           </div>
 
-          {/* Unlocked Features List */}
+          {/* Características del Plan */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
             <h4 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
