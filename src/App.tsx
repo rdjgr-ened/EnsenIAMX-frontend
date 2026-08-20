@@ -35,6 +35,7 @@ import {
   isSupabaseConfigured
 } from "./utils/supabaseClient";
 import { Sparkles, FileText, CheckCircle, LogOut, FolderKanban, Coins, Crown, Gem, Zap, User } from "lucide-react";
+
 const logoImg = "https://i.imgur.com/tv95RC0.png";
 
 const normalizePath = (path: string): string => {
@@ -153,6 +154,30 @@ export default function App() {
   const [organizadorTab, setOrganizadorTab] = useState<"planeaciones" | "grupos" | "bitacora" | "seguimiento" | "evaluacion">("planeaciones");
   const [prefilledData, setPrefilledData] = useState<any | null>(null);
 
+  const syncSubscriptionFromSupabase = async (email: string) => {
+    if (!isSupabaseConfigured || !email) return;
+
+    const userId = `user_${email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    try {
+      const profileData = await fetchSupabaseProfile(userId);
+      if (profileData) {
+        const plan = (profileData.plan || profileData.plan_type || "gratuito").toLowerCase();
+        const credits = profileData.creditos_disponibles ?? profileData.credits ?? 20;
+
+        const updatedSub: UserSubscription = {
+          plan: plan as any,
+          credits: Number(credits),
+          billingCycle: profileData.billing_cycle || profileData.billingCycle || "mensual"
+        };
+
+        setSubscription(updatedSub);
+        saveSubscriptionToStorage(updatedSub);
+      }
+    } catch (err) {
+      console.warn("Error al sincronizar suscripción desde Supabase:", err);
+    }
+  };
+
   const handleLogin = (profile: {
     docenteName: string;
     escuelaName: string;
@@ -164,6 +189,11 @@ export default function App() {
     setUserProfile(profile);
     setActiveTab("hub");
     setPrefilledData(null);
+
+    // Carga y sincronización de suscripción desde Supabase al iniciar sesión
+    if (profile.email) {
+      syncSubscriptionFromSupabase(profile.email);
+    }
   };
 
   const handleUpdateProfile = (profile: {
@@ -186,7 +216,7 @@ export default function App() {
     setCurrentPlan(null);
   };
 
-  // Load plans from localStorage and Supabase on mount
+  // Load plans and user subscription from localStorage and Supabase on mount
   useEffect(() => {
     const savedPlans = localStorage.getItem("nem_secundaria_plans");
     if (savedPlans) {
@@ -200,38 +230,45 @@ export default function App() {
     if (isSupabaseConfigured) {
       const userProfileStr = localStorage.getItem("nem_secundaria_profile");
       const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
-      const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
 
-      fetchSupabasePlaneaciones(userId).then(dbPlans => {
-        if (dbPlans && dbPlans.length > 0) {
-          const mappedPlans: CompletePlan[] = dbPlans.map(p => {
-            if (p.contenido_json && p.contenido_json.plan) {
-              return { ...p.contenido_json, id: p.id };
-            }
-            return {
-              id: p.id,
-              createdAt: p.created_at || new Date().toISOString(),
-              docenteName: "Docente",
-              escuelaName: "Escuela",
-              cct: "CCT",
-              grupo: "A",
-              grado: "1º",
-              campoFormativo: p.campo_formativo,
-              pda: p.pda,
-              metodologia: "Aprendizaje Basado en Proyectos",
-              situacionProblema: p.titulo,
-              plan: p.contenido_json
-            };
-          });
-          setPlans(prev => {
-            const existingIds = new Set(prev.map(pl => pl.id));
-            const newOnes = mappedPlans.filter(pl => !existingIds.has(pl.id));
-            const merged = [...newOnes, ...prev];
-            localStorage.setItem("nem_secundaria_plans", JSON.stringify(merged));
-            return merged;
-          });
-        }
-      }).catch(err => console.warn("Supabase planeaciones load error:", err));
+      if (userEmail) {
+        const userId = `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+        // 1. Cargar suscripción / créditos de Supabase
+        syncSubscriptionFromSupabase(userEmail);
+
+        // 2. Cargar planeaciones de Supabase
+        fetchSupabasePlaneaciones(userId).then(dbPlans => {
+          if (dbPlans && dbPlans.length > 0) {
+            const mappedPlans: CompletePlan[] = dbPlans.map(p => {
+              if (p.contenido_json && p.contenido_json.plan) {
+                return { ...p.contenido_json, id: p.id };
+              }
+              return {
+                id: p.id,
+                createdAt: p.created_at || new Date().toISOString(),
+                docenteName: "Docente",
+                escuelaName: "Escuela",
+                cct: "CCT",
+                grupo: "A",
+                grado: "1º",
+                campoFormativo: p.campo_formativo,
+                pda: p.pda,
+                metodologia: "Aprendizaje Basado en Proyectos",
+                situacionProblema: p.titulo,
+                plan: p.contenido_json
+              };
+            });
+            setPlans(prev => {
+              const existingIds = new Set(prev.map(pl => pl.id));
+              const newOnes = mappedPlans.filter(pl => !existingIds.has(pl.id));
+              const merged = [...newOnes, ...prev];
+              localStorage.setItem("nem_secundaria_plans", JSON.stringify(merged));
+              return merged;
+            });
+          }
+        }).catch(err => console.warn("Supabase planeaciones load error:", err));
+      }
     }
   }, []);
 
@@ -360,7 +397,7 @@ export default function App() {
       case "diseno":
         return (
           <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm print:hidden flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs print:hidden flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h3 className="font-bold text-slate-800 text-base mb-1 tracking-tight flex items-center gap-2">
                   <FileText className="w-5 h-5 text-mex-maroon" />
@@ -531,7 +568,7 @@ export default function App() {
               }}
               className="flex items-center gap-3.5 cursor-pointer hover:opacity-95 transition"
             >
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl flex items-center justify-center p-1 shadow-sm overflow-hidden border border-mex-gold/40">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl flex items-center justify-center p-1 shadow-xs overflow-hidden border border-mex-gold/40">
                 <img src={logoImg} alt="EnseñIA MX Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
               </div>
               <div>
@@ -610,7 +647,6 @@ export default function App() {
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-12 flex flex-col">
       {/* Encabezado Escolar e Institucional - Oculto al imprimir */}
       <header className="bg-mex-maroon text-white py-3 sm:py-4 px-4 sm:px-8 shadow-md shrink-0 print:hidden relative overflow-hidden">
-        {/* Subtle geometric decoration */}
         <div className="absolute right-0 top-0 w-48 h-48 bg-white/5 rounded-lg -mr-12 -mt-12 pointer-events-none rotate-45" />
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
           <div 
@@ -621,7 +657,7 @@ export default function App() {
             className="flex items-center gap-3.5 cursor-pointer hover:opacity-95 transition"
             title="Ir al Panel Principal"
           >
-            <div className="w-11 h-11 sm:w-13 sm:h-13 bg-white rounded-xl flex items-center justify-center p-1 shadow-sm overflow-hidden shrink-0 border border-mex-gold/40">
+            <div className="w-11 h-11 sm:w-13 sm:h-13 bg-white rounded-xl flex items-center justify-center p-1 shadow-xs overflow-hidden shrink-0 border border-mex-gold/40">
               <img
                 src={logoImg}
                 alt="EnseñIA MX Logo"
@@ -639,9 +675,8 @@ export default function App() {
             </div>
           </div>
 
-          {/* Right Area: Plan Badge + Credits + Upgrade CTA + Mi Cuenta + Logout */}
+          {/* Áreas derecha: Plan, Créditos, Upgrade, Mi Cuenta y Salir */}
           <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2.5">
-            {/* 1. Plan Badge & Credits Indicator - Clickable to open Mi Cuenta */}
             <button
               type="button"
               onClick={() => {
@@ -670,7 +705,6 @@ export default function App() {
               </div>
             </button>
 
-            {/* 2. Upgrade Button */}
             <button
               type="button"
               onClick={() =>
@@ -688,7 +722,6 @@ export default function App() {
               <span className="hidden sm:inline">Mejorar Plan</span>
             </button>
 
-            {/* 3. Mi Cuenta Button */}
             <button
               type="button"
               onClick={() => {
@@ -706,7 +739,6 @@ export default function App() {
               <span>Mi Cuenta</span>
             </button>
 
-            {/* 4. Logout */}
             <button
               onClick={handleLogout}
               className="text-xs bg-white/10 hover:bg-white/20 border border-white/15 px-3 py-1.5 rounded-xl text-white font-bold transition flex items-center gap-1.5 hover:text-mex-gold hover:border-mex-gold/40 cursor-pointer"
@@ -721,10 +753,7 @@ export default function App() {
 
       {/* Contenido Principal de la Aplicación */}
       <main className="max-w-7xl mx-auto px-4 sm:px-8 mt-8 w-full flex-1">
-        
-        {/* Bento Grid layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Columna Lateral Izquierda (Acceso a Organizador Escolar) - Oculto al imprimir */}
           {!isFullWidthView && (
             <div className="lg:col-span-1 print:hidden">
               <HistorySidebar
@@ -741,7 +770,6 @@ export default function App() {
             </div>
           )}
 
-          {/* Columna Principal Derecha (Herramientas, Hub o Visualizador) */}
           <div className={isFullWidthView ? "lg:col-span-3" : "lg:col-span-2"}>
             {currentPlan ? (
               <PlaneacionPreview
@@ -772,7 +800,7 @@ export default function App() {
         onSelectPlan={handleSelectPlanTier}
       />
 
-      {/* Footer Bar - Oculto al imprimir */}
+      {/* Footer Bar */}
       <footer className="mt-auto py-3.5 bg-slate-100 border-t border-slate-200 px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 print:hidden text-center sm:text-left">
         <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-tight">
           EnseñIA MX v2026.1 • Asistente Integral Docente
