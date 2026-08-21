@@ -302,4 +302,3 @@ export function addExtraCredits(subscription: any, amount: number): any {
   } catch (e) {
     console.error("Error saving subscription", e);
   }
-}
