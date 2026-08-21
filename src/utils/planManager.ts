@@ -226,3 +226,5 @@ export function canExportToFormat(sub: UserSubscription, format: "pdf" | "word")
 export function getPlanLimits(planTier: PlanTier): PlanDetails {
   return PLANS_CONFIG[planTier] || PLANS_CONFIG.gratuito;
 }
+
+export const PLAN_CONFIGS = PLANS_CONFIG;
