@@ -591,13 +591,12 @@ export default function App() {
     }
   };
 
-  // Procesar pago exitoso automáticamente a nivel global en App.tsx
+  // Procesar pago exitoso automáticamente a nivel global (Robustecido con lectura directa de localStorage)
   useEffect(() => {
     if (currentPath === "/payment-success") {
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const status = urlParams.get("collection_status") || urlParams.get("status") || "approved";
-        const paymentId = urlParams.get("payment_id") || urlParams.get("collection_id") || `MP_${Date.now().toString().slice(-6)}`;
         
         if (status === "approved" || status === "authorized" || urlParams.get("is_demo") === "true") {
           const externalRefRaw = urlParams.get("external_reference");
@@ -622,46 +621,58 @@ export default function App() {
           const billingCycle = refData.billingCycle || (urlParams.get("cycle") as any) || "mensual";
           const creditsAdded = Number(refData.creditsAdded) || (itemType === "credits" ? 80 : 100);
 
-          const processedKey = `mp_processed_${paymentId}`;
-          const alreadyProcessed = sessionStorage.getItem(processedKey) === "true";
+          // Obtener el correo directamente de localStorage para evitar demoras de estado
+          let userEmail = userProfile?.email;
+          if (!userEmail) {
+            try {
+              const savedProf = localStorage.getItem("nem_secundaria_profile");
+              if (savedProf) {
+                const parsed = JSON.parse(savedProf);
+                if (parsed?.email) userEmail = parsed.email;
+              }
+            } catch (err) {}
+          }
 
-          if (!alreadyProcessed || subscription.plan === "gratuito") {
-            let updatedSub = { ...subscription };
+          let updatedSub = loadUserSubscription();
 
-            if (itemType === "plan" && planId) {
-              updatedSub = updateUserPlan(subscription, planId, billingCycle);
-            } else if (itemType === "credits") {
-              updatedSub = {
-                ...subscription,
-                credits: subscription.credits + creditsAdded
-              };
-            }
+          if (itemType === "plan" && planId) {
+            updatedSub = updateUserPlan(updatedSub, planId, billingCycle);
+          } else if (itemType === "credits") {
+            updatedSub = {
+              ...updatedSub,
+              credits: updatedSub.credits + creditsAdded
+            };
+          }
 
-            if (rawPrice >= 140) {
-              updatedSub.plan = "platino";
-              updatedSub.credits = Math.max(updatedSub.credits, 100);
-            }
+          if (rawPrice >= 140) {
+            updatedSub.plan = "platino";
+            updatedSub.credits = Math.max(updatedSub.credits, 100);
+          }
 
-            setSubscription(updatedSub);
-            saveSubscriptionToStorage(updatedSub);
-            sessionStorage.setItem(processedKey, "true");
+          // Actualizar estado y almacenamiento local
+          setSubscription(updatedSub);
+          saveSubscriptionToStorage(updatedSub);
 
-            if (userProfile?.email && isSupabaseConfigured) {
-              const userId = `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
-              saveSupabaseProfile({
-                id: userId,
-                email: userProfile.email,
-                plan: updatedSub.plan,
-                creditos_disponibles: updatedSub.credits,
-              }).catch(err => console.warn("Error syncing Supabase subscription:", err));
-            }
+          // Sincronizar obligatoriamente con Supabase
+          if (userEmail && isSupabaseConfigured) {
+            const userId = `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
+            saveSupabaseProfile({
+              id: userId,
+              email: userEmail,
+              plan: updatedSub.plan,
+              creditos_disponibles: updatedSub.credits,
+            })
+            .then(() => console.log("¡Suscripción y créditos sincronizados en Supabase exitosamente!"))
+            .catch(err => console.error("Error al sincronizar Supabase tras pago:", err));
+          } else {
+            console.warn("No se pudo sincronizar Supabase: Correo no encontrado o Supabase no configurado.", { userEmail, isSupabaseConfigured });
           }
         }
       } catch (err) {
         console.error("Error processing payment return in App.tsx:", err);
       }
     }
-  }, [currentPath, userProfile?.email]);
+  }, [currentPath]);
 
   if (currentPath === "/politica-de-privacidad") {
     return <PoliticaPrivacidadView onBack={handleBackFromLegal} />;
