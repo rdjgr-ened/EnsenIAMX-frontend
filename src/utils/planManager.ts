@@ -265,3 +265,18 @@ export const CREDIT_ACTIONS_INFO = {
   EXAMEN: { label: "Crear Examen", cost: 1 },
   BITACORA: { label: "Bitácora", cost: 1 },
 };
+export function addExtraCredits(subscription: any, amount: number): any {
+  const current = subscription || {};
+  return {
+    ...current,
+    credits: (current.credits || 0) + amount
+  };
+}
+
+export function saveUserSubscription(subscription: any): void {
+  try {
+    localStorage.setItem("user_subscription", JSON.stringify(subscription));
+  } catch (e) {
+    console.error("Error saving subscription", e);
+  }
+}
