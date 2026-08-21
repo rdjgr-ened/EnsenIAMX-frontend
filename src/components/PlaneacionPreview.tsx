@@ -59,7 +59,15 @@ export default function PlaneacionPreview({
     sesionNumero: 1,
     sesionTitulo: "",
   });
-
+// --- PEGAR EN LA LÍNEA 63 ---
+  React.useEffect(() => {
+    if (isSupabaseConfigured && planData) {
+      savePlaneacion(planData)
+        .then(() => console.log("Planeación guardada con éxito en Supabase"))
+        .catch(err => console.warn("Error al autoguardar la planeación:", err));
+    }
+  }, [planData]);
+  // ----------------------------
   const {
     nivel,
     docenteName,
