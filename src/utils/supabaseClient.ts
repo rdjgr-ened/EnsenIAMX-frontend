@@ -68,23 +68,21 @@ export async function getProfile(userId: string): Promise<DbProfile | null> {
 }
 
 export async function upsertProfile(profileData: {
-  id: string;
-  email?: string;
+  email: string;
   plan?: string;
   creditos_disponibles?: number;
   [key: string]: any;
 }) {
   if (!isSupabaseConfigured) return null;
 
-  // Enviamos estrictamente las columnas básicas para evitar errores de esquema
+  // Hacemos el upsert buscando por email para evitar duplicados
   const { data, error } = await supabase
     .from("profiles")
     .upsert({
-      id: profileData.id,
       email: profileData.email,
-      plan: profileData.plan,
-      creditos_disponibles: profileData.creditos_disponibles ?? profileData.credits,
-    }, { onConflict: "id" });
+      plan: profileData.plan ?? "gratuito",
+      creditos_disponibles: profileData.creditos_disponibles ?? 20,
+    }, { onConflict: "email" });
 
   if (error) {
     console.error("Error al guardar profile en Supabase:", error.message);
