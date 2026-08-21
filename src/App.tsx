@@ -223,7 +223,6 @@ export default function App() {
     } catch (err) {
       console.warn("Error al sincronizar suscripción desde Supabase:", err);
     }
-  };
 // Sincronización de Perfil y Créditos desde Supabase al arrancar
   const syncSubscriptionFromSupabase = async (email: string) => {
     if (!isSupabaseConfigured || !email) return;
@@ -256,7 +255,7 @@ export default function App() {
       console.warn("Error al sincronizar suscripción desde Supabase:", err);
     }
   };
-  useEffect(() => {
+    useEffect(() => {
     if (userProfile?.email) {
       syncSubscriptionFromSupabase(userProfile.email);
     }
