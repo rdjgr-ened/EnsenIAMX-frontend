@@ -122,7 +122,6 @@ export default function PaymentSuccessView({
             }).catch((err) => console.warn("Error updating Supabase on payment success:", err));
           }
         }
-      }
 
       setPaymentDetails({
             status,
