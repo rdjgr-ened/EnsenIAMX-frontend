@@ -125,24 +125,24 @@ export default function PaymentSuccessView({
       }
 
       setPaymentDetails({
-        status,
-        paymentId,
-        preferenceId,
-        itemType,
-        planId,
-        billingCycle,
-        creditsAdded,
-        price,
-        userEmail,
-        processed: true,
-        isDemo,
-      });
-    } catch (err) {
-      console.error("Error processing payment return:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+            status,
+            paymentId,
+            preferenceId,
+            itemType,
+            planId,
+            billingCycle,
+            creditsAdded,
+            price,
+            userEmail,
+            processed: true,
+            isDemo,
+          });
+        } catch (err) {
+          console.error("Error processing payment return:", err);
+        } finally {
+          setIsLoading(false);
+        }
+      }, []);
 
   const planConfig = paymentDetails.planId ? PLAN_CONFIGS[paymentDetails.planId] : null;
 
