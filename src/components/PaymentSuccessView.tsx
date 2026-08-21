@@ -62,16 +62,29 @@ export default function PaymentSuccessView({
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const status = urlParams.get("collection_status") || urlParams.get("status") || "approved";
+      const paymentId = urlParams.get("payment_id") || urlParams.get("collection_id") || `MP_${Date.now().toString().slice(-6)}`;
+      const preferenceId = urlParams.get("preference_id") || "";
+      const isDemo = urlParams.get("is_demo") === "true";
+      const externalRefRaw = urlParams.get("external_reference");
+
+      let refData: any = {};
+      if (externalRefRaw) {
+        try {
+          refData = JSON.parse(decodeURIComponent(externalRefRaw));
+        } catch (e) {
+          console.warn("Could not parse external_reference JSON:", e);
+        }
+      }
+
       const itemType = refData.itemType || (urlParams.get("type") === "credits" ? "credits" : "plan");
       
-      // Corrección 1: Detectar correctamente el plan sin caer siempre en "oro"
+      // Detección correcta del plan (Platino u Oro según corresponda)
       let planId = refData.planId || (urlParams.get("plan") as PlanTier);
       if (!planId && itemType === "plan") {
-        // Si no viene en la URL, deducirlo por el precio o forzar platino si fue compra alta
         const rawPrice = Number(refData.price) || Number(urlParams.get("price")) || 0;
         planId = rawPrice >= 150 ? "platino" : "oro";
       }
-      planId = planId || "platino"; // Fallback seguro a platino o el que corresponda
+      planId = planId || "platino";
 
       const billingCycle = refData.billingCycle || (urlParams.get("cycle") as BillingCycle) || "mensual";
       const creditsAdded = Number(refData.creditsAdded) || (itemType === "credits" ? 80 : PLAN_CONFIGS[planId as PlanTier]?.creditsPerMonth || 100);
@@ -82,11 +95,11 @@ export default function PaymentSuccessView({
       const processedKey = `mp_processed_${paymentId}`;
       const alreadyProcessed = sessionStorage.getItem(processedKey) === "true";
 
-      if (!alreadyProcessed && (status === "approved" || isDemo)) {
+      if (!alreadyProcessed && (status === "approved" || status === "authorized" || isDemo)) {
         let updatedSub = { ...currentSubscription };
 
         if (itemType === "plan" && planId && PLAN_CONFIGS[planId as PlanTier]) {
-          // Corrección 2: Orden correcto de argumentos -> (currentSubscription, planId, billingCycle)
+          // Orden correcto de argumentos -> (currentSubscription, planId, billingCycle)
           updatedSub = upgradeUserPlan(currentSubscription, planId as PlanTier, billingCycle);
         } else if (itemType === "credits") {
           updatedSub = addExtraCredits(currentSubscription, creditsAdded);
@@ -96,7 +109,7 @@ export default function PaymentSuccessView({
         saveUserSubscription(updatedSub);
         sessionStorage.setItem(processedKey, "true");
 
-        // Sync with Supabase if configured (Buscando de forma segura en localStorage)
+        // Sync with Supabase if configured
         if (isSupabaseConfigured) {
           const userProfileStr = localStorage.getItem("user_profile") || localStorage.getItem("nem_secundaria_profile");
           const userEmailStored = userProfileStr ? JSON.parse(userProfileStr)?.email : userEmail;
@@ -112,35 +125,26 @@ export default function PaymentSuccessView({
           }
         }
       }
-          if (userEmailStored) {
-            const userId = `user_${userEmailStored.replace(/[^a-zA-Z0-9]/g, "_")}`;
-            upsertProfile({
-              id: userId,
-              email: userEmailStored,
-              plan: updatedSub.plan,
-              creditos_disponibles: updatedSub.credits,
-            }).catch((err) => console.warn("Error updating Supabase on payment success:", err));
-          }
 
       setPaymentDetails({
-            status,
-            paymentId,
-            preferenceId,
-            itemType,
-            planId,
-            billingCycle,
-            creditsAdded,
-            price,
-            userEmail,
-            processed: true,
-            isDemo,
-          });
-        } catch (err) {
-          console.error("Error processing payment return:", err);
-        } finally {
-          setIsLoading(false);
-        }
-      }, []);
+        status,
+        paymentId,
+        preferenceId,
+        itemType,
+        planId,
+        billingCycle,
+        creditsAdded,
+        price,
+        userEmail,
+        processed: true,
+        isDemo,
+      });
+    } catch (err) {
+      console.error("Error processing payment return:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const planConfig = paymentDetails.planId ? PLAN_CONFIGS[paymentDetails.planId] : null;
 
@@ -164,7 +168,7 @@ export default function PaymentSuccessView({
 
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
               {paymentDetails.itemType === "plan" 
-                ? `¡Bienvenido al ${planConfig?.name || "Plan Premium"}!` 
+                ? `¡Bienvenido al ${planConfig?.name || "Plan Platino"}!` 
                 : `¡Recarga de ${paymentDetails.creditsAdded} Créditos Exitosa!`}
             </h1>
 
@@ -243,7 +247,7 @@ export default function PaymentSuccessView({
                   {currentSubscription.credits} Créditos Disponibles
                 </h3>
                 <p className="text-xs text-slate-600 font-medium">
-                  Nivel de cuenta: <strong className="text-mex-maroon uppercase">{PLAN_CONFIGS[currentSubscription.plan].name}</strong>
+                  Nivel de cuenta: <strong className="text-mex-maroon uppercase">{PLAN_CONFIGS[currentSubscription.plan]?.name || currentSubscription.plan}</strong>
                 </p>
               </div>
             </div>
