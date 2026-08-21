@@ -67,34 +67,30 @@ export async function getProfile(userId: string): Promise<DbProfile | null> {
   }
 }
 
-export async function upsertProfile(profile: Partial<DbProfile> & { id: string; email: string }): Promise<DbProfile | null> {
-  if (!supabase) return null;
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .upsert({
-        id: profile.id,
-        email: profile.email,
-        plan: profile.plan || 'gratuito',
-        creditos_disponibles: profile.creditos_disponibles ?? 3,
-        fecha_renovacion: profile.fecha_renovacion || null,
-        docente_nombre: profile.docente_nombre || null,
-        escuela_nombre: profile.escuela_nombre || null,
-        cct: profile.cct || null,
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+export async function upsertProfile(profileData: {
+  id: string;
+  email?: string;
+  plan?: string;
+  creditos_disponibles?: number;
+  [key: string]: any;
+}) {
+  if (!isSupabaseConfigured) return null;
 
-    if (error) {
-      console.warn('Error al guardar profile en Supabase:', error.message);
-      return null;
-    }
-    return data as DbProfile;
-  } catch (err) {
-    console.error('Error de red al guardar profile:', err);
-    return null;
+  // Enviamos estrictamente las columnas básicas para evitar errores de esquema
+  const { data, error } = await supabase
+    .from("profiles")
+    .upsert({
+      id: profileData.id,
+      email: profileData.email,
+      plan: profileData.plan,
+      creditos_disponibles: profileData.creditos_disponibles ?? profileData.credits,
+    }, { onConflict: "id" });
+
+  if (error) {
+    console.error("Error al guardar profile en Supabase:", error.message);
+    throw error;
   }
+  return data;
 }
 
 export async function updateProfileCredits(userId: string, newCredits: number): Promise<boolean> {
