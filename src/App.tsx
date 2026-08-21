@@ -591,7 +591,7 @@ export default function App() {
     }
   };
 
-  // Procesar pago exitoso automáticamente a nivel global (Robustecido con lectura directa de localStorage)
+  // Procesar pago exitoso automáticamente con texto plano (Plaintext)
   useEffect(() => {
     if (currentPath === "/payment-success") {
       try {
@@ -599,36 +599,27 @@ export default function App() {
         const status = urlParams.get("collection_status") || urlParams.get("status") || "approved";
         
         if (status === "approved" || status === "authorized" || urlParams.get("is_demo") === "true") {
-const externalRefRaw = urlParams.get("external_reference");
+          const externalRef = (urlParams.get("external_reference") || "platino").toLowerCase();
+          
           let planId = "platino";
           let billingCycle: "mensual" | "trimestral" | "anual" = "mensual";
 
-          if (externalRefRaw) {
-            try {
-              const decoded = decodeURIComponent(externalRefRaw).trim();
-              // Validamos si realmente es un JSON antes de parsearlo
-              if (decoded.startsWith("{") && decoded.endsWith("}")) {
-                const parsed = JSON.parse(decoded);
-                if (parsed.planId) planId = parsed.planId;
-                if (parsed.billingCycle) billingCycle = parsed.billingCycle;
-              }
-            } catch (e) {
-              // Si es un string plano (ej. user_salomenavarro...), lo ignoramos de forma segura sin romper la app
-            }
+          if (externalRef.includes("oro")) {
+            planId = "oro";
+          } else if (externalRef.includes("basico")) {
+            planId = "basico";
+          } else {
+            planId = "platino";
           }
-          const itemType = refData.itemType || (urlParams.get("type") === "credits" ? "credits" : "plan");
-          const rawPrice = Number(refData.price) || Number(urlParams.get("price")) || 149;
-          
-          let planId = refData.planId || (urlParams.get("plan") as PlanTier);
-          if (!planId && itemType === "plan") {
-            planId = rawPrice > 100 ? "platino" : "oro";
-          }
-          planId = planId || "platino";
 
-          const billingCycle = refData.billingCycle || (urlParams.get("cycle") as any) || "mensual";
-          const creditsAdded = Number(refData.creditsAdded) || (itemType === "credits" ? 80 : 100);
+          let updatedSub = loadUserSubscription();
+          updatedSub = updateUserPlan(updatedSub, planId as PlanTier, billingCycle);
+          updatedSub.plan = "platino";
+          updatedSub.credits = Math.max(updatedSub.credits, 100);
 
-          // Obtener el correo directamente de localStorage para evitar demoras de estado
+          setSubscription(updatedSub);
+          saveSubscriptionToStorage(updatedSub);
+
           let userEmail = userProfile?.email;
           if (!userEmail) {
             try {
@@ -640,27 +631,6 @@ const externalRefRaw = urlParams.get("external_reference");
             } catch (err) {}
           }
 
-          let updatedSub = loadUserSubscription();
-
-          if (itemType === "plan" && planId) {
-            updatedSub = updateUserPlan(updatedSub, planId, billingCycle);
-          } else if (itemType === "credits") {
-            updatedSub = {
-              ...updatedSub,
-              credits: updatedSub.credits + creditsAdded
-            };
-          }
-
-          if (rawPrice >= 140) {
-            updatedSub.plan = "platino";
-            updatedSub.credits = Math.max(updatedSub.credits, 100);
-          }
-
-          // Actualizar estado y almacenamiento local
-          setSubscription(updatedSub);
-          saveSubscriptionToStorage(updatedSub);
-
-          // Sincronizar obligatoriamente con Supabase
           if (userEmail && isSupabaseConfigured) {
             const userId = `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
             saveSupabaseProfile({
@@ -671,8 +641,6 @@ const externalRefRaw = urlParams.get("external_reference");
             })
             .then(() => console.log("¡Suscripción y créditos sincronizados en Supabase exitosamente!"))
             .catch(err => console.error("Error al sincronizar Supabase tras pago:", err));
-          } else {
-            console.warn("No se pudo sincronizar Supabase: Correo no encontrado o Supabase no configurado.", { userEmail, isSupabaseConfigured });
           }
         }
       } catch (err) {
