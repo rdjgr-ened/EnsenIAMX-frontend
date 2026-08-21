@@ -78,20 +78,19 @@ export default function PaymentSuccessView({
 
       const itemType = refData.itemType || (urlParams.get("type") === "credits" ? "credits" : "plan");
       
-      // Detección correcta del plan (Platino u Oro según corresponda)
+      // CORRECCIÓN DE UMBRAL: Si el precio es mayor a $100, es Platino de inmediato
+      const rawPrice = Number(refData.price) || Number(urlParams.get("price")) || 149;
       let planId = refData.planId || (urlParams.get("plan") as PlanTier);
       if (!planId && itemType === "plan") {
-        const rawPrice = Number(refData.price) || Number(urlParams.get("price")) || 0;
-        planId = rawPrice >= 150 ? "platino" : "oro";
+        planId = rawPrice > 100 ? "platino" : "oro";
       }
       planId = planId || "platino";
 
       const billingCycle = refData.billingCycle || (urlParams.get("cycle") as BillingCycle) || "mensual";
       const creditsAdded = Number(refData.creditsAdded) || (itemType === "credits" ? 80 : PLAN_CONFIGS[planId as PlanTier]?.creditsPerMonth || 100);
-      const price = Number(refData.price) || (itemType === "credits" ? 69 : 99);
+      const price = rawPrice;
       const userEmail = refData.userEmail;
 
-      // Prevent duplicate processing on page refresh via sessionStorage check
       const processedKey = `mp_processed_${paymentId}`;
       const alreadyProcessed = sessionStorage.getItem(processedKey) === "true";
 
@@ -99,7 +98,6 @@ export default function PaymentSuccessView({
         let updatedSub = { ...currentSubscription };
 
         if (itemType === "plan" && planId && PLAN_CONFIGS[planId as PlanTier]) {
-          // Orden correcto de argumentos -> (currentSubscription, planId, billingCycle)
           updatedSub = upgradeUserPlan(currentSubscription, planId as PlanTier, billingCycle);
         } else if (itemType === "credits") {
           updatedSub = addExtraCredits(currentSubscription, creditsAdded);
@@ -109,19 +107,28 @@ export default function PaymentSuccessView({
         saveUserSubscription(updatedSub);
         sessionStorage.setItem(processedKey, "true");
 
-        // Sync with Supabase if configured
+        // SINCRONIZACIÓN CON SUPABASE USANDO EL ID REAL DEL USUARIO
         if (isSupabaseConfigured) {
           const userProfileStr = localStorage.getItem("user_profile") || localStorage.getItem("nem_secundaria_profile");
-          const userEmailStored = userProfileStr ? JSON.parse(userProfileStr)?.email : userEmail;
-          
-          if (userEmailStored) {
-            const userId = `user_${userEmailStored.replace(/[^a-zA-Z0-9]/g, "_")}`;
-            upsertProfile({
-              id: userId,
-              email: userEmailStored,
-              plan: updatedSub.plan,
-              creditos_disponibles: updatedSub.credits,
-            }).catch((err) => console.warn("Error updating Supabase on payment success:", err));
+          if (userProfileStr) {
+            try {
+              const userProfile = JSON.parse(userProfileStr);
+              const realUserId = userProfile.id; // Usa el ID / UUID real de Supabase
+              const userEmailStored = userProfile.email || userEmail;
+
+              if (realUserId) {
+                upsertProfile({
+                  id: realUserId,
+                  email: userEmailStored,
+                  plan: updatedSub.plan,
+                  creditos_disponibles: updatedSub.credits,
+                }).then(() => {
+                  console.log("Supabase actualizado correctamente a:", updatedSub.plan);
+                }).catch((err) => console.warn("Error updating Supabase:", err));
+              }
+            } catch (e) {
+              console.error("Error parsing profile for Supabase:", e);
+            }
           }
         }
       }
