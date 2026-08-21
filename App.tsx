@@ -114,16 +114,14 @@ export default function App() {
     const result = deductCreditsFromState(subscription, action);
     if (result.success && result.newSubscription) {
       setSubscription(result.newSubscription);
-      saveSubscriptionToStorage(result.newSubscription);
       
-      // Persistir la deducción en Supabase usando ambas claves posibles para evitar errores de esquema
+      // Persistir la deducción en Supabase si hay perfil
       if (userProfile?.email && isSupabaseConfigured) {
         const userId = `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
         saveSupabaseProfile({
           id: userId,
           email: userProfile.email,
           plan: result.newSubscription.plan,
-          credits: result.newSubscription.credits,
           creditos_disponibles: result.newSubscription.credits
         }).catch(err => console.warn("Error actualizando créditos en Supabase:", err));
       }
@@ -133,7 +131,7 @@ export default function App() {
       handleTriggerPaywall({
         type: "credits",
         action,
-        required: CREDIT_COSTS[action] || 10,
+        required: CREDIT_COSTS[action],
         current: subscription.credits,
       });
       return false;
@@ -143,7 +141,6 @@ export default function App() {
   const handleSelectPlanTier = (plan: PlanTier, cycle?: "mensual" | "trimestral" | "anual") => {
     const updated = updateUserPlan(subscription, plan, cycle);
     setSubscription(updated);
-    saveSubscriptionToStorage(updated);
     setIsPaywallOpen(false);
 
     if (userProfile?.email && isSupabaseConfigured) {
@@ -152,7 +149,6 @@ export default function App() {
         id: userId,
         email: userProfile.email,
         plan: updated.plan,
-        credits: updated.credits,
         creditos_disponibles: updated.credits
       }).catch(err => console.warn("Error guardando plan en Supabase:", err));
     }
@@ -191,14 +187,18 @@ export default function App() {
       if (profileData) {
         const plan = (profileData.plan || profileData.plan_type || "gratuito").toLowerCase();
         
-        let rawCredits = profileData.credits ?? profileData.creditos_disponibles;
-        let localSub = loadUserSubscription();
-        let credits: number;
+        let rawCredits = profileData.creditos_disponibles ?? profileData.credits;
+        let credits = (rawCredits !== undefined && rawCredits !== null) ? Number(rawCredits) : 20;
 
-        if (rawCredits !== undefined && rawCredits !== null) {
-          credits = Number(rawCredits);
-        } else {
-          credits = localSub.credits ?? 20;
+        // Si es plan gratuito y la BD marcaba 0 por falta de inicialización, autorrecuperar a 20
+        if (credits === 0 && plan === "gratuito" && !localStorage.getItem(`credits_exhausted_${userId}`)) {
+          credits = 20;
+          saveSupabaseProfile({
+            id: userId,
+            email: email,
+            plan: plan,
+            creditos_disponibles: 20
+          }).catch(() => {});
         }
 
         const updatedSub: UserSubscription = {
@@ -210,16 +210,16 @@ export default function App() {
         setSubscription(updatedSub);
         saveSubscriptionToStorage(updatedSub);
       } else {
-        // Si no existía el registro en BD, usar la suscripción local actual
-        const localSub = loadUserSubscription();
-        setSubscription(localSub);
+        // Crear registro por defecto en Supabase si no existía el usuario
+        const defaultSub: UserSubscription = { plan: "gratuito", credits: 20, billingCycle: "mensual" };
+        setSubscription(defaultSub);
+        saveSubscriptionToStorage(defaultSub);
 
         await saveSupabaseProfile({
           id: userId,
           email: email,
-          plan: localSub.plan || "gratuito",
-          credits: localSub.credits,
-          creditos_disponibles: localSub.credits
+          plan: "gratuito",
+          creditos_disponibles: 20
         }).catch(err => console.warn("Error registrando perfil inicial en Supabase:", err));
       }
     } catch (err) {
@@ -331,12 +331,14 @@ export default function App() {
         campo_formativo: latestPlan.campoFormativo || "Lenguajes",
         pda: latestPlan.pda || "",
         contenido_json: latestPlan
-      }).catch(err => console.warn("Error guardando planeación en Supabase:", err));
+      })
+      .then(res => console.log("Planeación sincronizada en Supabase con éxito:", res))
+      .catch(err => console.warn("Error guardando planeación en Supabase:", err));
     }
   };
 
   const handleFormSubmit = async (formData: any) => {
-    const requiredCredits = CREDIT_COSTS["disenar_planeacion"] || 10;
+    const requiredCredits = CREDIT_COSTS["disenar_planeacion"]; // 10
     if (subscription.credits < requiredCredits) {
       handleTriggerPaywall({
         type: "credits",
@@ -367,8 +369,15 @@ export default function App() {
 
       const data = await response.json();
       if (data.success && data.plan) {
+        // Generación de UUID válido compatible con Supabase (columna UUID)
+        const generatedUuid = typeof crypto !== "undefined" && crypto.randomUUID 
+          ? crypto.randomUUID() 
+          : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
+              (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
+            );
+
         const newCompletePlan: CompletePlan = {
-          id: Math.random().toString(36).substr(2, 9),
+          id: generatedUuid,
           createdAt: new Date().toISOString(),
           nivel: formData.nivel,
           docenteName: formData.docenteName,

@@ -1,8 +1,5 @@
 import { UserSubscription, CreditActionType, PlanTier } from "../types";
 
-// ==========================================
-// 1. COSTOS DE CRÉDITOS POR ACCIÓN
-// ==========================================
 export const CREDIT_COSTS: Record<CreditActionType | string, number> = {
   disenar_planeacion: 10,
   generar_planeacion: 10,
@@ -17,9 +14,6 @@ export const CREDIT_COSTS: Record<CreditActionType | string, number> = {
   organizador_escolar: 2,
 };
 
-// ==========================================
-// 2. CONFIGURACIÓN COMPLETA DE PLANES
-// ==========================================
 export interface PlanFeature {
   text: string;
   included: boolean;
@@ -129,9 +123,6 @@ export const PLANS_CONFIG: Record<PlanTier, PlanDetails> = {
   },
 };
 
-// ==========================================
-// 3. PAQUETES DE CRÉDITOS ADICIONALES
-// ==========================================
 export interface CreditPackage {
   id: string;
   name: string;
@@ -146,9 +137,6 @@ export const CREDIT_PACKAGES: CreditPackage[] = [
   { id: "pack_400", name: "Paquete Escolar", credits: 400, price: 279 },
 ];
 
-// ==========================================
-// 4. FUNCIONES DE PERSISTENCIA Y ESTADO
-// ==========================================
 const STORAGE_KEY = "nem_user_subscription";
 
 export function getInitialSubscription(): UserSubscription {
@@ -162,17 +150,11 @@ export function getInitialSubscription(): UserSubscription {
 
 export function loadUserSubscription(): UserSubscription {
   if (typeof window === "undefined") return getInitialSubscription();
-  
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
     try {
-      const parsed = JSON.parse(saved);
-      return {
-        ...getInitialSubscription(),
-        ...parsed,
-      };
+      return { ...getInitialSubscription(), ...JSON.parse(saved) };
     } catch (e) {
-      console.warn("Error al parsear suscripción de localStorage:", e);
       return getInitialSubscription();
     }
   }
@@ -181,24 +163,16 @@ export function loadUserSubscription(): UserSubscription {
 
 export function saveSubscriptionToStorage(sub: UserSubscription): void {
   if (typeof window !== "undefined") {
-    const payload = {
-      ...sub,
-      updatedAt: new Date().toISOString(),
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...sub, updatedAt: new Date().toISOString() }));
   }
 }
 
-// ==========================================
-// 5. OPERACIONES DE CRÉDITOS Y PLANES
-// ==========================================
 export function getActionCreditCost(action: CreditActionType | string): number {
   return CREDIT_COSTS[action] ?? 5;
 }
 
 export function hasEnoughCredits(sub: UserSubscription, action: CreditActionType | string): boolean {
-  const cost = getActionCreditCost(action);
-  return sub.credits >= cost;
+  return sub.credits >= getActionCreditCost(action);
 }
 
 export function deductCreditsFromState(
@@ -206,25 +180,18 @@ export function deductCreditsFromState(
   action: CreditActionType | string
 ): { success: boolean; newSubscription?: UserSubscription; cost: number } {
   const cost = getActionCreditCost(action);
-
-  if (currentSub.credits < cost) {
-    return { success: false, cost };
-  }
+  if (currentSub.credits < cost) return { success: false, cost };
 
   const newSub: UserSubscription = {
     ...currentSub,
     credits: currentSub.credits - cost,
     updatedAt: new Date().toISOString(),
   };
-
   saveSubscriptionToStorage(newSub);
   return { success: true, newSubscription: newSub, cost };
 }
 
-export function addCreditsToUser(
-  currentSub: UserSubscription,
-  amount: number
-): UserSubscription {
+export function addCreditsToUser(currentSub: UserSubscription, amount: number): UserSubscription {
   const updated: UserSubscription = {
     ...currentSub,
     credits: currentSub.credits + amount,
@@ -251,14 +218,9 @@ export function updateUserPlan(
   return updated;
 }
 
-// ==========================================
-// 6. VALIDACIONES Y PERMISOS
-// ==========================================
 export function canExportToFormat(sub: UserSubscription, format: "pdf" | "word"): boolean {
   const planDetails = PLANS_CONFIG[sub.plan] || PLANS_CONFIG.gratuito;
-  if (format === "pdf") return planDetails.allowExportPDF;
-  if (format === "word") return planDetails.allowExportWord;
-  return false;
+  return format === "pdf" ? planDetails.allowExportPDF : planDetails.allowExportWord;
 }
 
 export function getPlanLimits(planTier: PlanTier): PlanDetails {
