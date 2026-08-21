@@ -252,14 +252,38 @@ export function checkPlaneacionLimit(subscription: any, currentCount?: number): 
   return true;
 }
 export function upgradeUserPlan(currentSub: any, newTier: string, billingCycle?: string): any {
-  return {
+  // Normalizar el nivel de suscripción para evitar desajustes (ej. 'platino', 'oro')
+  const normalizedTier = (newTier || "platino").toLowerCase();
+  
+  const updatedSub = {
     ...(currentSub || {}),
-    plan: newTier,
+    plan: normalizedTier,
+    tier: normalizedTier,
     billingCycle: billingCycle || "monthly",
-    status: "active"
+    status: "active",
+    updatedAt: new Date().toISOString()
   };
+
+  // Guardar de inmediato de forma persistente
+  saveUserSubscription(updatedSub);
+  
+  return updatedSub;
 }
 
+export function saveUserSubscription(subscription: any): void {
+  try {
+    localStorage.setItem("user_subscription", JSON.stringify(subscription));
+    // Sincronizar también con el perfil general si está guardado en localStorage
+    const savedProfile = localStorage.getItem("user_profile");
+    if (savedProfile) {
+      const profile = JSON.parse(savedProfile);
+      profile.subscription = subscription;
+      localStorage.setItem("user_profile", JSON.stringify(profile));
+    }
+  } catch (e) {
+    console.error("Error saving subscription to storage", e);
+  }
+}
 export const CREDIT_ACTIONS_INFO = {
   PLANEACION: { label: "Generar Planeación", cost: 1 },
   EXAMEN: { label: "Crear Examen", cost: 1 },

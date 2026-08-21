@@ -62,22 +62,17 @@ export default function PaymentSuccessView({
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const status = urlParams.get("collection_status") || urlParams.get("status") || "approved";
-      const paymentId = urlParams.get("payment_id") || urlParams.get("collection_id") || `MP_${Date.now().toString().slice(-6)}`;
-      const preferenceId = urlParams.get("preference_id") || "";
-      const isDemo = urlParams.get("is_demo") === "true";
-      const externalRefRaw = urlParams.get("external_reference");
-
-      let refData: any = {};
-      if (externalRefRaw) {
-        try {
-          refData = JSON.parse(decodeURIComponent(externalRefRaw));
-        } catch (e) {
-          console.warn("Could not parse external_reference JSON:", e);
-        }
-      }
-
       const itemType = refData.itemType || (urlParams.get("type") === "credits" ? "credits" : "plan");
-      const planId = refData.planId || (urlParams.get("plan") as PlanTier) || "oro";
+      
+      // Corrección 1: Detectar correctamente el plan sin caer siempre en "oro"
+      let planId = refData.planId || (urlParams.get("plan") as PlanTier);
+      if (!planId && itemType === "plan") {
+        // Si no viene en la URL, deducirlo por el precio o forzar platino si fue compra alta
+        const rawPrice = Number(refData.price) || Number(urlParams.get("price")) || 0;
+        planId = rawPrice >= 150 ? "platino" : "oro";
+      }
+      planId = planId || "platino"; // Fallback seguro a platino o el que corresponda
+
       const billingCycle = refData.billingCycle || (urlParams.get("cycle") as BillingCycle) || "mensual";
       const creditsAdded = Number(refData.creditsAdded) || (itemType === "credits" ? 80 : PLAN_CONFIGS[planId as PlanTier]?.creditsPerMonth || 100);
       const price = Number(refData.price) || (itemType === "credits" ? 69 : 99);
@@ -91,19 +86,32 @@ export default function PaymentSuccessView({
         let updatedSub = { ...currentSubscription };
 
         if (itemType === "plan" && planId && PLAN_CONFIGS[planId as PlanTier]) {
-          updatedSub = upgradeUserPlan(planId as PlanTier, billingCycle, currentSubscription);
+          // Corrección 2: Orden correcto de argumentos -> (currentSubscription, planId, billingCycle)
+          updatedSub = upgradeUserPlan(currentSubscription, planId as PlanTier, billingCycle);
         } else if (itemType === "credits") {
-          updatedSub = addExtraCredits(creditsAdded, currentSubscription);
+          updatedSub = addExtraCredits(currentSubscription, creditsAdded);
         }
 
         onSubscriptionUpdate(updatedSub);
         saveUserSubscription(updatedSub);
         sessionStorage.setItem(processedKey, "true");
 
-        // Sync with Supabase if configured
+        // Sync with Supabase if configured (Buscando de forma segura en localStorage)
         if (isSupabaseConfigured) {
-          const userProfileStr = localStorage.getItem("nem_secundaria_profile");
+          const userProfileStr = localStorage.getItem("user_profile") || localStorage.getItem("nem_secundaria_profile");
           const userEmailStored = userProfileStr ? JSON.parse(userProfileStr)?.email : userEmail;
+          
+          if (userEmailStored) {
+            const userId = `user_${userEmailStored.replace(/[^a-zA-Z0-9]/g, "_")}`;
+            upsertProfile({
+              id: userId,
+              email: userEmailStored,
+              plan: updatedSub.plan,
+              creditos_disponibles: updatedSub.credits,
+            }).catch((err) => console.warn("Error updating Supabase on payment success:", err));
+          }
+        }
+      }
           if (userEmailStored) {
             const userId = `user_${userEmailStored.replace(/[^a-zA-Z0-9]/g, "_")}`;
             upsertProfile({
