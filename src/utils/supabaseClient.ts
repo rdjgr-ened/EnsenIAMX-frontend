@@ -67,6 +67,7 @@ export async function getProfile(userId: string): Promise<DbProfile | null> {
   }
 }
 
+// En tu archivo utils/supabaseClient.ts
 export async function upsertProfile(profileData: {
   email: string;
   plan?: string;
@@ -75,14 +76,17 @@ export async function upsertProfile(profileData: {
 }) {
   if (!isSupabaseConfigured) return null;
 
-  // Hacemos el upsert buscando por email para evitar duplicados
+  // Generamos el ID obligatorio basado en el email para cumplir con la Primary Key
+  const userId = `user_${profileData.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
   const { data, error } = await supabase
     .from("profiles")
     .upsert({
+      id: userId,
       email: profileData.email,
       plan: profileData.plan ?? "gratuito",
       creditos_disponibles: profileData.creditos_disponibles ?? 20,
-    }, { onConflict: "email" });
+    }, { onConflict: "id" });
 
   if (error) {
     console.error("Error al guardar profile en Supabase:", error.message);

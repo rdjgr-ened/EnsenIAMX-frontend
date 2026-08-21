@@ -599,16 +599,23 @@ export default function App() {
         const status = urlParams.get("collection_status") || urlParams.get("status") || "approved";
         
         if (status === "approved" || status === "authorized" || urlParams.get("is_demo") === "true") {
-          const externalRefRaw = urlParams.get("external_reference");
-          let refData: any = {};
+const externalRefRaw = urlParams.get("external_reference");
+          let planId = "platino";
+          let billingCycle: "mensual" | "trimestral" | "anual" = "mensual";
+
           if (externalRefRaw) {
             try {
-              refData = JSON.parse(decodeURIComponent(externalRefRaw));
+              const decoded = decodeURIComponent(externalRefRaw).trim();
+              // Validamos si realmente es un JSON antes de parsearlo
+              if (decoded.startsWith("{") && decoded.endsWith("}")) {
+                const parsed = JSON.parse(decoded);
+                if (parsed.planId) planId = parsed.planId;
+                if (parsed.billingCycle) billingCycle = parsed.billingCycle;
+              }
             } catch (e) {
-              console.warn("Error parsing external_reference:", e);
+              // Si es un string plano (ej. user_salomenavarro...), lo ignoramos de forma segura sin romper la app
             }
           }
-
           const itemType = refData.itemType || (urlParams.get("type") === "credits" ? "credits" : "plan");
           const rawPrice = Number(refData.price) || Number(urlParams.get("price")) || 149;
           
