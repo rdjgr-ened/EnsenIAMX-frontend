@@ -78,7 +78,6 @@ export default function PaymentSuccessView({
 
       const itemType = refData.itemType || (urlParams.get("type") === "credits" ? "credits" : "plan");
       
-      // CORRECCIÓN DE UMBRAL: Si el precio es mayor a $100, es Platino de inmediato
       const rawPrice = Number(refData.price) || Number(urlParams.get("price")) || 149;
       let planId = refData.planId || (urlParams.get("plan") as PlanTier);
       if (!planId && itemType === "plan") {
@@ -94,7 +93,10 @@ export default function PaymentSuccessView({
       const processedKey = `mp_processed_${paymentId}`;
       const alreadyProcessed = sessionStorage.getItem(processedKey) === "true";
 
-      if (!alreadyProcessed && (status === "approved" || status === "authorized" || isDemo)) {
+      // FORZAR ACTUALIZACIÓN si la cuenta sigue en gratuito a pesar de tener el pago aprobado
+      const needsUpgrade = currentSubscription.plan === "gratuito" && itemType === "plan";
+
+      if ((!alreadyProcessed || needsUpgrade) && (status === "approved" || status === "authorized" || isDemo)) {
         let updatedSub = { ...currentSubscription };
 
         if (itemType === "plan" && planId && PLAN_CONFIGS[planId as PlanTier]) {
@@ -107,13 +109,13 @@ export default function PaymentSuccessView({
         saveUserSubscription(updatedSub);
         sessionStorage.setItem(processedKey, "true");
 
-        // SINCRONIZACIÓN CON SUPABASE USANDO EL ID REAL DEL USUARIO
+        // SINCRONIZACIÓN CON SUPABASE USANDO EL ID REAL
         if (isSupabaseConfigured) {
           const userProfileStr = localStorage.getItem("user_profile") || localStorage.getItem("nem_secundaria_profile");
           if (userProfileStr) {
             try {
               const userProfile = JSON.parse(userProfileStr);
-              const realUserId = userProfile.id; // Usa el ID / UUID real de Supabase
+              const realUserId = userProfile.id;
               const userEmailStored = userProfile.email || userEmail;
 
               if (realUserId) {
@@ -123,7 +125,7 @@ export default function PaymentSuccessView({
                   plan: updatedSub.plan,
                   creditos_disponibles: updatedSub.credits,
                 }).then(() => {
-                  console.log("Supabase actualizado correctamente a:", updatedSub.plan);
+                  console.log("Supabase actualizado correctamente a Plan:", updatedSub.plan);
                 }).catch((err) => console.warn("Error updating Supabase:", err));
               }
             } catch (e) {
