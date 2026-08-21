@@ -35,9 +35,7 @@ import {
   isSupabaseConfigured
 } from "./utils/supabaseClient";
 import { Sparkles, FileText, CheckCircle, LogOut, FolderKanban, Coins, Crown, Gem, Zap, User } from "lucide-react";
-
 const logoImg = "https://i.imgur.com/tv95RC0.png";
-
 const normalizePath = (path: string): string => {
   const p = path.toLowerCase().replace(/\/$/, "");
   if (p === "/politica-de-privacidad" || p === "/privacidad" || (typeof window !== "undefined" && window.location.hash === "#politica-de-privacidad")) {
