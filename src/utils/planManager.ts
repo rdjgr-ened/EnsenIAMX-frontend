@@ -1,19 +1,5 @@
 import { UserSubscription, CreditActionType, PlanTier } from "../types";
 
-export const CREDIT_COSTS: Record<CreditActionType | string, number> = {
-  disenar_planeacion: 10,
-  generar_planeacion: 10,
-  instrumento_evaluacion: 5,
-  hoja_trabajo: 5,
-  modificar_planeacion: 5,
-  crear_examen: 5,
-  programa_analitico: 10,
-  sugerir_contenidos: 2,
-  crear_contenido: 5,
-  bitacora_incidencia: 3,
-  organizador_escolar: 2,
-};
-
 export interface PlanFeature {
   text: string;
   included: boolean;
@@ -34,6 +20,20 @@ export interface PlanDetails {
   allowExportWord: boolean;
   prioritySupport: boolean;
 }
+
+export const CREDIT_COSTS: Record<CreditActionType | string, number> = {
+  disenar_planeacion: 10,
+  generar_planeacion: 10,
+  instrumento_evaluacion: 5,
+  hoja_trabajo: 5,
+  modificar_planeacion: 5,
+  crear_examen: 5,
+  programa_analitico: 10,
+  sugerir_contenidos: 2,
+  crear_contenido: 5,
+  bitacora_incidencia: 3,
+  organizador_escolar: 2,
+};
 
 export const PLANS_CONFIG: Record<PlanTier, PlanDetails> = {
   gratuito: {
