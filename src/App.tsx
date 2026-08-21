@@ -114,6 +114,18 @@ export default function App() {
     const result = deductCreditsFromState(subscription, action);
     if (result.success && result.newSubscription) {
       setSubscription(result.newSubscription);
+      
+      // Persistir la deducción en Supabase si hay perfil
+      if (userProfile?.email && isSupabaseConfigured) {
+        const userId = `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        saveSupabaseProfile({
+          id: userId,
+          email: userProfile.email,
+          plan: result.newSubscription.plan,
+          creditos_disponibles: result.newSubscription.credits
+        }).catch(err => console.warn("Error actualizando créditos en Supabase:", err));
+      }
+
       return true;
     } else {
       handleTriggerPaywall({
@@ -130,6 +142,16 @@ export default function App() {
     const updated = updateUserPlan(subscription, plan, cycle);
     setSubscription(updated);
     setIsPaywallOpen(false);
+
+    if (userProfile?.email && isSupabaseConfigured) {
+      const userId = `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      saveSupabaseProfile({
+        id: userId,
+        email: userProfile.email,
+        plan: updated.plan,
+        creditos_disponibles: updated.credits
+      }).catch(err => console.warn("Error guardando plan en Supabase:", err));
+    }
   };
 
   const [userProfile, setUserProfile] = useState<{
@@ -154,29 +176,63 @@ export default function App() {
   const [organizadorTab, setOrganizadorTab] = useState<"planeaciones" | "grupos" | "bitacora" | "seguimiento" | "evaluacion">("planeaciones");
   const [prefilledData, setPrefilledData] = useState<any | null>(null);
 
+  // Función de Sincronización de Perfil y Créditos
   const syncSubscriptionFromSupabase = async (email: string) => {
     if (!isSupabaseConfigured || !email) return;
 
     const userId = `user_${email.replace(/[^a-zA-Z0-9]/g, '_')}`;
     try {
       const profileData = await fetchSupabaseProfile(userId);
+
       if (profileData) {
         const plan = (profileData.plan || profileData.plan_type || "gratuito").toLowerCase();
-        const credits = profileData.creditos_disponibles ?? profileData.credits ?? 20;
+        
+        let rawCredits = profileData.creditos_disponibles ?? profileData.credits;
+        let credits = (rawCredits !== undefined && rawCredits !== null) ? Number(rawCredits) : 20;
+
+        // Si es plan gratuito y la BD marcaba 0 por falta de inicialización, autorrecuperar a 20
+        if (credits === 0 && plan === "gratuito" && !localStorage.getItem(`credits_exhausted_${userId}`)) {
+          credits = 20;
+          saveSupabaseProfile({
+            id: userId,
+            email: email,
+            plan: plan,
+            creditos_disponibles: 20
+          }).catch(() => {});
+        }
 
         const updatedSub: UserSubscription = {
           plan: plan as any,
-          credits: Number(credits),
+          credits: credits,
           billingCycle: profileData.billing_cycle || profileData.billingCycle || "mensual"
         };
 
         setSubscription(updatedSub);
         saveSubscriptionToStorage(updatedSub);
+      } else {
+        // Crear registro por defecto en Supabase si no existía el usuario
+        const defaultSub: UserSubscription = { plan: "gratuito", credits: 20, billingCycle: "mensual" };
+        setSubscription(defaultSub);
+        saveSubscriptionToStorage(defaultSub);
+
+        await saveSupabaseProfile({
+          id: userId,
+          email: email,
+          plan: "gratuito",
+          creditos_disponibles: 20
+        }).catch(err => console.warn("Error registrando perfil inicial en Supabase:", err));
       }
     } catch (err) {
       console.warn("Error al sincronizar suscripción desde Supabase:", err);
     }
   };
+
+  // Reaccionar automáticamente ante cambios de usuario iniciado
+  useEffect(() => {
+    if (userProfile?.email) {
+      syncSubscriptionFromSupabase(userProfile.email);
+    }
+  }, [userProfile?.email]);
 
   const handleLogin = (profile: {
     docenteName: string;
@@ -189,11 +245,6 @@ export default function App() {
     setUserProfile(profile);
     setActiveTab("hub");
     setPrefilledData(null);
-
-    // Carga y sincronización de suscripción desde Supabase al iniciar sesión
-    if (profile.email) {
-      syncSubscriptionFromSupabase(profile.email);
-    }
   };
 
   const handleUpdateProfile = (profile: {
@@ -214,9 +265,10 @@ export default function App() {
     setActiveTab("hub");
     setPrefilledData(null);
     setCurrentPlan(null);
+    setSubscription({ plan: "gratuito", credits: 20, billingCycle: "mensual" });
   };
 
-  // Load plans and user subscription from localStorage and Supabase on mount
+  // Carga inicial de planeaciones guardadas
   useEffect(() => {
     const savedPlans = localStorage.getItem("nem_secundaria_plans");
     if (savedPlans) {
@@ -227,60 +279,49 @@ export default function App() {
       }
     }
 
-    if (isSupabaseConfigured) {
-      const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-      const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
+    if (isSupabaseConfigured && userProfile?.email) {
+      const userId = `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
 
-      if (userEmail) {
-        const userId = `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
-
-        // 1. Cargar suscripción / créditos de Supabase
-        syncSubscriptionFromSupabase(userEmail);
-
-        // 2. Cargar planeaciones de Supabase
-        fetchSupabasePlaneaciones(userId).then(dbPlans => {
-          if (dbPlans && dbPlans.length > 0) {
-            const mappedPlans: CompletePlan[] = dbPlans.map(p => {
-              if (p.contenido_json && p.contenido_json.plan) {
-                return { ...p.contenido_json, id: p.id };
-              }
-              return {
-                id: p.id,
-                createdAt: p.created_at || new Date().toISOString(),
-                docenteName: "Docente",
-                escuelaName: "Escuela",
-                cct: "CCT",
-                grupo: "A",
-                grado: "1º",
-                campoFormativo: p.campo_formativo,
-                pda: p.pda,
-                metodologia: "Aprendizaje Basado en Proyectos",
-                situacionProblema: p.titulo,
-                plan: p.contenido_json
-              };
-            });
-            setPlans(prev => {
-              const existingIds = new Set(prev.map(pl => pl.id));
-              const newOnes = mappedPlans.filter(pl => !existingIds.has(pl.id));
-              const merged = [...newOnes, ...prev];
-              localStorage.setItem("nem_secundaria_plans", JSON.stringify(merged));
-              return merged;
-            });
-          }
-        }).catch(err => console.warn("Supabase planeaciones load error:", err));
-      }
+      fetchSupabasePlaneaciones(userId).then(dbPlans => {
+        if (dbPlans && dbPlans.length > 0) {
+          const mappedPlans: CompletePlan[] = dbPlans.map(p => {
+            if (p.contenido_json && p.contenido_json.plan) {
+              return { ...p.contenido_json, id: p.id };
+            }
+            return {
+              id: p.id,
+              createdAt: p.created_at || new Date().toISOString(),
+              docenteName: "Docente",
+              escuelaName: "Escuela",
+              cct: "CCT",
+              grupo: "A",
+              grado: "1º",
+              campoFormativo: p.campo_formativo,
+              pda: p.pda,
+              metodologia: "Aprendizaje Basado en Proyectos",
+              situacionProblema: p.titulo,
+              plan: p.contenido_json
+            };
+          });
+          setPlans(prev => {
+            const existingIds = new Set(prev.map(pl => pl.id));
+            const newOnes = mappedPlans.filter(pl => !existingIds.has(pl.id));
+            const merged = [...newOnes, ...prev];
+            localStorage.setItem("nem_secundaria_plans", JSON.stringify(merged));
+            return merged;
+          });
+        }
+      }).catch(err => console.warn("Supabase planeaciones load error:", err));
     }
-  }, []);
+  }, [userProfile?.email]);
 
-  // Save plans to localStorage on change and sync to Supabase
   const savePlansToStorage = (updatedPlans: CompletePlan[]) => {
     setPlans(updatedPlans);
     localStorage.setItem("nem_secundaria_plans", JSON.stringify(updatedPlans));
 
     if (isSupabaseConfigured && updatedPlans.length > 0) {
       const latestPlan = updatedPlans[0];
-      const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-      const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
+      const userEmail = userProfile?.email;
       const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
 
       saveSupabasePlaneacion({
@@ -558,7 +599,6 @@ export default function App() {
   if (currentPath === "/payment-success") {
     return (
       <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-12 flex flex-col">
-        {/* Encabezado Escolar */}
         <header className="bg-mex-maroon text-white py-3 sm:py-4 px-4 sm:px-8 shadow-md shrink-0 print:hidden relative overflow-hidden">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div 
@@ -645,7 +685,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-12 flex flex-col">
-      {/* Encabezado Escolar e Institucional - Oculto al imprimir */}
       <header className="bg-mex-maroon text-white py-3 sm:py-4 px-4 sm:px-8 shadow-md shrink-0 print:hidden relative overflow-hidden">
         <div className="absolute right-0 top-0 w-48 h-48 bg-white/5 rounded-lg -mr-12 -mt-12 pointer-events-none rotate-45" />
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
@@ -675,7 +714,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Áreas derecha: Plan, Créditos, Upgrade, Mi Cuenta y Salir */}
           <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2.5">
             <button
               type="button"
@@ -751,7 +789,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* Contenido Principal de la Aplicación */}
       <main className="max-w-7xl mx-auto px-4 sm:px-8 mt-8 w-full flex-1">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {!isFullWidthView && (
@@ -791,7 +828,6 @@ export default function App() {
         </div>
       </main>
 
-      {/* Modal Global de Paywall / Selección de Planes */}
       <PaywallModal
         isOpen={isPaywallOpen}
         onClose={() => setIsPaywallOpen(false)}
@@ -800,7 +836,6 @@ export default function App() {
         onSelectPlan={handleSelectPlanTier}
       />
 
-      {/* Footer Bar */}
       <footer className="mt-auto py-3.5 bg-slate-100 border-t border-slate-200 px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 print:hidden text-center sm:text-left">
         <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-tight">
           EnseñIA MX v2026.1 • Asistente Integral Docente

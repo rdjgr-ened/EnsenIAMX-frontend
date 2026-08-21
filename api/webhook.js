@@ -1,13 +1,10 @@
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { createClient } from '@supabase/supabase-js';
 
-// Cliente con permisos de administrador para actualizar Supabase sin restricciones RLS
-const supabaseAdmin = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// Cliente de Supabase con Service Role Key (salta RLS)
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAdmin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-// Cliente de Mercado Pago con Token de Producción
 const mpClient = new MercadoPagoConfig({ 
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN 
 });
@@ -18,35 +15,21 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Obtener ID de la transacción y tipo de evento enviada por Mercado Pago
     const paymentId = req.query['data.id'] || req.query.id || req.body?.data?.id;
     const type = req.query.type || req.query.topic || req.body?.type;
 
     if (type === 'payment' && paymentId) {
-      // Consulta directa del estado real del pago
       const payment = new Payment(mpClient);
       const paymentData = await payment.get({ id: paymentId });
 
       if (paymentData.status === 'approved') {
-        const userId = paymentData.external_reference;
+        const userId = paymentData.external_reference || paymentData.metadata?.user_id;
 
         if (userId) {
-          const itemTitle = paymentData.additional_info?.items?.[0]?.title || '';
-          const titleLower = itemTitle.toLowerCase();
-          
-          let planNombre = 'platino';
-          let creditosAAsignar = 300;
-
-          if (titleLower.includes('básico') || titleLower.includes('basico')) {
-            planNombre = 'basico';
-            creditosAAsignar = 50;
-          } else if (titleLower.includes('oro')) {
-            planNombre = 'oro';
-            creditosAAsignar = 100;
-          } else if (titleLower.includes('platino')) {
-            planNombre = 'platino';
-            creditosAAsignar = 300;
-          }
+          // Lectura directa desde metadatos con respaldo de parsing
+          const planNombre = paymentData.metadata?.plan_id || 'platino';
+          const creditosAAsignar = Number(paymentData.metadata?.credits || 300);
+          const cycle = paymentData.metadata?.billing_cycle || 'mensual';
 
           // Actualización directa en la base de datos de Supabase
           const { error } = await supabaseAdmin
@@ -54,18 +37,20 @@ export default async function handler(req, res) {
             .update({
               plan: planNombre,
               creditos_disponibles: creditosAAsignar,
+              billing_cycle: cycle,
               updated_at: new Date().toISOString()
             })
             .eq('id', userId);
 
           if (error) {
-            console.error('Error al actualizar Supabase:', error);
+            console.error('Error al actualizar Supabase desde Webhook:', error);
+          } else {
+            console.log(`✅ Plan ${planNombre} (${creditosAAsignar} créditos) activado para usuario ${userId}`);
           }
         }
       }
     }
 
-    // Responder siempre con 200 OK para confirmar recepción a Mercado Pago
     return res.status(200).send('OK');
   } catch (error) {
     console.error('Error interno procesando Webhook:', error);
