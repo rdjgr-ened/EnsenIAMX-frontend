@@ -224,7 +224,38 @@ export default function App() {
       console.warn("Error al sincronizar suscripción desde Supabase:", err);
     }
   };
+// Sincronización de Perfil y Créditos desde Supabase al arrancar
+  const syncSubscriptionFromSupabase = async (email: string) => {
+    if (!isSupabaseConfigured || !email) return;
 
+    const userId = `user_${email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    try {
+      const profileData = await fetchSupabaseProfile(userId);
+
+      if (profileData) {
+        const plan = (profileData.plan || profileData.plan_type || "gratuito").toLowerCase();
+        
+        let rawCredits = profileData.creditos_disponibles ?? profileData.credits;
+        let credits = (rawCredits !== undefined && rawCredits !== null) ? Number(rawCredits) : 20;
+
+        // Si es plan platino en Supabase pero tiene créditos por defecto, los ajustamos a 300
+        if (plan === "platino" && credits < 300) {
+          credits = 300;
+        }
+
+        const updatedSub: UserSubscription = {
+          plan: plan as any,
+          credits: credits,
+          billingCycle: profileData.billing_cycle || profileData.billingCycle || "mensual"
+        };
+
+        setSubscription(updatedSub);
+        saveSubscriptionToStorage(updatedSub);
+      }
+    } catch (err) {
+      console.warn("Error al sincronizar suscripción desde Supabase:", err);
+    }
+  };
   useEffect(() => {
     if (userProfile?.email) {
       syncSubscriptionFromSupabase(userProfile.email);
