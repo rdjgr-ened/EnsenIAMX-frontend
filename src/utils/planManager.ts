@@ -240,3 +240,14 @@ export function checkFeatureAccess(subscription: any, featureKey?: string): bool
   // Para el plan gratuito, puedes definir restricciones si lo deseas
   return true;
 }
+export function checkBitacoraLimit(subscription: any, currentCount?: number): boolean {
+  return true;
+}
+
+export function checkExamLimit(subscription: any, currentCount?: number): boolean {
+  return true;
+}
+
+export function checkPlaneacionLimit(subscription: any, currentCount?: number): boolean {
+  return true;
+}
