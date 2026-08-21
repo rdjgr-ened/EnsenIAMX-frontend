@@ -297,7 +297,6 @@ export function addExtraCredits(subscription: any, amount: number): any {
   };
 }
 
-export function saveUserSubscription(subscription: any): void {
   try {
     localStorage.setItem("user_subscription", JSON.stringify(subscription));
   } catch (e) {
