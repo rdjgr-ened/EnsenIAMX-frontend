@@ -591,7 +591,7 @@ export default function App() {
     }
   };
 
-  // Procesar pago exitoso automáticamente con texto plano (Plaintext)
+  // Procesamiento global de pago exitoso (Blindado y sin errores)
   useEffect(() => {
     if (currentPath === "/payment-success") {
       try {
@@ -599,17 +599,24 @@ export default function App() {
         const status = urlParams.get("collection_status") || urlParams.get("status") || "approved";
         
         if (status === "approved" || status === "authorized" || urlParams.get("is_demo") === "true") {
-          const externalRef = (urlParams.get("external_reference") || "platino").toLowerCase();
-          
+          const externalRefRaw = urlParams.get("external_reference") || "platino";
           let planId = "platino";
           let billingCycle: "mensual" | "trimestral" | "anual" = "mensual";
 
-          if (externalRef.includes("oro")) {
-            planId = "oro";
-          } else if (externalRef.includes("basico")) {
-            planId = "basico";
-          } else {
-            planId = "platino";
+          // Lectura ultra segura: maneja texto plano ("user_salomon...") sin romper nada
+          try {
+            const decoded = decodeURIComponent(externalRefRaw).trim();
+            if (decoded.startsWith("{") && decoded.endsWith("}")) {
+              const parsed = JSON.parse(decoded);
+              if (parsed.planId) planId = parsed.planId;
+              if (parsed.billingCycle) billingCycle = parsed.billingCycle;
+            } else if (decoded.toLowerCase().includes("oro")) {
+              planId = "oro";
+            } else if (decoded.toLowerCase().includes("basico")) {
+              planId = "basico";
+            }
+          } catch (e) {
+            // Si hay algún problema, mantiene el plan platino por defecto de forma segura
           }
 
           let updatedSub = loadUserSubscription();
