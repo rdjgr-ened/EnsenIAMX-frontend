@@ -228,3 +228,15 @@ export function getPlanLimits(planTier: PlanTier): PlanDetails {
 }
 
 export const PLAN_CONFIGS = PLANS_CONFIG;
+export function checkFeatureAccess(subscription: any, featureKey?: string): boolean {
+  if (!subscription) return false;
+  const plan = (subscription.plan || "gratuito").toLowerCase();
+  
+  // Los planes superiores tienen acceso total a las funciones avanzadas
+  if (plan === "platino" || plan === "oro" || plan === "basico") {
+    return true;
+  }
+  
+  // Para el plan gratuito, puedes definir restricciones si lo deseas
+  return true;
+}
