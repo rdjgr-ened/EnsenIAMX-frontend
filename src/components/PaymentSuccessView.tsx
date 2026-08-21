@@ -121,7 +121,6 @@ export default function PaymentSuccessView({
               creditos_disponibles: updatedSub.credits,
             }).catch((err) => console.warn("Error updating Supabase on payment success:", err));
           }
-        }
 
       setPaymentDetails({
             status,
