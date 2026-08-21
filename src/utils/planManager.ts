@@ -251,3 +251,17 @@ export function checkExamLimit(subscription: any, currentCount?: number): boolea
 export function checkPlaneacionLimit(subscription: any, currentCount?: number): boolean {
   return true;
 }
+export function upgradeUserPlan(currentSub: any, newTier: string, billingCycle?: string): any {
+  return {
+    ...(currentSub || {}),
+    plan: newTier,
+    billingCycle: billingCycle || "monthly",
+    status: "active"
+  };
+}
+
+export const CREDIT_ACTIONS_INFO = {
+  PLANEACION: { label: "Generar Planeación", cost: 1 },
+  EXAMEN: { label: "Crear Examen", cost: 1 },
+  BITACORA: { label: "Bitácora", cost: 1 },
+};
