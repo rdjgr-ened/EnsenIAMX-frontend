@@ -5,8 +5,8 @@ import InstrumentoEvaluacionModal from "./InstrumentoEvaluacionModal";
 import HojaDeTrabajoModal from "./HojaDeTrabajoModal";
 import AccionesDocumento from "./AccionesDocumento";
 import { CREDIT_COSTS } from "../utils/planManager";
-import { saveRecursoGenerado, isSupabaseConfigured } from "../utils/supabaseClient";
 import { saveRecursoGenerado, savePlaneacion, isSupabaseConfigured } from "../utils/supabaseClient";
+
 interface PlaneacionPreviewProps {
   planData: CompletePlan;
   onBack: () => void;
@@ -59,7 +59,8 @@ export default function PlaneacionPreview({
     sesionNumero: 1,
     sesionTitulo: "",
   });
-// --- PEGAR EN LA LÍNEA 63 ---
+
+  // Guardar planeación automáticamente en Supabase
   React.useEffect(() => {
     if (isSupabaseConfigured && planData) {
       savePlaneacion(planData)
@@ -67,7 +68,7 @@ export default function PlaneacionPreview({
         .catch(err => console.warn("Error al autoguardar la planeación:", err));
     }
   }, [planData]);
-  // ----------------------------
+
   const {
     nivel,
     docenteName,
@@ -75,14 +76,7 @@ export default function PlaneacionPreview({
     cct,
     grupo,
     grado,
-    campoFormativo,// Guardar planeación automáticamente en Supabase
-React.useEffect(() => {
-  if (isSupabaseConfigured && planData) {
-    savePlaneacion(planData)
-      .then(() => console.log("Planeación guardada con éxito en Supabase"))
-      .catch(err => console.warn("Error al autoguardar la planeación:", err));
-  }
-}, [planData]);
+    campoFormativo,
     disciplina,
     contenido,
     pda,
