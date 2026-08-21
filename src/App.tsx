@@ -190,7 +190,6 @@ export default function App() {
         let rawCredits = profileData.creditos_disponibles ?? profileData.credits;
         let credits = (rawCredits !== undefined && rawCredits !== null) ? Number(rawCredits) : 20;
 
-        // Si es plan gratuito y la BD marcaba 0 por falta de inicialización, autorrecuperar a 20
         if (credits === 0 && plan === "gratuito" && !localStorage.getItem(`credits_exhausted_${userId}`)) {
           credits = 20;
           saveSupabaseProfile({
@@ -210,7 +209,6 @@ export default function App() {
         setSubscription(updatedSub);
         saveSubscriptionToStorage(updatedSub);
       } else {
-        // Crear registro por defecto en Supabase si no existía el usuario
         const defaultSub: UserSubscription = { plan: "gratuito", credits: 20, billingCycle: "mensual" };
         setSubscription(defaultSub);
         saveSubscriptionToStorage(defaultSub);
@@ -227,7 +225,6 @@ export default function App() {
     }
   };
 
-  // Reaccionar automáticamente ante cambios de usuario iniciado
   useEffect(() => {
     if (userProfile?.email) {
       syncSubscriptionFromSupabase(userProfile.email);
@@ -268,7 +265,6 @@ export default function App() {
     setSubscription({ plan: "gratuito", credits: 20, billingCycle: "mensual" });
   };
 
-  // Carga inicial de planeaciones guardadas
   useEffect(() => {
     const savedPlans = localStorage.getItem("nem_secundaria_plans");
     if (savedPlans) {
@@ -336,7 +332,7 @@ export default function App() {
   };
 
   const handleFormSubmit = async (formData: any) => {
-    const requiredCredits = CREDIT_COSTS["disenar_planeacion"]; // 10
+    const requiredCredits = CREDIT_COSTS["disenar_planeacion"];
     if (subscription.credits < requiredCredits) {
       handleTriggerPaywall({
         type: "credits",
@@ -595,7 +591,86 @@ export default function App() {
     }
   };
 
-  // Payment Return & Legal Routing
+  // Procesar pago exitoso automáticamente a nivel global en App.tsx
+  useEffect(() => {
+    if (currentPath === "/payment-success") {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const status = urlParams.get("collection_status") || urlParams.get("status") || "approved";
+        const paymentId = urlParams.get("payment_id") || urlParams.get("collection_id") || `MP_${Date.now().toString().slice(-6)}`;
+        
+        if (status === "approved" || status === "authorized" || urlParams.get("is_demo") === "true") {
+          const externalRefRaw = urlParams.get("external_reference");
+          let refData: any = {};
+          if (externalRefRaw) {
+            try {
+              refData = JSON.parse(decodeURIComponent(externalRefRaw));
+            } catch (e) {
+              console.warn("Error parsing external_reference:", e);
+            }
+          }
+
+          const itemType = refData.itemType || (urlParams.get("type") === "credits" ? "credits" : "plan");
+          const rawPrice = Number(refData.price) || Number(urlParams.get("price")) || 149;
+          
+          let planId = refData.planId || (urlParams.get("plan") as PlanTier);
+          if (!planId && itemType === "plan") {
+            planId = rawPrice > 100 ? "platino" : "oro";
+          }
+          planId = planId || "platino";
+
+          const billingCycle = refData.billingCycle || (urlParams.get("cycle") as any) || "mensual";
+          const creditsAdded = Number(refData.creditsAdded) || (itemType === "credits" ? 80 : 100);
+
+          const processedKey = `mp_processed_${paymentId}`;
+          const alreadyProcessed = sessionStorage.getItem(processedKey) === "true";
+
+          if (!alreadyProcessed || subscription.plan === "gratuito") {
+            let updatedSub = { ...subscription };
+
+            if (itemType === "plan" && planId) {
+              updatedSub = updateUserPlan(subscription, planId, billingCycle);
+            } else if (itemType === "credits") {
+              updatedSub = {
+                ...subscription,
+                credits: subscription.credits + creditsAdded
+              };
+            }
+
+            if (rawPrice >= 140) {
+              updatedSub.plan = "platino";
+              updatedSub.credits = Math.max(updatedSub.credits, 100);
+            }
+
+            setSubscription(updatedSub);
+            saveSubscriptionToStorage(updatedSub);
+            sessionStorage.setItem(processedKey, "true");
+
+            if (userProfile?.email && isSupabaseConfigured) {
+              const userId = `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+              saveSupabaseProfile({
+                id: userId,
+                email: userProfile.email,
+                plan: updatedSub.plan,
+                creditos_disponibles: updatedSub.credits,
+              }).catch(err => console.warn("Error syncing Supabase subscription:", err));
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error processing payment return in App.tsx:", err);
+      }
+    }
+  }, [currentPath, userProfile?.email]);
+
+  if (currentPath === "/politica-de-privacidad") {
+    return <PoliticaPrivacidadView onBack={handleBackFromLegal} />;
+  }
+
+  if (currentPath === "/terminos-y-condiciones") {
+    return <TerminosCondicionesView onBack={handleBackFromLegal} />;
+  }
+
   if (currentPath === "/payment-success") {
     return (
       <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-12 flex flex-col">
@@ -643,14 +718,6 @@ export default function App() {
         </main>
       </div>
     );
-  }
-
-  if (currentPath === "/politica-de-privacidad") {
-    return <PoliticaPrivacidadView onBack={handleBackFromLegal} />;
-  }
-
-  if (currentPath === "/terminos-y-condiciones") {
-    return <TerminosCondicionesView onBack={handleBackFromLegal} />;
   }
 
   if (!userProfile) {
