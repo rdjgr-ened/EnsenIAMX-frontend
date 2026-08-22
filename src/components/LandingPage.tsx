@@ -510,7 +510,6 @@ export default function LandingPage({
                   <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
                     billingCycle === "anual" ? "bg-mex-gold text-slate-950" : "bg-emerald-100 text-emerald-800"
                   }`}>
-                    Ahorra 2 meses
                   </span>
                 </button>
               </div>
