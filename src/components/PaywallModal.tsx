@@ -192,8 +192,8 @@ export default function PaywallModal({
     }
     if (tier === "basico") {
       if (billingCycle === "mensual") return { price: "$49", period: "MXN / mes", note: "Facturación mensual" };
-      if (billingCycle === "trimestral") return { price: "$129", period: "MXN / 3 meses", note: "$43 MXN / mes" };
-      return { price: "$499", period: "MXN / año", note: "$41 MXN / mes" };
+      if (billingCycle === "trimestral") return { price: "$147", period: "MXN / 3 meses", note: "$49 MXN / mes" };
+      return { price: "$588", period: "MXN / año", note: "$49 MXN / mes" };
     }
     if (tier === "oro") {
       if (billingCycle === "mensual") return { price: "$99", period: "MXN / mes", note: "Facturación mensual" };
