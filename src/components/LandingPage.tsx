@@ -42,8 +42,10 @@ export default function LandingPage({
       const quarterlyPrice = config.priceQuarterly || config.priceMonthly * 3;
       return { main: `$${quarterlyPrice} MXN`, period: "/ trimestre" };
     }
-    const annualPrice = config.priceYearly ?? null;
-    if (annualPrice === null) {
+    
+    // Cambia priceYearly por priceAnnual:
+    const annualPrice = config.priceAnnual;
+    if (annualPrice === null || annualPrice === undefined) {
       return { main: "No disponible", period: "Plan no habilitado" };
     }
 
