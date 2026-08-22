@@ -34,7 +34,7 @@ export default function LoginScreen(props: LoginScreenProps) {
   const [loginEmail, setLoginEmail] = useState(() => {
     return localStorage.getItem("nem_secundaria_email") || "@gmail.com";
   });
-  const [loginPassword, setLoginPassword] = useState("null");
+  const [loginPassword, setLoginPassword] = useState("");
 
   // Registration inputs
   const [regEmail, setRegEmail] = useState("");
