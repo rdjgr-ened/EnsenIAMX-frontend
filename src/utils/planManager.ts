@@ -59,17 +59,17 @@ export const PLANS_CONFIG: Record<PlanTier, PlanDetails> = {
     id: "basico",
     name: "Plan Básico",
     badge: "Popular",
-    priceMonthly: 99,
-    priceQuarterly: 249,
-    priceAnnual: 899,
-    credits: 100,
+    priceMonthly: 49,
+    priceQuarterly: null,
+    priceAnnual: null,
+    credits: 50,
     description: "Ideal para docentes que buscan agilizar sus planeaciones semanales.",
     maxSavedPlans: 15,
     allowExportPDF: true,
     allowExportWord: true,
     prioritySupport: false,
     features: [
-      { text: "100 créditos mensuales", included: true },
+      { text: "50 créditos mensuales", included: true },
       { text: "Diseño de proyectos y exámenes", included: true },
       { text: "Exportación a PDF y Word", included: true },
       { text: "Hasta 15 planeaciones guardadas", included: true },
@@ -80,18 +80,17 @@ export const PLANS_CONFIG: Record<PlanTier, PlanDetails> = {
   oro: {
     id: "oro",
     name: "Plan Oro",
-    badge: "Recomendado",
-    priceMonthly: 199,
-    priceQuarterly: 499,
-    priceAnnual: 1799,
-    credits: 300,
+    priceMonthly: 99,
+    priceQuarterly: 249,
+    priceAnnual: 799,
+    credits: 100,
     description: "Para maestros que requieren uso intensivo y todas las herramientas.",
     maxSavedPlans: 50,
     allowExportPDF: true,
     allowExportWord: true,
     prioritySupport: true,
     features: [
-      { text: "300 créditos mensuales", included: true },
+      { text: "100 créditos mensuales", included: true },
       { text: "Acceso ilimitado a todos los módulos", included: true },
       { text: "Programa Analítico y Exámenes", included: true },
       { text: "Exportación completa en Word y PDF", included: true },
@@ -130,12 +129,6 @@ export interface CreditPackage {
   price: number;
   popular?: boolean;
 }
-
-export const CREDIT_PACKAGES: CreditPackage[] = [
-  { id: "pack_50", name: "Paquete Recarga", credits: 50, price: 49 },
-  { id: "pack_150", name: "Paquete Pro", credits: 150, price: 119, popular: true },
-  { id: "pack_400", name: "Paquete Escolar", credits: 400, price: 279 },
-];
 
 const STORAGE_KEY = "nem_user_subscription";
 
