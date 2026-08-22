@@ -42,7 +42,11 @@ export default function LandingPage({
       const quarterlyPrice = config.priceQuarterly || config.priceMonthly * 3;
       return { main: `$${quarterlyPrice} MXN`, period: "/ trimestre" };
     }
-    const annualPrice = config.priceYearly || config.priceMonthly * 10;
+    const annualPrice = config.priceYearly ?? null;
+    if (annualPrice === null) {
+      return { main: "No disponible", period: "Plan no habilitado" };
+    }
+
     return { main: `$${annualPrice} MXN`, period: "/ año" };
   };
 
