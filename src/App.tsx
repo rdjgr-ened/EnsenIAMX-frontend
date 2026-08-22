@@ -176,54 +176,7 @@ export default function App() {
   const [organizadorTab, setOrganizadorTab] = useState<"planeaciones" | "grupos" | "bitacora" | "seguimiento" | "evaluacion">("planeaciones");
   const [prefilledData, setPrefilledData] = useState<any | null>(null);
 
-  // Función de Sincronización de Perfil y Créditos
-  const syncSubscriptionFromSupabase = async (email: string) => {
-    if (!isSupabaseConfigured || !email) return;
-
-    const userId = `user_${email.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    try {
-      const profileData = await fetchSupabaseProfile(userId);
-
-      if (profileData) {
-        const plan = (profileData.plan || profileData.plan_type || "gratuito").toLowerCase();
-        
-        let rawCredits = profileData.creditos_disponibles ?? profileData.credits;
-        let credits = (rawCredits !== undefined && rawCredits !== null) ? Number(rawCredits) : 20;
-
-        if (credits === 0 && plan === "gratuito" && !localStorage.getItem(`credits_exhausted_${userId}`)) {
-          credits = 20;
-          saveSupabaseProfile({
-            id: userId,
-            email: email,
-            plan: plan,
-            creditos_disponibles: 20
-          }).catch(() => {});
-        }
-
-        const updatedSub: UserSubscription = {
-          plan: plan as any,
-          credits: credits,
-          billingCycle: profileData.billing_cycle || profileData.billingCycle || "mensual"
-        };
-
-        setSubscription(updatedSub);
-        saveSubscriptionToStorage(updatedSub);
-      } else {
-        const defaultSub: UserSubscription = { plan: "gratuito", credits: 20, billingCycle: "mensual" };
-        setSubscription(defaultSub);
-        saveSubscriptionToStorage(defaultSub);
-
-        await saveSupabaseProfile({
-          id: userId,
-          email: email,
-          plan: "gratuito",
-          creditos_disponibles: 20
-        }).catch(err => console.warn("Error registrando perfil inicial en Supabase:", err));
-      }
-    } catch (err) {
-      console.warn("Error al sincronizar suscripción desde Supabase:", err);
-    }
-// Sincronización de Perfil y Créditos desde Supabase al arrancar
+  // Función consolidada de Sincronización de Perfil y Créditos desde Supabase
   const syncSubscriptionFromSupabase = async (email: string) => {
     if (!isSupabaseConfigured || !email) return;
 
@@ -250,12 +203,24 @@ export default function App() {
 
         setSubscription(updatedSub);
         saveSubscriptionToStorage(updatedSub);
+      } else {
+        const defaultSub: UserSubscription = { plan: "gratuito", credits: 20, billingCycle: "mensual" };
+        setSubscription(defaultSub);
+        saveSubscriptionToStorage(defaultSub);
+
+        await saveSupabaseProfile({
+          id: userId,
+          email: email,
+          plan: "gratuito",
+          creditos_disponibles: 20
+        }).catch(err => console.warn("Error registrando perfil inicial en Supabase:", err));
       }
     } catch (err) {
       console.warn("Error al sincronizar suscripción desde Supabase:", err);
     }
   };
-    useEffect(() => {
+
+  useEffect(() => {
     if (userProfile?.email) {
       syncSubscriptionFromSupabase(userProfile.email);
     }
@@ -633,7 +598,6 @@ export default function App() {
           let planId = "platino";
           let billingCycle: "mensual" | "trimestral" | "anual" = "mensual";
 
-          // Lectura ultra segura: maneja texto plano ("user_salomon...") sin romper nada
           try {
             const decoded = decodeURIComponent(externalRefRaw).trim();
             if (decoded.startsWith("{") && decoded.endsWith("}")) {
@@ -646,13 +610,13 @@ export default function App() {
               planId = "basico";
             }
           } catch (e) {
-            // Si hay algún problema, mantiene el plan platino por defecto de forma segura
+            // Manejo seguro de excepción
           }
 
           let updatedSub = loadUserSubscription();
           updatedSub = updateUserPlan(updatedSub, planId as PlanTier, billingCycle);
           updatedSub.plan = "platino";
-          updatedSub.credits = Math.max(updatedSub.credits, 100);
+          updatedSub.credits = Math.max(updatedSub.credits, 300);
 
           setSubscription(updatedSub);
           saveSubscriptionToStorage(updatedSub);
@@ -966,5 +930,4 @@ export default function App() {
       </footer>
     </div>
   );
-}
 }
