@@ -536,31 +536,12 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
         </div>
       )}
 
-      {/* Estilos CSS Específicos para escalar automáticamente a la hoja de impresión */}
-      <style dangerouslySetInnerHTML={{ __html: `
-        @media print {
-          @page {
-            size: landscape;
-            margin: 5mm;
-          }
-          body {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          /* Seleccionamos el contenedor que tiene el scroll horizontal */
-          .overflow-x-auto {
-            overflow: visible !important;
-          }
-          /* Seleccionamos el grid de 7 columnas y forzamos su encogimiento visual */
-          .min-w-\\[1200px\\] {
-            min-width: 0 !important;
-            width: 100% !important;
-            /* El truco mágico: Escalar el contenido para que entre en la hoja (aprox 75% del tamaño original) */
-            transform: scale(0.85);
-            transform-origin: top left;
-          }
-        }
-      
+      {/* Estilos CSS Específicos para imprimir horizontalmente con escalado automático */}
+      <style dangerouslySetInnerHTML={{ __html: "@media print { @page { size: landscape; margin: 5mm; } body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } .overflow-x-auto { overflow: visible !important; } .min-w-\\[1200px\\] { min-width: 0 !important; width: 100% !important; transform: scale(0.85); transform-origin: top left; } }" }} />
+    </div>
+  );
+}
+
 function PdaCard({ item, nivel }: { item: PDALine; nivel?: string }) {
   const [showNote, setShowNote] = useState<boolean>(false);
 
@@ -614,7 +595,6 @@ function PdaCard({ item, nivel }: { item: PDALine; nivel?: string }) {
             <span>{showNote ? "Ocultar justificación" : "Ver justificación/contexto"}</span>
           </button>
           
-          {/* El código modificado para evitar errores de sintaxis al compilar */}
           <p className={"text-[9.5px] leading-relaxed text-slate-500 font-semibold italic mt-1.5 bg-slate-50 p-2 rounded-lg border border-slate-150 " + (showNote ? "block animate-fade-in" : "hidden md:hidden print:block")}>
             {item.nota}
           </p>
