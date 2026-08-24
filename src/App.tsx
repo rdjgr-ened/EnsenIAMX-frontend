@@ -315,14 +315,21 @@ export default function App() {
       const userEmail = userProfile?.email;
       const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
 
-      saveSupabasePlaneacion({
-        id: latestPlan.id,
+      // Construimos un objeto que tiene EXACTAMENTE las mismas columnas de Supabase
+      const payloadDB = {
+        id: latestPlan.id || crypto.randomUUID(),
         user_id: userId,
-        titulo: latestPlan.situacionProblema || latestPlan.contenido || "Planeación NEM",
-        campo_formativo: latestPlan.campoFormativo || "Lenguajes",
-        pda: latestPlan.pda || "",
+        titulo: String(latestPlan.situacionProblema || latestPlan.contenido || "Planeación NEM").substring(0, 250),
+        campo_formativo: String(latestPlan.campoFormativo || "Lenguajes"),
+        pda: String(latestPlan.pda || ""),
         contenido_json: latestPlan
-      }).catch(err => console.warn("Error guardando planeación en Supabase:", err));
+      };
+
+      saveSupabasePlaneacion(payloadDB)
+        .then((res) => {
+          if (!res) console.warn("La API de Supabase devolvió null, revisa la consola.");
+        })
+        .catch(err => console.error("Error crítico guardando planeación en Supabase:", err));
     }
   };
 

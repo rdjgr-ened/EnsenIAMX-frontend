@@ -60,27 +60,25 @@ export default function PlaneacionPreview({
     sesionTitulo: "",
   });
 
-  // Guardar planeación automáticamente en Supabase
+  // // Guardar planeación automáticamente en Supabase (Formato Filtrado)
   React.useEffect(() => {
     if (isSupabaseConfigured && planData) {
-      // Obtenemos el ID de usuario seguro
       const userProfileStr = localStorage.getItem("nem_secundaria_profile");
       const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
       const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
 
-      // Mapeamos los datos para que coincidan EXACTAMENTE con las columnas de Supabase
-      const dbPlan = {
-        id: planData.id,
+      const payloadDB = {
+        id: planData.id || crypto.randomUUID(),
         user_id: userId,
-        titulo: planData.situacionProblema || planData.contenido || "Planeación NEM",
-        campo_formativo: planData.campoFormativo || "Lenguajes",
-        pda: planData.pda || "",
+        titulo: String(planData.situacionProblema || planData.contenido || "Planeación NEM").substring(0, 250),
+        campo_formativo: String(planData.campoFormativo || "Lenguajes"),
+        pda: String(planData.pda || ""),
         contenido_json: planData
       };
 
-      savePlaneacion(dbPlan as any)
+      savePlaneacion(payloadDB as any)
         .then(() => console.log("Planeación guardada con éxito en Supabase"))
-        .catch(err => console.warn("Error al autoguardar la planeación:", err));
+        .catch(err => console.error("Error al autoguardar la planeación en BD:", err));
     }
   }, [planData]);
 
