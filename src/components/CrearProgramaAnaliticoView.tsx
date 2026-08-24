@@ -129,7 +129,7 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
     setPrintBlocked(false);
 
     try {
-      // 1. INYECCIÓN DE PROMPT LIMPIA (Usando comillas simples para evitar romper el JSON del servidor)
+      // 1. INYECCIÓN DE PROMPT LIMPIA (Para forzar la modalidad de preescolar u orientaciones)
       let instruccionEspecial = "";
       if (nivel === "Preescolar") {
         instruccionEspecial = ' [REGLA OBLIGATORIA: En el campo "metodologia", el campo "tipo" DEBE ser una Modalidad de Trabajo de Preescolar: Taller Crítico, Rincones de Aprendizaje, Centros de Interés, Unidad Didáctica, Aprendizaje Basado en el Juego, o Proyecto. El campo "orientaciones" DEBE incluir orientaciones didácticas detalladas paso a paso para el docente y NUNCA debe estar vacío].';
@@ -145,10 +145,63 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
         body: JSON.stringify({
           nivel,
           grado,
-          // Unimos la situación del usuario con la regla limpia
           situacionProblema: situacionProblema.trim() + instruccionEspecial,
         }),
       });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Error al generar el programa analítico.");
+      }
+
+      const data = await response.json();
+      console.log("Respuesta cruda de Gemini:", data);
+
+      let programaGenerado = data.programaAnalitico || data.programa || data.data || data;
+
+      if (typeof programaGenerado === 'string') {
+        try {
+          const cleanStr = programaGenerado.replace(/```json/g, '').replace(/```/g, '').trim();
+          programaGenerado = JSON.parse(cleanStr);
+        } catch (e) {
+          console.error("Fallo al limpiar JSON string de Gemini", e);
+        }
+      }
+
+      // Seguro de vida: Si Gemini omite la metodología, la autocompletamos
+      if (programaGenerado && !programaGenerado.metodologia) {
+        programaGenerado.metodologia = {
+          tipo: nivel === "Preescolar" ? "Modalidad de Trabajo (Sugerida)" : "Aprendizaje Basado en Proyectos Comunitarios",
+          ejeArticulador: "Inclusión y Pensamiento Crítico",
+          orientaciones: "Orientaciones didácticas a definir por el docente según el contexto."
+        };
+      }
+
+      if (programaGenerado && typeof programaGenerado === 'object' && programaGenerado.fase) {
+        setPrograma(programaGenerado);
+
+        if (isSupabaseConfigured) {
+          const userProfileStr = localStorage.getItem("nem_secundaria_profile");
+          const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
+          const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
+
+          saveRecursoGenerado({
+            id: `pa_${crypto.randomUUID()}`,
+            user_id: userId,
+            tipo_recurso: "programa_analitico",
+            contenido_json: programaGenerado
+          }).catch(err => console.warn("Error guardando programa analítico en Supabase:", err));
+        }
+      } else {
+        throw new Error("Formato de respuesta inválido de Gemini.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(`Error: ${err.message || "No se pudo conectar con el servidor."}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
       const response = await fetch("/api/generate-programa-analitico", {
         method: "POST",
