@@ -602,7 +602,7 @@ function PdaCard({ item, nivel }: { item: PDALine; nivel?: string }) {
   );
 }
 {/* Estilos CSS Específicos para imprimir horizontalmente sin recortes */}
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
             size: landscape;
@@ -612,7 +612,7 @@ function PdaCard({ item, nivel }: { item: PDALine; nivel?: string }) {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          /* Quitar el ancho forzado de 1200px solo al imprimir para que la cuadrícula se ajuste a la hoja */
+          /* Quitar el ancho forzado de 1200px solo al imprimir */
           .min-w-\\[1200px\\] {
             min-width: 100% !important;
             width: 100% !important;
@@ -626,7 +626,7 @@ function PdaCard({ item, nivel }: { item: PDALine; nivel?: string }) {
             font-size: 10px !important;
           }
         }
-      `}</style>
+      `}} />
     </div>
   );
 }
