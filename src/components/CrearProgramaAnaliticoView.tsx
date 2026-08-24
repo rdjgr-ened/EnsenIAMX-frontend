@@ -517,13 +517,13 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
                   </div>
                 </div>
 
-                {/* 7. Nombre del Proyecto */}
+              {/* 7. Nombre del Proyecto */}
                 <div className="bg-amber-50/40 border border-amber-100 rounded-2xl p-4 space-y-3">
                   <div className="bg-amber-600 text-white font-black text-[10px] uppercase tracking-wider text-center py-2 px-3 rounded-lg shadow-sm print:bg-amber-800">
                     Nombre del proyecto sugerido
                   </div>
                   <div className="bg-white p-3.5 rounded-xl border border-amber-200 text-center font-black text-amber-900 text-xs shadow-sm py-5 leading-normal">
-                    "{programa.nombreProyecto}"
+                    "{programa?.nombreProyecto || "Proyecto NEM"}"
                   </div>
                 </div>
 
@@ -535,74 +535,9 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
           </div>
         </div>
       )}
-    </div>
-  );
-}
 
-function PdaCard({ item, nivel }: { item: PDALine; nivel?: string }) {
-  const [showNote, setShowNote] = useState<boolean>(false);
-
-  let pdaClass = "bg-white p-3 rounded-xl border shadow-sm space-y-2 relative transition hover:border-slate-300";
-  let badgeClass = "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full inline-block";
-  let badgeText = "";
-
-  if (item.tipo === "modificado") {
-    pdaClass += " border-amber-200 bg-amber-50/10";
-    badgeClass += " bg-amber-100 text-amber-800 border border-amber-200/40";
-    badgeText = "PDA Modificado (*)";
-  } else if (item.tipo === "nuevo") {
-    pdaClass += " border-sky-200 bg-sky-50/10";
-    badgeClass += " bg-sky-100 text-sky-800 border border-sky-200/40";
-    badgeText = "Nuevo PDA (Codiseño **)";
-  } else {
-    pdaClass += " border-slate-100";
-    badgeClass += " bg-slate-100 text-slate-600";
-    badgeText = "PDA Sintético";
-  }
-
-  return (
-    <div className={pdaClass}>
-      <div className="flex items-center justify-between gap-1">
-        <span className={badgeClass}>{badgeText}</span>
-        {item.disciplina && nivel !== "Preescolar" && (
-          <span className="text-[9px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 uppercase">
-            {item.disciplina}
-          </span>
-        )}
-      </div>
-
-      <div className="space-y-1.5">
-        <p className="text-[10px] text-slate-400 font-semibold leading-normal">
-          <strong className="text-slate-500 uppercase text-[9px] block">Contenido:</strong>
-          {item.contenido}
-        </p>
-        <p className="text-slate-800 font-bold leading-normal text-[10px]">
-          <strong className="text-slate-500 uppercase text-[9px] block">PDA:</strong>
-          {item.pda}
-        </p>
-      </div>
-
-      {item.nota && (
-        <div className="pt-2 border-t border-slate-100">
-          <button
-            onClick={() => setShowNote(!showNote)}
-            className="text-[9px] text-mex-maroon hover:text-mex-maroon/80 font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer print:hidden"
-          >
-            <AlertCircle className="w-3 h-3 text-mex-gold" />
-            <span>{showNote ? "Ocultar justificación" : "Ver justificación/contexto"}</span>
-          </button>
-          
-          {/* Always visible on print, toggleable on web */}
-          <p className={`text-[9.5px] leading-relaxed text-slate-500 font-semibold italic mt-1.5 bg-slate-50 p-2 rounded-lg border border-slate-150 ${showNote ? "block animate-fade-in" : "hidden md:hidden print:block"}`}>
-            {item.nota}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
-{/* Estilos CSS Específicos para imprimir horizontalmente sin recortes */}
+      {/* Estilos CSS Específicos para imprimir horizontalmente sin recortes */}
       <style dangerouslySetInnerHTML={{ __html: "@media print { @page { size: landscape; margin: 10mm; } }" }} />
     </div>
   );
-}  
+}
