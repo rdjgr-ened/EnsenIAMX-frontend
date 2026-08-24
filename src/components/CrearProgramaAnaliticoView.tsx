@@ -538,35 +538,7 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
     </div>
   );
 }
-{/* Estilos CSS Específicos para imprimir horizontalmente sin recortes */}
-      <style>{`
-        @media print {
-          @page {
-            size: landscape;
-            margin: 10mm;
-          }
-          body {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          /* Quitar el ancho forzado de 1200px solo al imprimir para que la cuadrícula se ajuste a la hoja */
-          .min-w-\\[1200px\\] {
-            min-width: 100% !important;
-            width: 100% !important;
-          }
-          /* Asegurar que el contenedor padre no oculte lo que sobra */
-          .overflow-x-auto {
-            overflow: visible !important;
-          }
-          /* Ajustar ligeramente el tamaño de la fuente si es necesario */
-          #documento-resultado {
-            font-size: 10px !important;
-          }
-        }
-      `}</style>
-    </div>
-  );
-}
+
 function PdaCard({ item, nivel }: { item: PDALine; nivel?: string }) {
   const [showNote, setShowNote] = useState<boolean>(false);
 
@@ -626,6 +598,35 @@ function PdaCard({ item, nivel }: { item: PDALine; nivel?: string }) {
           </p>
         </div>
       )}
+    </div>
+  );
+}
+{/* Estilos CSS Específicos para imprimir horizontalmente sin recortes */}
+      <style>{`
+        @media print {
+          @page {
+            size: landscape;
+            margin: 10mm;
+          }
+          body {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          /* Quitar el ancho forzado de 1200px solo al imprimir para que la cuadrícula se ajuste a la hoja */
+          .min-w-\\[1200px\\] {
+            min-width: 100% !important;
+            width: 100% !important;
+          }
+          /* Asegurar que el contenedor padre no oculte lo que sobra */
+          .overflow-x-auto {
+            overflow: visible !important;
+          }
+          /* Ajustar ligeramente el tamaño de la fuente si es necesario */
+          #documento-resultado {
+            font-size: 10px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
