@@ -614,12 +614,14 @@ function PdaCard({ item, nivel }: { item: PDALine; nivel?: string }) {
             <span>{showNote ? "Ocultar justificación" : "Ver justificación/contexto"}</span>
           </button>
           
-          {/* Always visible on print, toggleable on web */}
-          <p className={`text-[9.5px] leading-relaxed text-slate-500 font-semibold italic mt-1.5 bg-slate-50 p-2 rounded-lg border border-slate-150 ${showNote ? "block animate-fade-in" : "hidden md:hidden print:block"}`}>
+          {/* El código modificado para evitar errores de sintaxis al compilar */}
+          <p className={"text-[9.5px] leading-relaxed text-slate-500 font-semibold italic mt-1.5 bg-slate-50 p-2 rounded-lg border border-slate-150 " + (showNote ? "block animate-fade-in" : "hidden md:hidden print:block")}>
             {item.nota}
           </p>
         </div>
       )}
     </div>
+  );
+}
   );
 }
