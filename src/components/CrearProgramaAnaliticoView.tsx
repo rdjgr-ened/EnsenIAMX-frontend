@@ -129,12 +129,30 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
     setPrintBlocked(false);
 
     try {
-      // 1. INYECCIÓN DE PROMPT DESDE EL FRONTEND (Transparente para el usuario)
+      // 1. INYECCIÓN DE PROMPT DESDE EL FRONTEND (Molde Estricto)
       let instruccionEspecial = "";
       if (nivel === "Preescolar") {
-        instruccionEspecial = "\n\nREGLA ESTRICTA PARA LA IA: Es OBLIGATORIO incluir el objeto 'metodologia' en el JSON. Al ser nivel Preescolar, NO uses metodologías de primaria. En el campo 'tipo' DEBES usar una de las Modalidades de Trabajo oficiales: Taller Crítico, Rincones de Aprendizaje, Centros de Interés, Unidad Didáctica, Aprendizaje Basado en el Juego o Proyecto. En 'orientaciones' describe cómo implementarlo.";
+        instruccionEspecial = `
+
+REGLA ESTRICTA E INQUEBRANTABLE: 
+DEBES incluir obligatoriamente el objeto "metodologia" en tu JSON de respuesta usando EXACTAMENTE esta estructura y nombres de propiedades:
+"metodologia": {
+  "tipo": "[Elige UNA: Taller Crítico, Rincones de Aprendizaje, Centros de Interés, Unidad Didáctica, Aprendizaje Basado en el Juego, o Proyecto]",
+  "ejeArticulador": "[Eje articulador principal]",
+  "orientaciones": "[REDACTA AQUÍ LAS ORIENTACIONES DIDÁCTICAS DETALLADAS. Describe paso a paso cómo implementar esta modalidad en el aula para resolver la problemática.]"
+}
+IMPORTANTE: Para Preescolar está PROHIBIDO usar "Proyectos Comunitarios" o "STEAM". Usa solo las Modalidades de Trabajo mencionadas. El campo "orientaciones" NUNCA debe estar vacío, debes redactar las instrucciones claras para el docente.`;
       } else {
-        instruccionEspecial = "\n\nREGLA ESTRICTA PARA LA IA: Es OBLIGATORIO incluir el objeto 'metodologia' en el JSON. En el campo 'tipo' debes especificar la metodología NEM correspondiente al campo formativo principal (ej. Aprendizaje Basado en Proyectos Comunitarios, Indagación STEAM, ABP o Aprendizaje Servicio).";
+        instruccionEspecial = `
+
+REGLA ESTRICTA E INQUEBRANTABLE: 
+DEBES incluir obligatoriamente el objeto "metodologia" en tu JSON de respuesta usando EXACTAMENTE esta estructura y nombres de propiedades:
+"metodologia": {
+  "tipo": "[Metodología NEM acorde al campo formativo: Aprendizaje Basado en Proyectos Comunitarios, Indagación STEAM, ABP o Aprendizaje Servicio]",
+  "ejeArticulador": "[Eje articulador principal]",
+  "orientaciones": "[REDACTA AQUÍ LAS ORIENTACIONES DIDÁCTICAS DETALLADAS. Describe las fases o pasos a seguir para implementar esta metodología en el aula y resolver la problemática.]"
+}
+IMPORTANTE: El campo "orientaciones" NUNCA debe estar vacío, debes redactar las instrucciones claras para el docente.`;
       }
 
       const response = await fetch("/api/generate-programa-analitico", {
