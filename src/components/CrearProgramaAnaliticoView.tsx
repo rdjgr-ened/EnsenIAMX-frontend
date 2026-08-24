@@ -129,6 +129,14 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
     setPrintBlocked(false);
 
     try {
+      // 1. INYECCIÓN DE PROMPT DESDE EL FRONTEND (Transparente para el usuario)
+      let instruccionEspecial = "";
+      if (nivel === "Preescolar") {
+        instruccionEspecial = "\n\nREGLA ESTRICTA PARA LA IA: Es OBLIGATORIO incluir el objeto 'metodologia' en el JSON. Al ser nivel Preescolar, NO uses metodologías de primaria. En el campo 'tipo' DEBES usar una de las Modalidades de Trabajo oficiales: Taller Crítico, Rincones de Aprendizaje, Centros de Interés, Unidad Didáctica, Aprendizaje Basado en el Juego o Proyecto. En 'orientaciones' describe cómo implementarlo.";
+      } else {
+        instruccionEspecial = "\n\nREGLA ESTRICTA PARA LA IA: Es OBLIGATORIO incluir el objeto 'metodologia' en el JSON. En el campo 'tipo' debes especificar la metodología NEM correspondiente al campo formativo principal (ej. Aprendizaje Basado en Proyectos Comunitarios, Indagación STEAM, ABP o Aprendizaje Servicio).";
+      }
+
       const response = await fetch("/api/generate-programa-analitico", {
         method: "POST",
         headers: {
@@ -137,7 +145,8 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
         body: JSON.stringify({
           nivel,
           grado,
-          situacionProblema,
+          // Unimos el texto del usuario con nuestra regla estricta para forzar a la IA
+          situacionProblema: situacionProblema.trim() + instruccionEspecial,
         }),
       });
 
@@ -147,45 +156,49 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
       }
 
       const data = await response.json();
-      console.log("Respuesta cruda de Gemini API:", data); // 👈 Vital para depurar
+      console.log("Respuesta cruda de Gemini:", data); // Para depuración
 
-      // Flexibilidad: Buscar el objeto bajo múltiples nombres posibles
+      // 2. PARSEO FLEXIBLE Y BLINDAJE
       let programaGenerado = data.programaAnalitico || data.programa || data.data || data;
 
-      // Limpieza de Markdown: Si Gemini devolvió un string con formato de código en lugar de un objeto JSON puro
+      // Limpiar Markdown si Gemini envió texto en lugar de JSON puro
       if (typeof programaGenerado === 'string') {
         try {
           const cleanStr = programaGenerado.replace(/```json/g, '').replace(/```/g, '').trim();
           programaGenerado = JSON.parse(cleanStr);
-        } catch (parseError) {
-          console.error("Error intentando limpiar el JSON de Gemini:", parseError);
+        } catch (e) {
+          console.error("Fallo al limpiar JSON string de Gemini", e);
         }
       }
 
-      // Validación final más flexible
+      // 3. SEGURO DE VIDA: Si Gemini desobedece y omite el objeto, lo forzamos manualmente para evitar pantalla blanca
+      if (programaGenerado && !programaGenerado.metodologia) {
+        programaGenerado.metodologia = {
+          tipo: nivel === "Preescolar" ? "Modalidad de Trabajo (Sugerida)" : "Aprendizaje Basado en Proyectos Comunitarios",
+          ejeArticulador: "Inclusión y Pensamiento Crítico",
+          orientaciones: "Orientaciones didácticas a definir por el docente según el contexto."
+        };
+      }
+
+      // Validación de éxito
       if (programaGenerado && typeof programaGenerado === 'object' && programaGenerado.fase) {
         setPrograma(programaGenerado);
 
+        // Guardado en Supabase
         if (isSupabaseConfigured) {
           const userProfileStr = localStorage.getItem("nem_secundaria_profile");
           const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
           const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
 
-          // Asegurar que guardamos el objeto limpio y sin variables que rompan Supabase
-          const payloadDB = {
-            id: `pa_${crypto.randomUUID()}`,
+          saveRecursoGenerado({
+            id: `pa_${crypto.randomUUID()}`, // ID Seguro
             user_id: userId,
             tipo_recurso: "programa_analitico",
             contenido_json: programaGenerado
-          };
-
-          saveRecursoGenerado(payloadDB as any)
-            .then(() => console.log("Programa Analítico guardado en Supabase"))
-            .catch(err => console.warn("Error guardando programa analitico en Supabase:", err));
+          }).catch(err => console.warn("Error guardando programa analítico en Supabase:", err));
         }
       } else {
-        console.error("Estructura inválida recibida:", data);
-        throw new Error("Formato de respuesta inválido. Gemini no devolvió la estructura esperada.");
+        throw new Error("Formato de respuesta inválido de Gemini.");
       }
     } catch (err: any) {
       console.error(err);
@@ -193,7 +206,7 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
     } finally {
       setLoading(false);
     }
-    };
+  };
 
   return (
     <div className="space-y-6">
@@ -474,24 +487,30 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
                   </div>
                 </div>
 
-                {/* 6. Metodología */}
+                {/* 6. Metodología / Modalidad de Trabajo */}
                 <div className="bg-indigo-50/40 border border-indigo-100 rounded-2xl p-4 space-y-3">
                   <div className="bg-indigo-600 text-white font-black text-[10px] uppercase tracking-wider text-center py-2 px-3 rounded-lg shadow-sm print:bg-indigo-800">
-                    Metodología
+                    {nivel === "Preescolar" ? "Modalidad de Trabajo" : "Metodología NEM"}
                   </div>
                   <div className="bg-white p-3.5 rounded-xl border border-indigo-200 space-y-3 shadow-sm">
                     <div>
-                      <strong className="text-slate-500 uppercase text-[9px] block">Tipo</strong>
-                      <span className="font-extrabold text-indigo-900">{programa.metodologia.tipo}</span>
+                      <strong className="text-slate-500 uppercase text-[9px] block">
+                        {nivel === "Preescolar" ? "Modalidad Sugerida" : "Tipo de Metodología"}
+                      </strong>
+                      <span className="font-extrabold text-indigo-900">
+                        {programa?.metodologia?.tipo || "Por definir"}
+                      </span>
                     </div>
                     <div>
                       <strong className="text-slate-500 uppercase text-[9px] block">Eje Articulador</strong>
-                      <span className="font-extrabold text-indigo-900">{programa.metodologia.ejeArticulador}</span>
+                      <span className="font-extrabold text-indigo-900">
+                        {programa?.metodologia?.ejeArticulador || "No especificado"}
+                      </span>
                     </div>
                     <div>
                       <strong className="text-slate-500 uppercase text-[9px] block">Orientaciones Didácticas</strong>
                       <p className="text-slate-700 leading-normal font-semibold text-[10px] mt-1 italic">
-                        {programa.metodologia.orientaciones}
+                        {programa?.metodologia?.orientaciones || "Sin orientaciones generadas."}
                       </p>
                     </div>
                   </div>
