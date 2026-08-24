@@ -601,3 +601,26 @@ function PdaCard({ item, nivel }: { item: PDALine; nivel?: string }) {
     </div>
   );
 }
+{/* Estilos CSS Específicos para imprimir horizontalmente sin recortes */}
+      <style>{`
+        @media print {
+          @page {
+            size: landscape;
+            margin: 10mm;
+          }
+          body {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          /* Usamos el ID limpio para evitar el bug del compilador con las diagonales de Tailwind */
+          #diagrama-impresion {
+            min-width: 100% !important;
+            width: 100% !important;
+          }
+          .overflow-x-auto {
+            overflow: visible !important;
+          }
+          #documento-resultado {
+            font-size: 10px !important;
+          }
+        }
