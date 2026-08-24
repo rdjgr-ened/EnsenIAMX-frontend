@@ -421,7 +421,7 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
 
             {/* Diagrama en Tabla/Grid - Estilo del folleto de Tobón */}
             <div className="overflow-x-auto">
-              <div className="min-w-[1200px] grid grid-cols-7 gap-4 text-[11px] leading-relaxed">
+<div id="diagrama-impresion" className="min-w-[1200px] grid grid-cols-7 gap-4 text-[11px] leading-relaxed">
                 {/* 1. Problema Identificado */}
                 <div className="bg-fuchsia-50/40 border border-fuchsia-100 rounded-2xl p-4 space-y-3">
                   <div className="bg-fuchsia-700 text-white font-black text-[10px] uppercase tracking-wider text-center py-2 px-3 rounded-lg shadow-sm print:bg-fuchsia-800">
@@ -602,7 +602,7 @@ function PdaCard({ item, nivel }: { item: PDALine; nivel?: string }) {
   );
 }
 {/* Estilos CSS Específicos para imprimir horizontalmente sin recortes */}
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style>{`
         @media print {
           @page {
             size: landscape;
@@ -612,21 +612,19 @@ function PdaCard({ item, nivel }: { item: PDALine; nivel?: string }) {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          /* Quitar el ancho forzado de 1200px solo al imprimir */
-          .min-w-\\[1200px\\] {
+          /* Usamos el ID limpio para evitar el bug del compilador con las diagonales de Tailwind */
+          #diagrama-impresion {
             min-width: 100% !important;
             width: 100% !important;
           }
-          /* Asegurar que el contenedor padre no oculte lo que sobra */
           .overflow-x-auto {
             overflow: visible !important;
           }
-          /* Ajustar ligeramente el tamaño de la fuente si es necesario */
           #documento-resultado {
             font-size: 10px !important;
           }
         }
-      `}} />
+      `}</style>
     </div>
   );
 }
