@@ -193,6 +193,7 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
     } finally {
       setLoading(false);
     }
+    };
 
   return (
     <div className="space-y-6">
