@@ -622,6 +622,3 @@ function PdaCard({ item, nivel }: { item: PDALine; nivel?: string }) {
       )}
     </div>
   );
-}
-  );
-}
