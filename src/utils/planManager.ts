@@ -289,9 +289,3 @@ export function addExtraCredits(subscription: any, amount: number): any {
     credits: (current.credits || 0) + amount
   };
 }
-
-  try {
-    localStorage.setItem("user_subscription", JSON.stringify(subscription));
-  } catch (e) {
-    console.error("Error saving subscription", e);
-  }

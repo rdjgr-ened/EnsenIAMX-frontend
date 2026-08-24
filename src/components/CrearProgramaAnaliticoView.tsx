@@ -147,23 +147,45 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
       }
 
       const data = await response.json();
-      if (data.success && data.programaAnalitico) {
-        setPrograma(data.programaAnalitico);
+      console.log("Respuesta cruda de Gemini API:", data); // 👈 Vital para depurar
+
+      // Flexibilidad: Buscar el objeto bajo múltiples nombres posibles
+      let programaGenerado = data.programaAnalitico || data.programa || data.data || data;
+
+      // Limpieza de Markdown: Si Gemini devolvió un string con formato de código en lugar de un objeto JSON puro
+      if (typeof programaGenerado === 'string') {
+        try {
+          const cleanStr = programaGenerado.replace(/```json/g, '').replace(/```/g, '').trim();
+          programaGenerado = JSON.parse(cleanStr);
+        } catch (parseError) {
+          console.error("Error intentando limpiar el JSON de Gemini:", parseError);
+        }
+      }
+
+      // Validación final más flexible
+      if (programaGenerado && typeof programaGenerado === 'object' && programaGenerado.fase) {
+        setPrograma(programaGenerado);
 
         if (isSupabaseConfigured) {
           const userProfileStr = localStorage.getItem("nem_secundaria_profile");
           const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
           const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
 
-          saveRecursoGenerado({
-            id: `pa_${Date.now()}`,
+          // Asegurar que guardamos el objeto limpio y sin variables que rompan Supabase
+          const payloadDB = {
+            id: `pa_${crypto.randomUUID()}`,
             user_id: userId,
             tipo_recurso: "programa_analitico",
-            contenido_json: data.programaAnalitico
-          }).catch(err => console.warn("Error guardando programa analitico en Supabase:", err));
+            contenido_json: programaGenerado
+          };
+
+          saveRecursoGenerado(payloadDB as any)
+            .then(() => console.log("Programa Analítico guardado en Supabase"))
+            .catch(err => console.warn("Error guardando programa analitico en Supabase:", err));
         }
       } else {
-        throw new Error("Formato de respuesta inválido.");
+        console.error("Estructura inválida recibida:", data);
+        throw new Error("Formato de respuesta inválido. Gemini no devolvió la estructura esperada.");
       }
     } catch (err: any) {
       console.error(err);
@@ -171,7 +193,6 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
     } finally {
       setLoading(false);
     }
-  };
 
   return (
     <div className="space-y-6">
