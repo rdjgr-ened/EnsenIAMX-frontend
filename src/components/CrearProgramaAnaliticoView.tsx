@@ -129,31 +129,26 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
     setPrintBlocked(false);
 
     try {
-      // 1. INYECCIÓN DE PROMPT DESDE EL FRONTEND (Molde Estricto)
+      // 1. INYECCIÓN DE PROMPT LIMPIA (Usando comillas simples para evitar romper el JSON del servidor)
       let instruccionEspecial = "";
       if (nivel === "Preescolar") {
-        instruccionEspecial = `
-
-REGLA ESTRICTA E INQUEBRANTABLE: 
-DEBES incluir obligatoriamente el objeto "metodologia" en tu JSON de respuesta usando EXACTAMENTE esta estructura y nombres de propiedades:
-"metodologia": {
-  "tipo": "[Elige UNA: Taller Crítico, Rincones de Aprendizaje, Centros de Interés, Unidad Didáctica, Aprendizaje Basado en el Juego, o Proyecto]",
-  "ejeArticulador": "[Eje articulador principal]",
-  "orientaciones": "[REDACTA AQUÍ LAS ORIENTACIONES DIDÁCTICAS DETALLADAS. Describe paso a paso cómo implementar esta modalidad en el aula para resolver la problemática.]"
-}
-IMPORTANTE: Para Preescolar está PROHIBIDO usar "Proyectos Comunitarios" o "STEAM". Usa solo las Modalidades de Trabajo mencionadas. El campo "orientaciones" NUNCA debe estar vacío, debes redactar las instrucciones claras para el docente.`;
+        instruccionEspecial = ' [REGLA OBLIGATORIA: En el campo "metodologia", el campo "tipo" DEBE ser una Modalidad de Trabajo de Preescolar: Taller Crítico, Rincones de Aprendizaje, Centros de Interés, Unidad Didáctica, Aprendizaje Basado en el Juego, o Proyecto. El campo "orientaciones" DEBE incluir orientaciones didácticas detalladas paso a paso para el docente y NUNCA debe estar vacío].';
       } else {
-        instruccionEspecial = `
-
-REGLA ESTRICTA E INQUEBRANTABLE: 
-DEBES incluir obligatoriamente el objeto "metodologia" en tu JSON de respuesta usando EXACTAMENTE esta estructura y nombres de propiedades:
-"metodologia": {
-  "tipo": "[Metodología NEM acorde al campo formativo: Aprendizaje Basado en Proyectos Comunitarios, Indagación STEAM, ABP o Aprendizaje Servicio]",
-  "ejeArticulador": "[Eje articulador principal]",
-  "orientaciones": "[REDACTA AQUÍ LAS ORIENTACIONES DIDÁCTICAS DETALLADAS. Describe las fases o pasos a seguir para implementar esta metodología en el aula y resolver la problemática.]"
-}
-IMPORTANTE: El campo "orientaciones" NUNCA debe estar vacío, debes redactar las instrucciones claras para el docente.`;
+        instruccionEspecial = ' [REGLA OBLIGATORIA: En el campo "metodologia", el campo "tipo" DEBE ser una metodología NEM acorde al campo formativo: Proyectos Comunitarios, Indagación STEAM, ABP o Aprendizaje Servicio. El campo "orientaciones" DEBE incluir orientaciones didácticas detalladas paso a paso para el docente y NUNCA debe estar vacío].';
       }
+
+      const response = await fetch("/api/generate-programa-analitico", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nivel,
+          grado,
+          // Unimos la situación del usuario con la regla limpia
+          situacionProblema: situacionProblema.trim() + instruccionEspecial,
+        }),
+      });
 
       const response = await fetch("/api/generate-programa-analitico", {
         method: "POST",
