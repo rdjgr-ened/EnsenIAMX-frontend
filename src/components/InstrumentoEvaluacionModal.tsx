@@ -37,7 +37,7 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
   return (
     <div className="w-full min-h-screen bg-slate-50 pb-16 print:bg-white print:pb-0">
       
-      {/* HEADER DE LA PÁGINA */}
+      {/* HEADER DE LA PÁGINA (Oculto al imprimir) */}
       <div className="bg-slate-900 p-4 sm:p-6 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-md print:hidden">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-mex-maroon flex items-center justify-center border border-white/20 shrink-0">
@@ -45,10 +45,10 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
           </div>
           <div>
             <h2 className="font-black text-base sm:text-lg uppercase tracking-wider flex items-center gap-2">Diseño de Instrumento de Evaluación</h2>
-            <p className="text-sm text-slate-300 font-medium">{instrumentName} • Basado en el PDA de la Planeación</p>
+            <p className="text-sm text-slate-300 font-medium">{instrumentName} • Basado en el PDA</p>
           </div>
         </div>
-        <button onClick={() => safeOnClose()} className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition cursor-pointer font-bold text-sm flex items-center gap-2">
+        <button onClick={() => safeOnClose()} className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition font-bold text-sm flex items-center gap-2 cursor-pointer">
           <X className="w-5 h-5" /><span>Cerrar y volver</span>
         </button>
       </div>
@@ -58,7 +58,7 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
         {isLoading && (
           <div className="py-32 flex flex-col items-center justify-center text-center space-y-4">
             <Loader2 className="w-16 h-16 text-mex-maroon animate-spin mx-auto" />
-            <h3 className="font-black text-slate-900 text-lg uppercase tracking-wider">Gemini está estructurando el instrumento...</h3>
+            <h3 className="font-black text-slate-900 text-lg uppercase">Gemini estructurando instrumento...</h3>
           </div>
         )}
 
@@ -66,7 +66,7 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
           <div className="p-8 bg-red-50 border border-red-200 rounded-2xl text-center space-y-4 mt-8">
             <AlertCircle className="w-12 h-12 text-red-600 mx-auto" />
             <p className="text-sm text-red-700 max-w-lg mx-auto">{error}</p>
-            <button onClick={() => safeOnRegenerate()} className="px-6 py-3 bg-red-700 text-white font-bold text-sm uppercase rounded-xl">Reintentar</button>
+            <button onClick={() => safeOnRegenerate()} className="px-6 py-3 bg-red-700 text-white font-bold text-sm uppercase rounded-xl cursor-pointer">Reintentar</button>
           </div>
         )}
 
@@ -83,7 +83,6 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
 
             <div id="instrumento-evaluacion-resultado" className="bg-white p-6 sm:p-12 rounded-2xl border-2 border-slate-900 shadow-sm font-sans text-slate-900 space-y-8 printable-document print:border-none print:shadow-none print:p-0">
               
-              {/* Encabezado */}
               <div className="text-center border-b-2 border-slate-900 pb-5">
                 <h1 className="font-black text-xl uppercase tracking-wider text-slate-950">{escuelaName}</h1>
                 <p className="font-extrabold text-mex-maroon text-sm uppercase mt-1">C.C.T. {cct} • Ciclo Escolar 2025-2026</p>
@@ -92,23 +91,21 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
                 </div>
               </div>
 
-              {/* Ficha de Datos */}
               <div className="border-2 border-slate-900 rounded-xl p-4 bg-slate-50 text-xs sm:text-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div><span className="font-bold text-slate-500 uppercase text-[10px] block mb-0.5">DOCENTE EVALUADOR:</span><span className="font-black text-slate-900">{docenteName}</span></div>
                 <div><span className="font-bold text-slate-500 uppercase text-[10px] block mb-0.5">GRADO Y GRUPO:</span><span className="font-black text-slate-900">{grado} - Grupo "{grupo}"</span></div>
                 <div><span className="font-bold text-slate-500 uppercase text-[10px] block mb-0.5">CAMPO FORMATIVO:</span><span className="font-bold text-slate-900">{campoFormativo}</span></div>
                 <div><span className="font-bold text-slate-500 uppercase text-[10px] block mb-0.5">DISCIPLINA:</span><span className="font-bold text-slate-900">{disciplina}</span></div>
-                <div className="col-span-1 sm:col-span-2"><span className="font-bold text-slate-500 uppercase text-[10px] block mb-0.5">PRODUCTO A EVALUAR:</span><span className="font-black text-mex-maroon">{plan?.producto || "Evidencia de aprendizaje"}</span></div>
+                <div className="col-span-1 sm:col-span-2"><span className="font-bold text-slate-500 uppercase text-[10px] block mb-0.5">PRODUCTO A EVALUAR:</span><span className="font-black text-mex-maroon">{plan?.producto || "Evidencia"}</span></div>
                 <div className="col-span-1 sm:col-span-2"><span className="font-bold text-slate-500 uppercase text-[10px] block mb-0.5">ALUMNO(A):</span><span className="block pt-2 border-b border-slate-400"></span></div>
                 <div className="col-span-1 sm:col-span-2 md:col-span-4"><span className="font-bold text-slate-500 uppercase text-[10px] block mb-0.5">PDA:</span><span className="font-medium text-slate-800">{pda}</span></div>
               </div>
 
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm">
-                <span className="font-black text-amber-950 uppercase text-xs block mb-1.5">📌 INSTRUCCIONES DE APLICACIÓN:</span>
+                <span className="font-black text-amber-950 uppercase text-xs block mb-1.5">📌 INSTRUCCIONES:</span>
                 <p className="text-slate-700 font-medium leading-relaxed">{instrumentData.instrucciones}</p>
               </div>
 
-              {/* TABLAS */}
               <div className="space-y-6">
                 {instrumentData.criteriosRubrica && instrumentData.criteriosRubrica.length > 0 && (
                   <div className="overflow-x-auto rounded-xl border border-slate-900">
@@ -125,7 +122,7 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
                       <tbody>
                         {instrumentData.criteriosRubrica.map((crit, idx) => (
                           <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"} style={{pageBreakInside: 'avoid'}}>
-                            <td className="border border-slate-900 p-3 font-bold text-slate-900"><span className="block text-mex-maroon font-black mb-1">{crit.criterio}</span>{crit.ponderacion && <span className="text-xs text-slate-500 font-semibold">{crit.ponderacion}</span>}</td>
+                            <td className="border border-slate-900 p-3 font-bold text-slate-900"><span className="block text-mex-maroon font-black mb-1">{crit.criterio}</span>{crit.ponderacion && <span className="text-xs text-slate-500">{crit.ponderacion}</span>}</td>
                             <td className="border border-slate-900 p-3 text-slate-700">{crit.sobresaliente}</td>
                             <td className="border border-slate-900 p-3 text-slate-700">{crit.satisfactorio}</td>
                             <td className="border border-slate-900 p-3 text-slate-700">{crit.basico}</td>
@@ -146,7 +143,7 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
                           <th className="border border-slate-900 p-3">Indicador de Logro / Criterio Observable</th>
                           <th className="border border-slate-900 p-3 w-20 text-center">CUMPLE</th>
                           <th className="border border-slate-900 p-3 w-24 text-center">NO CUMPLE</th>
-                          <th className="border border-slate-900 p-3 w-1/3">Observaciones / Evidencia</th>
+                          <th className="border border-slate-900 p-3 w-1/3">Observaciones</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -156,7 +153,7 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
                             <td className="border border-slate-900 p-3 font-bold text-slate-900">{item.indicador || item.criterio}</td>
                             <td className="border border-slate-900 p-3 text-center"><div className="w-5 h-5 border-2 border-slate-900 mx-auto rounded-sm"></div></td>
                             <td className="border border-slate-900 p-3 text-center"><div className="w-5 h-5 border-2 border-slate-900 mx-auto rounded-sm"></div></td>
-                            <td className="border border-slate-900 p-3 text-slate-400 italic"></td>
+                            <td className="border border-slate-900 p-3 text-slate-400"></td>
                           </tr>
                         ))}
                       </tbody>
@@ -194,30 +191,34 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
                 )}
               </div>
 
-              {/* Retroalimentación */}
               <div className="border-2 border-slate-900 rounded-xl p-5 bg-slate-50 space-y-3 break-inside-avoid">
-                <span className="font-black text-slate-900 uppercase text-xs block">💬 RETROALIMENTACIÓN FORMATIVA Y ACUERDOS DE MEJORA:</span>
+                <span className="font-black text-slate-900 uppercase text-xs block">💬 RETROALIMENTACIÓN FORMATIVA:</span>
                 <p className="text-slate-700 italic text-sm font-medium leading-relaxed">{instrumentData.retroalimentacionFormativa}</p>
-                <div className="border-b border-dashed border-slate-400 h-6"></div>
-                <div className="border-b border-dashed border-slate-400 h-6"></div>
               </div>
 
-              {/* Firmas */}
               <div className="grid grid-cols-2 gap-16 pt-12 text-center text-sm break-inside-avoid">
-                <div>
-                  <div className="border-t-2 border-slate-900 pt-2 font-black uppercase text-slate-900">{docenteName}</div>
-                  <span className="text-xs text-slate-500 font-bold uppercase">Docente Evaluador(a)</span>
-                </div>
-                <div>
-                  <div className="border-t-2 border-slate-900 pt-2 font-black uppercase text-slate-900">Firma de Conformidad</div>
-                  <span className="text-xs text-slate-500 font-bold uppercase">Alumno(a) / Padre de Familia o Tutor</span>
-                </div>
+                <div><div className="border-t-2 border-slate-900 pt-2 font-black uppercase">{docenteName}</div><span className="text-xs text-slate-500 font-bold uppercase">Docente</span></div>
+                <div><div className="border-t-2 border-slate-900 pt-2 font-black uppercase">Firma de Conformidad</div><span className="text-xs text-slate-500 font-bold uppercase">Alumno(a) / Tutor</span></div>
               </div>
-
             </div>
           </div>
         )}
       </div>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          body { background-color: white !important; color: black !important; font-size: 11px !important; }
+          header, footer, nav, aside, .print\\:hidden, #google-link-banner, #planeacion-form, #history-sidebar { display: none !important; }
+          
+          /* EL TRUCO GLOBAL: Destruye el CSS del Dashboard que corta la página */
+          html, body, #root, .h-screen, .min-h-screen, .overflow-y-auto, .overflow-hidden {
+            height: auto !important; min-height: auto !important; overflow: visible !important; display: block !important; position: static !important;
+          }
+
+          #instrumento-evaluacion-resultado { border: none !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; width: 100% !important; }
+          .page-break-inside-avoid { page-break-inside: avoid !important; }
+        }
+      `}} />
     </div>
   );
 }
