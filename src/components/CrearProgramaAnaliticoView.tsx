@@ -203,77 +203,6 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
     }
   };
 
-      const response = await fetch("/api/generate-programa-analitico", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          nivel,
-          grado,
-          // Unimos el texto del usuario con nuestra regla estricta para forzar a la IA
-          situacionProblema: situacionProblema.trim() + instruccionEspecial,
-        }),
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || "Error al generar el programa analítico.");
-      }
-
-      const data = await response.json();
-      console.log("Respuesta cruda de Gemini:", data); // Para depuración
-
-      // 2. PARSEO FLEXIBLE Y BLINDAJE
-      let programaGenerado = data.programaAnalitico || data.programa || data.data || data;
-
-      // Limpiar Markdown si Gemini envió texto en lugar de JSON puro
-      if (typeof programaGenerado === 'string') {
-        try {
-          const cleanStr = programaGenerado.replace(/```json/g, '').replace(/```/g, '').trim();
-          programaGenerado = JSON.parse(cleanStr);
-        } catch (e) {
-          console.error("Fallo al limpiar JSON string de Gemini", e);
-        }
-      }
-
-      // 3. SEGURO DE VIDA: Si Gemini desobedece y omite el objeto, lo forzamos manualmente para evitar pantalla blanca
-      if (programaGenerado && !programaGenerado.metodologia) {
-        programaGenerado.metodologia = {
-          tipo: nivel === "Preescolar" ? "Modalidad de Trabajo (Sugerida)" : "Aprendizaje Basado en Proyectos Comunitarios",
-          ejeArticulador: "Inclusión y Pensamiento Crítico",
-          orientaciones: "Orientaciones didácticas a definir por el docente según el contexto."
-        };
-      }
-
-      // Validación de éxito
-      if (programaGenerado && typeof programaGenerado === 'object' && programaGenerado.fase) {
-        setPrograma(programaGenerado);
-
-        // Guardado en Supabase
-        if (isSupabaseConfigured) {
-          const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-          const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
-          const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
-
-          saveRecursoGenerado({
-            id: `pa_${crypto.randomUUID()}`, // ID Seguro
-            user_id: userId,
-            tipo_recurso: "programa_analitico",
-            contenido_json: programaGenerado
-          }).catch(err => console.warn("Error guardando programa analítico en Supabase:", err));
-        }
-      } else {
-        throw new Error("Formato de respuesta inválido de Gemini.");
-      }
-    } catch (err: any) {
-      console.error(err);
-      alert(`Error: ${err.message || "No se pudo conectar con el servidor."}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Banner de Título */}
@@ -487,7 +416,7 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
 
             {/* Diagrama en Tabla/Grid - Estilo del folleto de Tobón */}
             <div className="overflow-x-auto">
-<div id="diagrama-impresion" className="min-w-[1200px] grid grid-cols-7 gap-4 text-[11px] leading-relaxed">
+              <div id="diagrama-impresion" className="min-w-[1200px] grid grid-cols-7 gap-4 text-[11px] leading-relaxed">
                 {/* 1. Problema Identificado */}
                 <div className="bg-fuchsia-50/40 border border-fuchsia-100 rounded-2xl p-4 space-y-3">
                   <div className="bg-fuchsia-700 text-white font-black text-[10px] uppercase tracking-wider text-center py-2 px-3 rounded-lg shadow-sm print:bg-fuchsia-800">
@@ -583,7 +512,7 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
                   </div>
                 </div>
 
-              {/* 7. Nombre del Proyecto */}
+                {/* 7. Nombre del Proyecto */}
                 <div className="bg-amber-50/40 border border-amber-100 rounded-2xl p-4 space-y-3">
                   <div className="bg-amber-600 text-white font-black text-[10px] uppercase tracking-wider text-center py-2 px-3 rounded-lg shadow-sm print:bg-amber-800">
                     Nombre del proyecto sugerido
