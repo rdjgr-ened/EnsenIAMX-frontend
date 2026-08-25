@@ -388,3 +388,7 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
           }
         }
       `}} />
+
+    </div>
+  );
+}
