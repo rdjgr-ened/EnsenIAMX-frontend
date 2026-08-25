@@ -355,24 +355,15 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
                     <span className="text-[10px] text-slate-500 font-bold uppercase">Alumno(a) / Padre de Familia o Tutor</span>
                   </div>
                 </div>
-{/* ESTILO PARA AISLAR LA IMPRESIÓN Y OCULTAR LA PLANEACIÓN DE FONDO */}
-      <style dangerouslySetInnerHTML={{ __html: `
-        @media print {
-          body * { visibility: hidden !important; }
-          #documento-resultado, #documento-resultado * { visibility: visible !important; }
-          #documento-resultado {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            box-shadow: none !important;
-            border: none !important;
-          }
-          .fixed { position: absolute !important; }
-        }
-      `}} />
+
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ESTILO PARA AISLAR LA IMPRESIÓN Y OCULTAR LA PLANEACIÓN DE FONDO */}
+      <style dangerouslySetInnerHTML={{ __html: "@media print { body * { visibility: hidden !important; } #documento-resultado, #documento-resultado * { visibility: visible !important; } #documento-resultado { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; } .fixed { position: absolute !important; } }" }} />
     </div>
   );
 }
