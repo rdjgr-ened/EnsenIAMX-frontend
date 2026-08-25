@@ -266,6 +266,37 @@ export default function HojaDeTrabajoModal(props: HojaDeTrabajoModalProps) {
           )}
         </div>
       </div>
+      {/* ESTILO PARA AISLAR LA IMPRESIÓN Y OCULTAR LA PLANEACIÓN DE FONDO */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          /* 1. Ocultar absolutamente todo en la aplicación */
+          body * {
+            visibility: hidden !important;
+          }
+          
+          /* 2. Volver visible SOLAMENTE el documento generado y su contenido */
+          #documento-resultado, #documento-resultado * {
+            visibility: visible !important;
+          }
+          
+          /* 3. Posicionar el documento en la esquina superior izquierda como si fuera una página nueva */
+          #documento-resultado {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+          }
+
+          /* 4. Anular la posición fija del modal para que no se repita en varias hojas */
+          .fixed {
+            position: absolute !important;
+          }
+        }
+      `}} />
     </div>
   );
 }
