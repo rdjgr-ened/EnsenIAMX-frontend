@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { CompletePlan, GeneratedWorksheet, UserSubscription, PaywallReason, CreditActionType } from "../types";
-import { ArrowLeft, Loader2, Sparkles, AlertCircle, FileText } from "lucide-react";
+import { ArrowLeft, Loader2, Sparkles, AlertCircle, FileText, BookOpen } from "lucide-react";
 import AccionesDocumento from "./AccionesDocumento";
 import { CREDIT_COSTS } from "../utils/planManager";
 import { saveRecursoGenerado, isSupabaseConfigured } from "../utils/supabaseClient";
@@ -101,7 +101,7 @@ export default function GeneradorHojaTrabajoView({
   return (
     <div className="space-y-6 relative animate-fade-in">
       
-      <div className="print:hidden bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+      <div className="print:hidden bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-sm space-y-6">
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center border border-blue-100">
@@ -171,14 +171,14 @@ export default function GeneradorHojaTrabajoView({
         <div className="space-y-6">
           <div className="print:hidden">
             <AccionesDocumento
-              targetId="documento-resultado"
+              targetId="hoja-trabajo-resultado"
               tipoRecurso="Hoja_De_Trabajo"
               customSuffix={`Sesion_${selectedSessionData.sesion.numero}_${selectedPlan.disciplina}`}
               title={<span className="font-black text-slate-800 text-sm">{worksheetData.titulo}</span>}
             />
           </div>
 
-          <div id="documento-resultado" className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-200 shadow-sm font-sans text-slate-900 print:border-none print:p-0 print:shadow-none print:rounded-none printable-document">
+          <div id="hoja-trabajo-resultado" className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-300 shadow-sm space-y-8 text-slate-900 text-xs printable-document print:p-0 print:border-none print:shadow-none print:w-full">
             
             <div className="border-2 border-slate-900 rounded-xl p-5 bg-slate-50/50 space-y-4">
               <div className="text-center">
@@ -194,17 +194,17 @@ export default function GeneradorHojaTrabajoView({
               <div className="p-3 bg-white rounded border border-slate-200 text-xs"><span className="font-bold text-slate-500 block uppercase text-[10px] mb-1">PDA:</span><span className="font-bold text-slate-900">{selectedPlan.pda}</span></div>
             </div>
 
-            <div className="bg-amber-50/60 border border-amber-200 p-4 rounded-xl text-slate-800 text-sm font-medium mt-6">
+            <div className="bg-amber-50/60 border border-amber-200 p-4 rounded-xl text-slate-800 text-sm font-medium">
               <span className="font-black uppercase text-amber-900 block text-xs tracking-wider mb-1">📌 Instrucciones Generales:</span>
               <p className="leading-relaxed">{worksheetData.instruccionesGenerales}</p>
             </div>
 
-            <div className="space-y-4 mt-6 page-break-inside-avoid">
+            <div className="space-y-4">
               <h3 className="font-black text-sm uppercase text-mex-maroon tracking-wider border-b-2 border-mex-maroon pb-1">{worksheetData.seccionInicio.titulo}</h3>
               <p className="text-slate-600 font-semibold text-xs italic">{worksheetData.seccionInicio.instrucciones}</p>
               <div className="space-y-4">
                 {worksheetData.seccionInicio.ejercicios.map((ex, idx) => (
-                  <div key={idx} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3">
+                  <div key={idx} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3 break-inside-avoid">
                     <p className="font-bold text-slate-900 text-sm leading-snug"><span className="text-mex-maroon font-black">{ex.numero}.</span> {ex.preguntaOInstruccion}</p>
                     <div className="space-y-3 pt-2">
                       {Array.from({ length: ex.lineasDeRespuesta || 3 }).map((_, lIdx) => <div key={lIdx} className="border-b border-dashed border-slate-300 h-6" />)}
@@ -214,12 +214,12 @@ export default function GeneradorHojaTrabajoView({
               </div>
             </div>
 
-            <div className="space-y-4 pt-6 page-break-inside-avoid">
+            <div className="space-y-4 pt-4">
               <h3 className="font-black text-sm uppercase text-mex-maroon tracking-wider border-b-2 border-mex-maroon pb-1">{worksheetData.seccionDesarrollo.titulo}</h3>
               <p className="text-slate-600 font-semibold text-xs italic">{worksheetData.seccionDesarrollo.instrucciones}</p>
               <div className="space-y-4">
                 {worksheetData.seccionDesarrollo.ejercicios.map((ex, idx) => (
-                  <div key={idx} className="p-4 border border-slate-200 rounded-xl bg-white space-y-3">
+                  <div key={idx} className="p-4 border border-slate-200 rounded-xl bg-white space-y-3 break-inside-avoid">
                     <p className="font-bold text-slate-900 text-sm leading-snug"><span className="text-mex-maroon font-black">{ex.numero}.</span> {ex.preguntaOInstruccion}</p>
                     {ex.textoOAuxiliar && <div className="p-3 bg-slate-100 border-l-4 border-slate-700 rounded-r-lg text-slate-800 text-xs italic font-medium">{ex.textoOAuxiliar}</div>}
                     <div className="space-y-3 pt-2">
@@ -230,12 +230,12 @@ export default function GeneradorHojaTrabajoView({
               </div>
             </div>
 
-            <div className="space-y-4 pt-6 page-break-inside-avoid">
+            <div className="space-y-4 pt-4">
               <h3 className="font-black text-sm uppercase text-mex-maroon tracking-wider border-b-2 border-mex-maroon pb-1">{worksheetData.seccionCierre.titulo}</h3>
               <p className="text-slate-600 font-semibold text-xs italic">{worksheetData.seccionCierre.instrucciones}</p>
               <div className="space-y-4">
                 {worksheetData.seccionCierre.ejercicios.map((ex, idx) => (
-                  <div key={idx} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3">
+                  <div key={idx} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3 break-inside-avoid">
                     <p className="font-bold text-slate-900 text-sm leading-snug"><span className="text-mex-maroon font-black">{ex.numero}.</span> {ex.preguntaOInstruccion}</p>
                     <div className="space-y-3 pt-2">
                       {Array.from({ length: ex.lineasDeRespuesta || 3 }).map((_, lIdx) => <div key={lIdx} className="border-b border-dashed border-slate-300 h-6" />)}
@@ -246,7 +246,7 @@ export default function GeneradorHojaTrabajoView({
             </div>
 
             {worksheetData.ticketDeSalida && (
-              <div className="p-5 border-2 border-dashed border-amber-500 bg-amber-50/40 rounded-xl space-y-3 mt-6 page-break-inside-avoid">
+              <div className="p-5 border-2 border-dashed border-amber-500 bg-amber-50/40 rounded-xl space-y-3 break-inside-avoid">
                 <span className="font-black uppercase text-amber-900 text-sm tracking-wider flex items-center gap-1.5">🎟️ Ticket de Salida (Entregar al finalizar la clase)</span>
                 <p className="font-bold text-slate-900 text-sm">{worksheetData.ticketDeSalida}</p>
                 <div className="space-y-3 pt-2"><div className="border-b border-dashed border-slate-400 h-6" /><div className="border-b border-dashed border-slate-400 h-6" /></div>
@@ -256,12 +256,14 @@ export default function GeneradorHojaTrabajoView({
         </div>
       )}
 
-      {/* ESTE ES EL CSS QUE SÍ FUNCIONA EN LA PLANEACIÓN ORIGINAL */}
       <style>{`
         @media print {
           body { background-color: white !important; color: black !important; font-size: 11px !important; }
           header, footer, nav, aside, .print\\:hidden { display: none !important; }
-          #documento-resultado { border: none !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; width: 100% !important; }
+          
+          /* AQUÍ ESTÁ LA CORRECCIÓN EXACTA DEL ID PARA QUE NO CORTE EL PDF */
+          #hoja-trabajo-resultado { border: none !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; width: 100% !important; }
+          
           .page-break-inside-avoid { page-break-inside: avoid !important; }
         }
       `}</style>

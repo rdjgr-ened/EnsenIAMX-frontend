@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { CompletePlan, GeneratedInstrument, UserSubscription, PaywallReason, CreditActionType } from "../types";
-import { ArrowLeft, Loader2, Sparkles, AlertCircle } from "lucide-react";
+import { ArrowLeft, Loader2, Sparkles, AlertCircle, CheckCircle2, BookOpen } from "lucide-react";
 import AccionesDocumento from "./AccionesDocumento";
 import { CREDIT_COSTS } from "../utils/planManager";
 import { saveRecursoGenerado, isSupabaseConfigured } from "../utils/supabaseClient";
@@ -89,7 +89,7 @@ export default function GeneradorInstrumentoView({
   return (
     <div className="space-y-6 relative animate-fade-in">
       
-      <div className="print:hidden bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+      <div className="print:hidden bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-sm space-y-6">
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-mex-maroon/10 flex items-center justify-center border border-mex-maroon/20">
@@ -173,14 +173,14 @@ export default function GeneradorInstrumentoView({
         <div className="space-y-6">
           <div className="print:hidden">
             <AccionesDocumento
-              targetId="documento-resultado"
+              targetId="instrumento-evaluacion-resultado"
               tipoRecurso="Instrumento_Evaluacion"
               customSuffix={`${selectedInstrument}_${selectedPlan.grado}`}
               title={<span className="font-black text-slate-800 text-sm">{instrumentData.titulo}</span>}
             />
           </div>
 
-          <div id="documento-resultado" className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-200 shadow-sm font-sans text-slate-900 printable-document print:border-none print:shadow-none print:p-0 print:rounded-none">
+          <div id="instrumento-evaluacion-resultado" className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-200 shadow-sm font-sans text-slate-900 printable-document print:border-none print:shadow-none print:p-0 print:rounded-none">
             
             <div className="text-center border-b-2 border-slate-900 pb-5 mb-6">
               <h1 className="font-black text-xl uppercase tracking-wider text-slate-950">{selectedPlan.escuelaName}</h1>
@@ -337,12 +337,12 @@ export default function GeneradorInstrumentoView({
         </div>
       )}
 
-      {/* ESTE ES EL CSS QUE SÍ FUNCIONA EN LA PLANEACIÓN ORIGINAL */}
+      {/* AQUÍ ESTÁ LA CORRECCIÓN EXACTA DEL ID PARA QUE NO CORTE EL PDF */}
       <style>{`
         @media print {
           body { background-color: white !important; color: black !important; font-size: 11px !important; }
           header, footer, nav, aside, .print\\:hidden { display: none !important; }
-          #documento-resultado { border: none !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; width: 100% !important; }
+          #instrumento-evaluacion-resultado { border: none !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; width: 100% !important; }
           .page-break-inside-avoid { page-break-inside: avoid !important; }
         }
       `}</style>
