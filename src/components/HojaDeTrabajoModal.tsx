@@ -114,7 +114,7 @@ export default function HojaDeTrabajoModal(props: HojaDeTrabajoModalProps) {
           {worksheet && !isLoading && (
             <div className="space-y-4">
               <AccionesDocumento
-                targetId="documento-resultado"
+                targetId="hoja-trabajo-resultado"
                 tipoRecurso="Hoja_De_Trabajo"
                 customSuffix={`Sesion_${meta.sesionNumero}_${(meta.disciplina || '').replace(/[^a-zA-Z0-9]/g, '_')}`}
                 title={
@@ -124,8 +124,7 @@ export default function HojaDeTrabajoModal(props: HojaDeTrabajoModalProps) {
                 }
               />
 
-              <div
-                id="documento-resultado"
+              <div id="hoja-trabajo-resultado"
                 className="bg-white p-8 rounded-2xl border border-slate-300 shadow-sm space-y-6 text-slate-900 text-xs printable-document"
               >
                 {/* Encabezado Escolar / Matriz */}
@@ -269,18 +268,15 @@ export default function HojaDeTrabajoModal(props: HojaDeTrabajoModalProps) {
       {/* ESTILO PARA AISLAR LA IMPRESIÓN Y OCULTAR LA PLANEACIÓN DE FONDO */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          /* 1. Ocultar absolutamente todo en la aplicación */
-          body * {
-            visibility: hidden !important;
-          }
+          /* Ocultar visualmente todo */
+          body * { visibility: hidden !important; }
           
-          /* 2. Volver visible SOLAMENTE el documento generado y su contenido */
-          #documento-resultado, #documento-resultado * {
-            visibility: visible !important;
-          }
+          /* EL TRUCO: Apagar la planeación de fondo por completo para que no sume sus 7 páginas */
+          #documento-resultado { display: none !important; }
           
-          /* 3. Posicionar el documento en la esquina superior izquierda como si fuera una página nueva */
-          #documento-resultado {
+          /* Hacer visible SOLO esta hoja de trabajo */
+          #hoja-trabajo-resultado, #hoja-trabajo-resultado * { visibility: visible !important; }
+          #hoja-trabajo-resultado {
             position: absolute !important;
             left: 0 !important;
             top: 0 !important;
@@ -289,11 +285,6 @@ export default function HojaDeTrabajoModal(props: HojaDeTrabajoModalProps) {
             padding: 0 !important;
             box-shadow: none !important;
             border: none !important;
-          }
-
-          /* 4. Anular la posición fija del modal para que no se repita en varias hojas */
-          .fixed {
-            position: absolute !important;
           }
         }
       `}} />
