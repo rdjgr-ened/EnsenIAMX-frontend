@@ -17,6 +17,10 @@ import TerminosCondicionesView from "./components/TerminosCondicionesView";
 import MiCuentaView from "./components/MiCuentaView";
 import PaywallModal from "./components/PaywallModal";
 import PaymentSuccessView from "./components/PaymentSuccessView";
+// --- AQUÍ IMPORTAMOS TUS NUEVOS COMPONENTES INDEPENDIENTES ---
+import GeneradorHojaTrabajoView from "./components/GeneradorHojaTrabajoView";
+import GeneradorInstrumentoView from "./components/GeneradorInstrumentoView";
+
 import { CompletePlan, UserSubscription, PaywallReason, CreditActionType, PlanTier } from "./types";
 import { 
   getInitialSubscription, 
@@ -172,7 +176,8 @@ export default function App() {
     return null;
   });
 
-  const [activeTab, setActiveTab] = useState<"hub" | "diseno" | "sugerir" | "crear" | "programa" | "evaluacion" | "bitacora" | "organizador" | "examen" | "cuenta">("hub");
+  // --- SE AÑADIERON LAS RUTAS "generar_hoja" Y "generar_instrumento" ---
+  const [activeTab, setActiveTab] = useState<"hub" | "diseno" | "sugerir" | "crear" | "programa" | "evaluacion" | "bitacora" | "organizador" | "examen" | "cuenta" | "generar_hoja" | "generar_instrumento">("hub");
   const [organizadorTab, setOrganizadorTab] = useState<"planeaciones" | "grupos" | "bitacora" | "seguimiento" | "evaluacion">("planeaciones");
   const [prefilledData, setPrefilledData] = useState<any | null>(null);
 
@@ -315,7 +320,6 @@ export default function App() {
       const userEmail = userProfile?.email;
       const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
 
-      // Construimos un objeto que tiene EXACTAMENTE las mismas columnas de Supabase
       const payloadDB = {
         id: latestPlan.id || crypto.randomUUID(),
         user_id: userId,
@@ -424,7 +428,7 @@ export default function App() {
               if (folder) {
                 setOrganizadorTab(folder);
               }
-              setActiveTab(func);
+              setActiveTab(func as any); // Asegurar casting con las nuevas opciones
               setPrefilledData(null);
             }}
             docenteName={userProfile?.docenteName || "Docente"}
@@ -433,6 +437,31 @@ export default function App() {
             onTriggerPaywall={handleTriggerPaywall}
           />
         );
+      
+      // --- NUEVA RUTA 1: GENERADOR HOJA DE TRABAJO ---
+      case "generar_hoja":
+        return (
+          <GeneradorHojaTrabajoView
+            planeacionesGuardadas={plans}
+            onBack={() => setActiveTab("hub")}
+            subscription={subscription}
+            onDeductCredits={handleDeductCredits}
+            onTriggerPaywall={handleTriggerPaywall}
+          />
+        );
+
+      // --- NUEVA RUTA 2: GENERADOR INSTRUMENTO DE EVALUACIÓN ---
+      case "generar_instrumento":
+        return (
+          <GeneradorInstrumentoView
+            planeacionesGuardadas={plans}
+            onBack={() => setActiveTab("hub")}
+            subscription={subscription}
+            onDeductCredits={handleDeductCredits}
+            onTriggerPaywall={handleTriggerPaywall}
+          />
+        );
+
       case "diseno":
         return (
           <div className="space-y-6">
