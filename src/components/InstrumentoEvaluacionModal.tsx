@@ -361,32 +361,58 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
         </div>
       </div>
 
-     {/* CSS MAGICO DE IMPRESIÓN */}
+      {/* CSS MAGICO DE IMPRESIÓN (VERSIÓN DEFINITIVA Y BLINDADA) */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          /* 1. Ocultar la planeacion de fondo */
-          #documento-resultado { display: none !important; }
-          
-          /* 2. Forzar al body a permitir paginación (anula el bloqueo de scroll del modal de React) */
-          body, html {
-            overflow: visible !important;
+          /* 1. Liberar el body de cualquier bloqueo de React */
+          body, html, #root {
             height: auto !important;
+            overflow: visible !important;
           }
           
-          /* 3. Destruir las ataduras del modal (fixed, flex, scroll) para convertirlo en documento normal */
+          /* 2. Ocultar TODO el fondo y la aplicación normal */
+          body * {
+            visibility: hidden !important;
+          }
+          
+          /* 3. Volver visible SOLO el wrapper del modal y todo su contenido */
           #instrumento-modal-wrapper, 
-          #instrumento-modal-wrapper > div, 
-          #instrumento-modal-wrapper .overflow-y-auto {
-            position: static !important;
+          #instrumento-modal-wrapper * {
+            visibility: visible !important;
+          }
+          
+          /* 4. Sacar el modal de la "trampa" del DOM y ponerlo al inicio de la página */
+          #instrumento-modal-wrapper {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          
+          /* 5. Destruir las cajas flexibles y barras de scroll que causan que Chrome corte las hojas */
+          #instrumento-modal-wrapper > div {
             display: block !important;
             height: auto !important;
             max-height: none !important;
             overflow: visible !important;
-            background: white !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            box-shadow: none !important;
             border: none !important;
+            box-shadow: none !important;
+          }
+          
+          #instrumento-modal-wrapper .overflow-y-auto,
+          #instrumento-modal-wrapper .overflow-x-auto {
+            display: block !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+          }
+          
+          /* 6. Ocultar los botones de cerrar y el encabezado del modal */
+          .print\\:hidden, .print\\:hidden * {
+            display: none !important;
           }
         }
       `}} />

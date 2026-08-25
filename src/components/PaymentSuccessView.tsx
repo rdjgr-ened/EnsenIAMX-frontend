@@ -90,13 +90,14 @@ export default function PaymentSuccessView({
       const price = rawPrice;
       const userEmail = refData.userEmail;
 
+      // CANDADO DE SEGURIDAD ESTRICTO: Evita el exploit de F5 (recargar página)
       const processedKey = `mp_processed_${paymentId}`;
       const alreadyProcessed = sessionStorage.getItem(processedKey) === "true";
 
-      // FORZAR ACTUALIZACIÓN si la cuenta sigue en gratuito a pesar de tener el pago aprobado
-      const needsUpgrade = currentSubscription.plan === "gratuito" && itemType === "plan";
-
-      if ((!alreadyProcessed || needsUpgrade) && (status === "approved" || status === "authorized" || isDemo)) {
+      if (!alreadyProcessed && (status === "approved" || status === "authorized" || isDemo)) {
+        // Bloqueamos inmediatamente para que no se ejecute dos veces
+        sessionStorage.setItem(processedKey, "true");
+        
         let updatedSub = { ...currentSubscription };
 
         if (itemType === "plan" && planId && PLAN_CONFIGS[planId as PlanTier]) {
@@ -107,9 +108,8 @@ export default function PaymentSuccessView({
 
         onSubscriptionUpdate(updatedSub);
         saveUserSubscription(updatedSub);
-        sessionStorage.setItem(processedKey, "true");
 
-        // SINCRONIZACIÓN CON SUPABASE USANDO EL ID REAL
+        // Sincronización secundaria con Supabase
         if (isSupabaseConfigured) {
           const userProfileStr = localStorage.getItem("user_profile") || localStorage.getItem("nem_secundaria_profile");
           if (userProfileStr) {
@@ -153,7 +153,7 @@ export default function PaymentSuccessView({
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const planConfig = paymentDetails.planId ? PLAN_CONFIGS[paymentDetails.planId] : null;
 
@@ -293,7 +293,6 @@ export default function PaymentSuccessView({
           </div>
 
         </div>
-
       </div>
     </div>
   );

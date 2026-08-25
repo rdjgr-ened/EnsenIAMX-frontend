@@ -1,321 +1,116 @@
-import { createClient } from "@supabase/supabase-js";
-import { PLAN_CONFIGS, CREDIT_PACKAGES } from "../src/utils/planManager";
-import { PlanTier, BillingCycle } from "../src/types";
+import { MercadoPagoConfig, Payment } from 'mercadopago';
+import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 
-// In-memory set to prevent duplicate webhook processing for the same payment ID
-const processedPayments = new Set<string>();
+// Cliente de Supabase con Service Role Key (salta RLS para escribir en DB)
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseAdmin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY || "");
 
-export async function handleMercadoPagoWebhook(req: any, res: any) {
-  // CORS configuration
-  res.setHeader?.("Access-Control-Allow-Credentials", "true");
-  res.setHeader?.("Access-Control-Allow-Origin", "*");
-  res.setHeader?.("Access-Control-Allow-Methods", "GET,OPTIONS,POST");
-  res.setHeader?.(
-    "Access-Control-Allow-Headers",
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
-  );
+const mpClient = new MercadoPagoConfig({ 
+  accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || ""
+});
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  // Health check or IPN test via GET
-  if (req.method === "GET") {
-    return res.status(200).json({
-      status: "ok",
-      endpoint: "Mercado Pago Webhook - EnseñIA MX",
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  if (req.method !== "POST") {
-    return res.status(405).json({
-      success: false,
-      error: "Método no permitido. Utilice POST para recibir webhooks de Mercado Pago.",
-    });
+export default async function handler(req: any, res: any) {
+  // 1. Validar que sea una petición POST
+  if (req.method !== 'POST') {
+    return res.status(405).send('Method Not Allowed');
   }
 
   try {
-    let body = req.body || {};
-    if (typeof body === "string") {
-      try {
-        body = JSON.parse(body);
-      } catch (e) {
-        // Leave as is if not json
+    // 2. SEGURIDAD EXTREMA: Validación de Firma HMAC de Mercado Pago
+    const signatureHeader = req.headers['x-signature'];
+    const requestId = req.headers['x-request-id'];
+    const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
+    const paymentId = req.query?.['data.id'] || req.query?.id || req.body?.data?.id;
+    const type = req.query?.type || req.query?.topic || req.body?.type;
+
+    // Solo validamos firmas si el secreto está configurado y es un pago
+    if (webhookSecret && signatureHeader && requestId && type === 'payment' && paymentId) {
+      // Separar ts y v1 del header (ej: "ts=12345,v1=abcdef...")
+      const parts = signatureHeader.split(',');
+      let ts = '';
+      let v1 = '';
+      
+      parts.forEach((part: string) => {
+        const [key, value] = part.split('=');
+        if (key.trim() === 'ts') ts = value;
+        if (key.trim() === 'v1') v1 = value;
+      });
+
+      // Crear el manifiesto y hashearlo
+      const manifest = `id:${paymentId};request-id:${requestId};ts:${ts};`;
+      const computedSignature = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(manifest)
+        .digest('hex');
+
+      if (computedSignature !== v1) {
+        console.error('🚨 ALERTA: Intento de fraude o firma de Webhook inválida.');
+        return res.status(403).send('Forbidden: Invalid Signature');
       }
     }
 
-    const query = req.query || {};
+    // 3. PROCESAMIENTO DEL PAGO (Solo llegamos aquí si es seguro)
+    if (type === 'payment' && paymentId) {
+      const payment = new Payment(mpClient);
+      const paymentData = await payment.get({ id: paymentId });
 
-    console.log("[MercadoPago Webhook] Notificación recibida:", {
-      query,
-      action: body.action,
-      type: body.type,
-      topic: body.topic || query.topic,
-      dataId: body?.data?.id || query["data.id"] || query.id,
-    });
+      if (paymentData.status === 'approved') {
+        const userId = paymentData.external_reference || paymentData.metadata?.user_id;
 
-    // 1. Extract Payment ID from query or body
-    const paymentId =
-      query["data.id"] ||
-      query.id ||
-      query.payment_id ||
-      query.data_id ||
-      body?.data?.id ||
-      body?.id ||
-      body?.payment_id;
+        if (userId) {
+          const planNombre = paymentData.metadata?.plan_id || 'platino';
+          const creditosAAsignar = Number(paymentData.metadata?.credits || 300);
+          const cycle = paymentData.metadata?.billing_cycle || 'mensual';
+          const itemType = paymentData.metadata?.item_type || 'plan';
 
-    const topic = body.topic || body.type || query.topic || query.type || "payment";
+          // Consultar saldo actual para NO sobrescribir
+          const { data: profile } = await supabaseAdmin
+            .from('profiles')
+            .select('creditos_disponibles')
+            .eq('id', userId)
+            .single();
 
-    // If it's a test event without paymentId
-    if (!paymentId && body.action === "test") {
-      return res.status(200).json({
-        success: true,
-        message: "Webhook de prueba recibido correctamente.",
-      });
-    }
+          const creditosActuales = profile?.creditos_disponibles || 0;
+          
+          // Si compra un plan, se reinicia al monto base. Si compra recarga, se le suman a los actuales.
+          const nuevosCreditos = itemType === 'credits' 
+            ? creditosActuales + creditosAAsignar 
+            : creditosAAsignar;
 
-    if (!paymentId && !body.mockPayment && !body.userEmail) {
-      console.warn("[MercadoPago Webhook] No se encontró 'paymentId' en la notificación.");
-      return res.status(200).json({
-        received: true,
-        message: "Notificación recibida sin ID de pago accionable.",
-      });
-    }
-
-    // Check Idempotency (prevent processing the same payment twice)
-    const paymentKey = String(paymentId || body.payment_id || `sim_${Date.now()}`);
-    if (processedPayments.has(paymentKey)) {
-      console.log(`[MercadoPago Webhook] El pago ${paymentKey} ya fue procesado con anterioridad.`);
-      return res.status(200).json({
-        success: true,
-        alreadyProcessed: true,
-        paymentId: paymentKey,
-      });
-    }
-
-    // 2. Fetch Payment Information from Mercado Pago API or process payload
-    const mpAccessToken = process.env.MERCADOPAGO_ACCESS_TOKEN || "";
-    const isMockToken = !mpAccessToken || mpAccessToken.includes("00000000") || mpAccessToken.includes("TEST-0000");
-
-    let paymentData: any = null;
-
-    if (paymentId && !isMockToken) {
-      try {
-        const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${mpAccessToken}`,
-          },
-        });
-
-        if (mpResponse.ok) {
-          paymentData = await mpResponse.json();
-        } else {
-          console.error(`[MercadoPago Webhook] Error al consultar pago ${paymentId}:`, await mpResponse.text());
-        }
-      } catch (err) {
-        console.error(`[MercadoPago Webhook] Error de conexión con API Mercado Pago para pago ${paymentId}:`, err);
-      }
-    }
-
-    // Fallback to body data if mock or directly provided in test simulation
-    if (!paymentData) {
-      paymentData = {
-        id: paymentKey,
-        status: body.status || query.status || "approved",
-        status_detail: "accredited",
-        external_reference: body.external_reference || query.external_reference,
-        payer: {
-          email: body.userEmail || body.payer_email || "docente@enseniamx.app",
-        },
-        transaction_amount: body.price || 49,
-      };
-    }
-
-    // 3. Verify Payment Status
-    const paymentStatus = paymentData.status;
-    console.log(`[MercadoPago Webhook] Estado del pago ${paymentKey}:`, paymentStatus);
-
-    if (paymentStatus !== "approved") {
-      return res.status(200).json({
-        received: true,
-        status: paymentStatus,
-        message: `El pago se encuentra en estado '${paymentStatus}'. No se acreditan créditos hasta estar 'approved'.`,
-      });
-    }
-
-    // 4. Extract and parse purchase details from external_reference
-    let parsedRef: any = {};
-    if (paymentData.external_reference) {
-      try {
-        parsedRef = typeof paymentData.external_reference === "string"
-          ? JSON.parse(paymentData.external_reference)
-          : paymentData.external_reference;
-      } catch (e) {
-        console.warn("[MercadoPago Webhook] No se pudo deserializar external_reference como JSON:", paymentData.external_reference);
-      }
-    }
-
-    const itemType: "plan" | "credits" = parsedRef.itemType || body.itemType || (body.planId ? "plan" : "credits");
-    const planId: PlanTier = parsedRef.planId || body.planId || "basico";
-    const billingCycle: BillingCycle = parsedRef.billingCycle || body.billingCycle || "mensual";
-    const userEmail = (parsedRef.userEmail || paymentData.payer?.email || body.userEmail || "").trim().toLowerCase();
-    const userId = parsedRef.userId || body.userId || `user_${userEmail.replace(/[^a-zA-Z0-9]/g, "_")}`;
-
-    if (!userEmail) {
-      console.warn("[MercadoPago Webhook] No se pudo determinar el correo del usuario para el pago:", paymentKey);
-      return res.status(200).json({
-        received: true,
-        error: "Correo de usuario no encontrado en la metadata del pago.",
-      });
-    }
-
-    // Calculate credits to credit
-    let creditsToAdd = 0;
-    if (itemType === "plan") {
-      const planCfg = PLAN_CONFIGS[planId] || PLAN_CONFIGS.basico;
-      // Monthly: base credits; Quarterly: 3x; Yearly: 12x
-      if (billingCycle === "anual") {
-        creditsToAdd = planCfg.creditsPerMonth * 12;
-      } else if (billingCycle === "trimestral") {
-        creditsToAdd = planCfg.creditsPerMonth * 3;
-      } else {
-        creditsToAdd = planCfg.creditsPerMonth;
-      }
-    } else {
-      // Credits Package
-      const packId = parsedRef.creditPackageId || body.creditPackageId;
-      const foundPack = CREDIT_PACKAGES.find((p) => p.id === packId);
-      creditsToAdd = Number(parsedRef.creditsAdded) || foundPack?.credits || Number(body.creditAmount) || 50;
-    }
-
-    // Compute new renewal date if it's a plan
-    const now = new Date();
-    let renewalDate: Date | null = null;
-    if (itemType === "plan") {
-      renewalDate = new Date(now);
-      if (billingCycle === "anual") {
-        renewalDate.setFullYear(renewalDate.getFullYear() + 1);
-      } else if (billingCycle === "trimestral") {
-        renewalDate.setMonth(renewalDate.getMonth() + 3);
-      } else {
-        renewalDate.setMonth(renewalDate.getMonth() + 1);
-      }
-    }
-
-    console.log(`[MercadoPago Webhook] Acreditando ${creditsToAdd} créditos al usuario ${userEmail} (${itemType}: ${planId || "recarga"})...`);
-
-    // 5. Connect to Supabase Database and Update User Profile
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
-    const supabaseKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      process.env.SUPABASE_ANON_KEY ||
-      process.env.VITE_SUPABASE_ANON_KEY ||
-      "";
-
-    let dbUpdated = false;
-    let finalCredits = creditsToAdd;
-
-    if (supabaseUrl && supabaseKey && !supabaseUrl.includes("your-project")) {
-      try {
-        const supabase = createClient(supabaseUrl, supabaseKey, {
-          auth: { persistSession: false },
-        });
-
-        // Search existing profile by email
-        const { data: profiles, error: fetchErr } = await supabase
-          .from("profiles")
-          .select("*")
-          .ilike("email", userEmail);
-
-        if (fetchErr) {
-          console.error("[MercadoPago Webhook] Error al buscar perfil en Supabase:", fetchErr.message);
-        }
-
-        if (profiles && profiles.length > 0) {
-          const existing = profiles[0];
-          finalCredits = (existing.creditos_disponibles || 0) + creditsToAdd;
-
+          // Construimos el objeto de actualización
           const updatePayload: any = {
-            creditos_disponibles: finalCredits,
-            updated_at: new Date().toISOString(),
+            creditos_disponibles: nuevosCreditos,
+            updated_at: new Date().toISOString()
           };
 
-          if (itemType === "plan") {
-            updatePayload.plan = planId;
-            if (renewalDate) {
-              updatePayload.fecha_renovacion = renewalDate.toISOString();
-            }
+          // Si es un plan, actualizamos también su estatus
+          if (itemType === 'plan') {
+            updatePayload.plan = planNombre;
+            updatePayload.billing_cycle = cycle;
           }
 
-          const { error: updateErr } = await supabase
-            .from("profiles")
+          // Ejecutamos actualización
+          const { error } = await supabaseAdmin
+            .from('profiles')
             .update(updatePayload)
-            .eq("id", existing.id);
+            .eq('id', userId);
 
-          if (updateErr) {
-            console.error("[MercadoPago Webhook] Error al actualizar perfil en Supabase:", updateErr.message);
+          if (error) {
+            console.error('❌ Error al actualizar Supabase desde Webhook:', error);
           } else {
-            dbUpdated = true;
-            console.log(`[MercadoPago Webhook] Perfil de ${userEmail} actualizado en Supabase. Nuevo saldo: ${finalCredits} créditos.`);
-          }
-        } else {
-          // Create new user profile with credited amount
-          const initialBalance = 3 + creditsToAdd;
-          finalCredits = initialBalance;
-
-          const insertPayload: any = {
-            id: userId,
-            email: userEmail,
-            plan: itemType === "plan" ? planId : "gratuito",
-            creditos_disponibles: initialBalance,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          };
-
-          if (renewalDate) {
-            insertPayload.fecha_renovacion = renewalDate.toISOString();
-          }
-
-          const { error: insertErr } = await supabase.from("profiles").insert(insertPayload);
-
-          if (insertErr) {
-            console.error("[MercadoPago Webhook] Error al crear perfil en Supabase:", insertErr.message);
-          } else {
-            dbUpdated = true;
-            console.log(`[MercadoPago Webhook] Nuevo perfil creado en Supabase para ${userEmail} con ${initialBalance} créditos.`);
+            console.log(`✅ Pago procesado exitosamente. Usuario ${userId} es ahora ${planNombre} con ${nuevosCreditos} créditos.`);
           }
         }
-      } catch (dbError) {
-        console.error("[MercadoPago Webhook] Excepción al interactuar con Supabase:", dbError);
       }
-    } else {
-      console.warn("[MercadoPago Webhook] Supabase no está configurado en las variables de entorno. Los créditos se procesaron en memoria/simulación.");
     }
 
-    // Mark as processed in cache
-    processedPayments.add(paymentKey);
-
-    return res.status(200).json({
-      success: true,
-      message: "Notificación de pago aprobada y créditos acreditados exitosamente.",
-      paymentId: paymentKey,
-      userEmail,
-      itemType,
-      plan: itemType === "plan" ? planId : undefined,
-      creditsAdded: creditsToAdd,
-      finalCredits,
-      dbUpdated,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error: any) {
-    console.error("[MercadoPago Webhook Error]:", error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || "Error interno al procesar el webhook de Mercado Pago.",
-    });
+    // Retornamos 200 OK para que MP deje de enviar alertas
+    return res.status(200).send('OK');
+  } catch (error) {
+    console.error('⚠️ Error interno procesando Webhook MP:', error);
+    // Mercado Pago necesita recibir un 200 incluso si fallamos internamente, 
+    // de lo contrario reintentará la petición miles de veces y saturará el servidor.
+    return res.status(200).send('Error internally, but acknowledged'); 
   }
 }
-
-export default handleMercadoPagoWebhook;
