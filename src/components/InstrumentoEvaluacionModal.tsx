@@ -40,7 +40,7 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
   } = planData;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto print:p-0 print:static print:bg-white print:overflow-visible">
+    <div id="instrumento-modal-wrapper" className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto print:p-0 print:static print:bg-white print:overflow-visible">
       <div className="bg-white rounded-2xl border-2 border-slate-900 shadow-2xl w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden print:max-h-none print:shadow-none print:border-none print:rounded-none">
         
         {/* Barra Superior - Oculta en impresión */}
@@ -361,30 +361,32 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
         </div>
       </div>
 
-     {/* ESTILO PARA PERMITIR PAGINACIÓN Y OCULTAR EL FONDO */}
+     {/* CSS MAGICO DE IMPRESIÓN */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          /* 1. Apagamos la planeación que está de fondo para que no ocupe espacio */
+          /* 1. Ocultar la planeacion de fondo */
           #documento-resultado { display: none !important; }
           
-          /* 2. "Desempaquetamos" el modal quitándole lo fijo y el centrado para que caiga hasta arriba */
-          .fixed.inset-0 {
-            position: relative !important;
-            display: block !important;
-            background: transparent !important;
-            padding: 0 !important;
+          /* 2. Forzar al body a permitir paginación (anula el bloqueo de scroll del modal de React) */
+          body, html {
+            overflow: visible !important;
+            height: auto !important;
           }
           
-          /* 3. Rompemos el límite de altura (max-h) para que el navegador se vea obligado a crear páginas nuevas */
-          .max-h-\\[92vh\\] {
+          /* 3. Destruir las ataduras del modal (fixed, flex, scroll) para convertirlo en documento normal */
+          #instrumento-modal-wrapper, 
+          #instrumento-modal-wrapper > div, 
+          #instrumento-modal-wrapper .overflow-y-auto {
+            position: static !important;
+            display: block !important;
+            height: auto !important;
             max-height: none !important;
+            overflow: visible !important;
+            background: white !important;
+            padding: 0 !important;
+            margin: 0 !important;
             box-shadow: none !important;
             border: none !important;
-          }
-          
-          /* 4. Hacemos el desbordamiento visible */
-          .overflow-y-auto, .overflow-hidden {
-            overflow: visible !important;
           }
         }
       `}} />
