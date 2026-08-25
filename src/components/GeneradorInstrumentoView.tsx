@@ -87,9 +87,8 @@ export default function GeneradorInstrumentoView({
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6">
       
-      {/* FORMULARIO DE SELECCIÓN */}
       <div className="print:hidden bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-sm space-y-6">
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
@@ -170,7 +169,6 @@ export default function GeneradorInstrumentoView({
         </div>
       </div>
 
-      {/* ÁREA DEL DOCUMENTO IMPRIMIBLE */}
       {instrumentData && selectedPlan && !isLoading && (
         <div className="space-y-6">
           <div className="print:hidden">
@@ -322,11 +320,33 @@ export default function GeneradorInstrumentoView({
         </div>
       )}
 
+      {/* BLOQUE DE CSS NUCLEAR: ESTO DESTRUYE LA TRAMPA DE 100VH DE CHROME */}
       <style>{`
         @media print {
           body { background-color: white !important; color: black !important; font-size: 11px !important; }
-          .print\\:hidden, header, nav, aside { display: none !important; }
-          #instrumento-evaluacion-resultado { border: none !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; width: 100% !important; }
+          .print\\:hidden, header, nav, aside, footer { display: none !important; }
+          
+          /* EL TRUCO GLOBAL: Destruye el CSS del Dashboard que corta la página a 1 sola hoja blanca */
+          html, body, #root, .min-h-screen, main, main > .grid, .flex-1, .lg\\:col-span-3, .lg\\:col-span-2 { 
+            display: block !important; 
+            height: auto !important; 
+            min-height: 0 !important; 
+            overflow: visible !important; 
+            position: static !important; 
+          }
+
+          /* Garantiza que todo sea opaco y visible */
+          * { animation: none !important; transition: none !important; opacity: 1 !important; visibility: visible !important; }
+
+          #instrumento-evaluacion-resultado { 
+            border: none !important; 
+            padding: 0 !important; 
+            margin: 0 !important; 
+            box-shadow: none !important; 
+            width: 100% !important; 
+            max-width: 100% !important;
+          }
+          
           .break-inside-avoid { page-break-inside: avoid !important; }
         }
       `}</style>

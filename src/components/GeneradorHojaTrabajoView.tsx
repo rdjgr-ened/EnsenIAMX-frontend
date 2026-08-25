@@ -17,7 +17,7 @@ export default function GeneradorHojaTrabajoView({
   planeacionesGuardadas, onBack, subscription, onDeductCredits, onTriggerPaywall
 }: GeneradorHojaTrabajoProps) {
   const [selectedPlanId, setSelectedPlanId] = useState<string>("");
-  const [selectedSessionId, setSelectedSessionId] = useState<string>(""); // format: "faseIndex-sesionIndex"
+  const [selectedSessionId, setSelectedSessionId] = useState<string>(""); 
   
   const [worksheetData, setWorksheetData] = useState<GeneratedWorksheet | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +25,6 @@ export default function GeneradorHojaTrabajoView({
 
   const selectedPlan = planeacionesGuardadas.find(p => p.id === selectedPlanId);
 
-  // Extraer las sesiones disponibles del plan seleccionado
   const availableSessions = selectedPlan ? selectedPlan.plan.fases.flatMap((fase, fIdx) => 
     fase.sesiones.map((sesion, sIdx) => ({
       id: `${fIdx}-${sIdx}`,
@@ -100,9 +99,8 @@ export default function GeneradorHojaTrabajoView({
   const selectedSessionData = availableSessions.find(s => s.id === selectedSessionId);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6">
       
-      {/* FORMULARIO DE SELECCIÓN (Se oculta al imprimir) */}
       <div className="print:hidden bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-sm space-y-6">
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
@@ -169,7 +167,6 @@ export default function GeneradorHojaTrabajoView({
         </div>
       </div>
 
-      {/* ÁREA DEL DOCUMENTO (Lo que se imprime) */}
       {worksheetData && selectedPlan && selectedSessionData && !isLoading && (
         <div className="space-y-6">
           <div className="print:hidden">
@@ -250,7 +247,7 @@ export default function GeneradorHojaTrabajoView({
 
             {worksheetData.ticketDeSalida && (
               <div className="p-5 border-2 border-dashed border-amber-500 bg-amber-50/40 rounded-xl space-y-3 break-inside-avoid">
-                <span className="font-black uppercase text-amber-900 text-sm tracking-wider flex items-center gap-1.5">🎟️ Ticket de Salida</span>
+                <span className="font-black uppercase text-amber-900 text-sm tracking-wider flex items-center gap-1.5">🎟️ Ticket de Salida (Entregar al finalizar la clase)</span>
                 <p className="font-bold text-slate-900 text-sm">{worksheetData.ticketDeSalida}</p>
                 <div className="space-y-3 pt-2"><div className="border-b border-dashed border-slate-400 h-6" /><div className="border-b border-dashed border-slate-400 h-6" /></div>
               </div>
@@ -259,11 +256,33 @@ export default function GeneradorHojaTrabajoView({
         </div>
       )}
 
+      {/* BLOQUE DE CSS NUCLEAR: ESTO DESTRUYE LA TRAMPA DE 100VH DE CHROME */}
       <style>{`
         @media print {
           body { background-color: white !important; color: black !important; font-size: 11px !important; }
-          .print\\:hidden, header, nav, aside { display: none !important; }
-          #hoja-trabajo-resultado { border: none !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; width: 100% !important; }
+          .print\\:hidden, header, nav, aside, footer { display: none !important; }
+          
+          /* EL TRUCO GLOBAL: Destruye el CSS del Dashboard que corta la página a 1 sola hoja blanca */
+          html, body, #root, .min-h-screen, main, main > .grid, .flex-1, .lg\\:col-span-3, .lg\\:col-span-2 { 
+            display: block !important; 
+            height: auto !important; 
+            min-height: 0 !important; 
+            overflow: visible !important; 
+            position: static !important; 
+          }
+
+          /* Garantiza que todo sea opaco y visible */
+          * { animation: none !important; transition: none !important; opacity: 1 !important; visibility: visible !important; }
+
+          #hoja-trabajo-resultado { 
+            border: none !important; 
+            padding: 0 !important; 
+            margin: 0 !important; 
+            box-shadow: none !important; 
+            width: 100% !important; 
+            max-width: 100% !important;
+          }
+          
           .break-inside-avoid { page-break-inside: avoid !important; }
         }
       `}</style>
