@@ -60,7 +60,7 @@ export default function PlaneacionPreview({
     sesionTitulo: "",
   });
 
-  // Guardar planeación automáticamente en Supabase (Formato Filtrado)
+  // // Guardar planeación automáticamente en Supabase (Formato Filtrado)
   React.useEffect(() => {
     if (isSupabaseConfigured && planData) {
       const userProfileStr = localStorage.getItem("nem_secundaria_profile");
@@ -376,9 +376,8 @@ export default function PlaneacionPreview({
   return (
     <div className="space-y-6">
       
-      {/* EL TRUCO DEFINITIVO: Ocultamos la Planeación si algún Modal de Página Independiente está abierto */}
+      {/* EL TRUCO: Contenedor que oculta la planeación cuando se abre un modal */}
       <div className={isInstrumentModalOpen || isWorksheetModalOpen ? "hidden" : "block"}>
-        
         {/* Barra de Herramientas Estandarizada EnseñIA MX - Acciones de Documento */}
         <AccionesDocumento
           targetId="documento-resultado"
@@ -408,341 +407,342 @@ export default function PlaneacionPreview({
             id="documento-resultado"
             className="lg:col-span-2 bg-white p-8 sm:p-12 rounded-2xl border-2 border-slate-900 shadow-[6px_6px_0px_0px_rgba(106,27,49,0.15)] font-sans text-slate-900 print:border-none print:p-0 print:shadow-none print:rounded-none printable-document"
           >
-            {/* Encabezado Escolar */}
-            <div className="text-center border-b-2 border-slate-900 pb-4 mb-6">
-              <h1 className="font-black text-lg tracking-wider text-slate-950 uppercase mb-1">Planeación Didáctica</h1>
-              <h2 className="text-sm font-extrabold text-mex-maroon uppercase mb-0.5">{escuelaName}</h2>
-              <span className="text-xs font-bold text-slate-600 tracking-wide uppercase">C.C.T. {cct}</span>
+          
+          {/* Encabezado Escolar */}
+          <div className="text-center border-b-2 border-slate-900 pb-4 mb-6">
+            <h1 className="font-black text-lg tracking-wider text-slate-950 uppercase mb-1">Planeación Didáctica</h1>
+            <h2 className="text-sm font-extrabold text-mex-maroon uppercase mb-0.5">{escuelaName}</h2>
+            <span className="text-xs font-bold text-slate-600 tracking-wide uppercase">C.C.T. {cct}</span>
+          </div>
+
+          {/* Tabla Principal de Identificación Curricular (Formato Matriz Escolar) */}
+          <div className="border-2 border-slate-900 text-xs mb-6 overflow-hidden rounded">
+            {/* Fila 1 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 border-b-2 border-slate-900">
+              <div className="p-3 border-r-2 border-slate-900 bg-slate-50/50">
+                <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">DOCENTE:</span>
+                <span className="font-black text-slate-950 text-xs uppercase">{docenteName}</span>
+              </div>
+              <div className="p-3 bg-slate-50/50 flex justify-between items-center">
+                <div>
+                  <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">FECHA / DURACIÓN ESTIMADA:</span>
+                  <span className="font-bold text-slate-950 text-xs">{planData.duracionSemanas || "2 semanas"}</span>
+                </div>
+                {planData.duracionSesion && (
+                  <div className="text-right border-l pl-4 border-slate-300">
+                    <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">SESIÓN DE CLASE:</span>
+                    <span className="font-bold text-slate-950 text-xs">{planData.duracionSesion}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Tabla Principal de Identificación Curricular (Formato Matriz Escolar) */}
-            <div className="border-2 border-slate-900 text-xs mb-6 overflow-hidden rounded">
-              {/* Fila 1 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 border-b-2 border-slate-900">
-                <div className="p-3 border-r-2 border-slate-900 bg-slate-50/50">
-                  <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">DOCENTE:</span>
-                  <span className="font-black text-slate-950 text-xs uppercase">{docenteName}</span>
-                </div>
-                <div className="p-3 bg-slate-50/50 flex justify-between items-center">
-                  <div>
-                    <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">FECHA / DURACIÓN ESTIMADA:</span>
-                    <span className="font-bold text-slate-950 text-xs">{planData.duracionSemanas || "2 semanas"}</span>
-                  </div>
-                  {planData.duracionSesion && (
-                    <div className="text-right border-l pl-4 border-slate-300">
-                      <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">SESIÓN DE CLASE:</span>
-                      <span className="font-bold text-slate-950 text-xs">{planData.duracionSesion}</span>
-                    </div>
-                  )}
-                </div>
+            {/* Fila 2 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 border-b-2 border-slate-900">
+              <div className="p-3 border-r-2 border-slate-900 bg-slate-50/50">
+                <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">CAMPO FORMATIVO:</span>
+                <span className="font-bold text-slate-950">{campoFormativo}</span>
               </div>
-
-              {/* Fila 2 */}
-              <div className="grid grid-cols-1 md:grid-cols-3 border-b-2 border-slate-900">
-                <div className="p-3 border-r-2 border-slate-900 bg-slate-50/50">
-                  <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">CAMPO FORMATIVO:</span>
-                  <span className="font-bold text-slate-950">{campoFormativo}</span>
-                </div>
-                <div className="p-3 border-r-2 border-slate-900 bg-slate-50/50">
-                  <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">DISCIPLINA:</span>
-                  <span className="font-bold text-slate-950">{disciplina}</span>
-                </div>
-                <div className="p-3 bg-slate-50/50">
-                  <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">GRADO Y GRUPO:</span>
-                  <span className="font-bold text-slate-950">{grado} - Grupo "{grupo}"</span>
-                </div>
+              <div className="p-3 border-r-2 border-slate-900 bg-slate-50/50">
+                <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">DISCIPLINA:</span>
+                <span className="font-bold text-slate-950">{disciplina}</span>
               </div>
-
-              {/* Fila 3 - Título / Producto */}
-              <div className="grid grid-cols-1 md:grid-cols-2 border-b-2 border-slate-900">
-                <div className="p-3 border-r-2 border-slate-900">
-                  <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">PRODUCTO FINAL SUGERIDO:</span>
-                  <span className="font-bold text-slate-950 text-mex-maroon">{plan.producto}</span>
-                </div>
-                <div className="p-3">
-                  <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">{(nivel || '').toLowerCase() === 'preescolar' ? 'MODALIDAD DE TRABAJO:' : 'METODOLOGÍA NEM:'}</span>
-                  <span className="font-bold text-slate-950">{metodologia}</span>
-                </div>
-              </div>
-
-              {/* Fila 4 - Situación Problema */}
-              <div className="p-3 border-b-2 border-slate-900 bg-slate-50/30">
-                <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">SITUACIÓN-PROBLEMA DEL CONTEXTO:</span>
-                <span className="text-slate-950 italic mt-0.5 block leading-relaxed">"{situacionProblema}"</span>
-              </div>
-
-              {/* Fila 5 - Propósito */}
-              <div className="p-3 border-b-2 border-slate-900">
-                <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">PROPÓSITO DEL PROYECTO:</span>
-                <span className="text-slate-950 mt-0.5 block leading-relaxed font-medium">{plan.proposito}</span>
-              </div>
-
-              {/* Fila 6 - Contenido y PDA */}
-              <div className="grid grid-cols-1 md:grid-cols-2 border-b-2 border-slate-900">
-                <div className="p-3 border-r-2 border-slate-900">
-                  <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">CONTENIDO SINTÉTICO:</span>
-                  <span className="font-bold text-slate-950 mt-0.5 block leading-normal">{contenido}</span>
-                </div>
-                <div className="p-3">
-                  <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">PROCESO DE DESARROLLO DE APRENDIZAJE (PDA):</span>
-                  <span className="font-bold text-slate-950 mt-0.5 block leading-normal">{pda}</span>
-                </div>
-              </div>
-
-              {/* Fila 7 - Ejes Articuladores */}
               <div className="p-3 bg-slate-50/50">
-                <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-1.5">EJES ARTICULADORES TRANSVERSALES:</span>
+                <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">GRADO Y GRUPO:</span>
+                <span className="font-bold text-slate-950">{grado} - Grupo "{grupo}"</span>
+              </div>
+            </div>
+
+            {/* Fila 3 - Título / Producto */}
+            <div className="grid grid-cols-1 md:grid-cols-2 border-b-2 border-slate-900">
+              <div className="p-3 border-r-2 border-slate-900">
+                <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">PRODUCTO FINAL SUGERIDO:</span>
+                <span className="font-bold text-slate-950 text-mex-maroon">{plan.producto}</span>
+              </div>
+              <div className="p-3">
+                <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">{(nivel || '').toLowerCase() === 'preescolar' ? 'MODALIDAD DE TRABAJO:' : 'METODOLOGÍA NEM:'}</span>
+                <span className="font-bold text-slate-950">{metodologia}</span>
+              </div>
+            </div>
+
+            {/* Fila 4 - Situación Problema */}
+            <div className="p-3 border-b-2 border-slate-900 bg-slate-50/30">
+              <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">SITUACIÓN-PROBLEMA DEL CONTEXTO:</span>
+              <span className="text-slate-950 italic mt-0.5 block leading-relaxed">"{situacionProblema}"</span>
+            </div>
+
+            {/* Fila 5 - Propósito */}
+            <div className="p-3 border-b-2 border-slate-900">
+              <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">PROPÓSITO DEL PROYECTO:</span>
+              <span className="text-slate-950 mt-0.5 block leading-relaxed font-medium">{plan.proposito}</span>
+            </div>
+
+            {/* Fila 6 - Contenido y PDA */}
+            <div className="grid grid-cols-1 md:grid-cols-2 border-b-2 border-slate-900">
+              <div className="p-3 border-r-2 border-slate-900">
+                <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">CONTENIDO SINTÉTICO:</span>
+                <span className="font-bold text-slate-950 mt-0.5 block leading-normal">{contenido}</span>
+              </div>
+              <div className="p-3">
+                <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-0.5">PROCESO DE DESARROLLO DE APRENDIZAJE (PDA):</span>
+                <span className="font-bold text-slate-950 mt-0.5 block leading-normal">{pda}</span>
+              </div>
+            </div>
+
+            {/* Fila 7 - Ejes Articuladores */}
+            <div className="p-3 bg-slate-50/50">
+              <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-1.5">EJES ARTICULADORES TRANSVERSALES:</span>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {ejesArticuladores.map((eje, i) => (
+                  <span
+                    key={i}
+                    className="bg-mex-maroon/5 text-mex-maroon text-[9px] font-black px-2 py-0.5 rounded border border-mex-maroon/15 uppercase tracking-wide"
+                  >
+                    {eje}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Fila 8 - BAP Seleccionados */}
+            {bapSelected && bapSelected.length > 0 && (
+              <div className="p-3 bg-slate-50/50 border-t-2 border-slate-900">
+                <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-1.5">BAP / APTITUDES SOBRESALIENTES EN EL GRUPO:</span>
                 <div className="flex flex-wrap gap-1.5 mt-1">
-                  {ejesArticuladores.map((eje, i) => (
+                  {bapSelected.map((bap, i) => (
                     <span
                       key={i}
-                      className="bg-mex-maroon/5 text-mex-maroon text-[9px] font-black px-2 py-0.5 rounded border border-mex-maroon/15 uppercase tracking-wide"
+                      className="bg-[#991b1b]/5 text-[#991b1b] text-[9px] font-black px-2 py-0.5 rounded border border-[#991b1b]/15 uppercase tracking-wide"
                     >
-                      {eje}
+                      {bap}
                     </span>
                   ))}
                 </div>
               </div>
+            )}
+          </div>
 
-              {/* Fila 8 - BAP Seleccionados */}
-              {bapSelected && bapSelected.length > 0 && (
-                <div className="p-3 bg-slate-50/50 border-t-2 border-slate-900">
-                  <span className="font-bold text-slate-700 uppercase text-[9px] tracking-wider block mb-1.5">BAP / APTITUDES SOBRESALIENTES EN EL GRUPO:</span>
-                  <div className="flex flex-wrap gap-1.5 mt-1">
-                    {bapSelected.map((bap, i) => (
-                      <span
-                        key={i}
-                        className="bg-[#991b1b]/5 text-[#991b1b] text-[9px] font-black px-2 py-0.5 rounded border border-[#991b1b]/15 uppercase tracking-wide"
-                      >
-                        {bap}
+          {/* SECUENCIA DIDÁCTICA DETALLADA POR FASES/MOMENTOS */}
+          <div className="space-y-6 mt-8">
+            <h3 className="text-xs font-black uppercase text-slate-950 tracking-widest border-b-2 border-slate-950 pb-1 flex items-center gap-2">
+              <span>II. Secuencia de Aprendizaje</span>
+            </h3>
+
+            {plan.fases.map((fase, fIndex) => (
+              <div key={fIndex} className="border-2 border-slate-900 rounded overflow-hidden shadow-[4px_4px_0px_0px_rgba(106,27,49,0.15)] page-break-inside-avoid">
+                {/* Encabezado de la Fase / Momento */}
+                <div className="bg-mex-maroon text-white p-3 font-bold text-xs uppercase tracking-wider flex items-center justify-between border-b-2 border-slate-900">
+                  <span>{fase.nombre}</span>
+                  <span className="text-[9px] bg-mex-gold text-slate-950 font-black px-2 py-0.5 rounded tracking-wider">
+                    {nivel?.toLowerCase() === 'preescolar' ? 'Estructura Didáctica' : 'Fase Metodológica'}
+                  </span>
+                </div>
+
+                {/* Lista de Sesiones dentro de esta fase */}
+                <div className="divide-y-2 divide-slate-900">
+                  {fase.sesiones.map((sesion, sIndex) => (
+                    <div key={sIndex} className="p-4 sm:p-5 bg-white text-xs">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2 mb-3">
+                        <span className="font-black text-xs text-slate-900 uppercase tracking-wide">
+                          Sesión {sesion.numero}: {sesion.titulo}
+                        </span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-mex-maroon bg-mex-maroon/5 px-2.5 py-0.5 rounded border border-mex-maroon/15 text-[10px]">
+                            Duración: {sesion.duracion}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleGenerateWorksheet(fase.nombre, sesion)}
+                            className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition shadow-2xs cursor-pointer print:hidden active:scale-95"
+                            title="Crear hoja de trabajo con las actividades de esta sesión"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-blue-200" />
+                            <span>Crear hoja de trabajo</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Actividades de la Sesión en un diseño tabular elegante */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                        {/* Inicio */}
+                        <div className="border border-slate-300 rounded p-3 bg-slate-50/50">
+                          <span className="font-black text-[9px] text-mex-maroon tracking-wider uppercase block border-b border-mex-maroon/10 pb-1 mb-1.5">
+                            Actividades de Inicio (Motivación y Saberes)
+                          </span>
+                          <p className="text-slate-800 leading-relaxed font-normal whitespace-pre-line">{sesion.inicio}</p>
+                        </div>
+
+                        {/* Desarrollo */}
+                        <div className="border border-slate-300 rounded p-3 bg-white">
+                          <span className="font-black text-[9px] text-emerald-800 tracking-wider uppercase block border-b border-emerald-100 pb-1 mb-1.5">
+                            Actividades de Desarrollo (Acción e Indagación)
+                          </span>
+                          <p className="text-slate-800 leading-relaxed font-normal whitespace-pre-line">{sesion.desarrollo}</p>
+                        </div>
+
+                        {/* Cierre */}
+                        <div className="border border-slate-300 rounded p-3 bg-slate-50/50">
+                          <span className="font-black text-[9px] text-[#b45309] tracking-wider uppercase block border-b border-amber-100/50 pb-1 mb-1.5">
+                            Actividades de Cierre (Síntesis y Evaluación)
+                          </span>
+                          <p className="text-slate-800 leading-relaxed font-normal whitespace-pre-line">{sesion.cierre}</p>
+                        </div>
+                      </div>
+
+                      {/* Recursos y Materiales */}
+                      <div className="bg-slate-50 rounded p-2.5 border border-slate-200">
+                        <span className="font-bold text-slate-700 text-[9px] block uppercase tracking-wider">RECURSOS Y MATERIALES REQUERIDOS:</span>
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {sesion.materiales.map((mat, i) => (
+                            <span
+                              key={i}
+                              className="bg-white border border-slate-300 text-slate-800 text-[9px] font-semibold px-2 py-0.5 rounded"
+                            >
+                              {mat}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Evaluación Formativa Integrada de la Sesión */}
+                      {sesion.evaluacionSesion && (
+                        <div className="mt-2.5 bg-[#fffaf5] rounded p-2.5 border border-[#fed7aa]/40">
+                          <span className="font-black text-amber-900 text-[9px] block uppercase tracking-wider">EVALUACIÓN FORMATIVA INTEGRADA EN ESTA SESIÓN:</span>
+                          <p className="text-slate-800 font-medium text-xs mt-1 italic leading-relaxed whitespace-pre-line">{sesion.evaluacionSesion}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* EVALUACIÓN FORMATIVA */}
+          <div className="space-y-4 mt-8 page-break-inside-avoid">
+            <h3 className="text-xs font-black uppercase text-slate-950 tracking-widest border-b-2 border-slate-950 pb-1 flex items-center gap-2">
+              <span>III. Estrategia de Evaluación Formativa</span>
+            </h3>
+            <div className="border-2 border-slate-900 rounded p-5 bg-slate-50/20 text-xs shadow-[4px_4px_0px_0px_rgba(106,27,49,0.15)]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <span className="font-bold text-slate-700 text-[9px] tracking-wider uppercase block mb-1">Técnicas de Evaluación Sugeridas:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {plan.evaluacionFormativa.tecnicas.map((tec, i) => (
+                      <span key={i} className="bg-white border border-slate-300 text-slate-800 px-2 py-0.5 rounded font-bold">
+                        {tec}
                       </span>
                     ))}
                   </div>
                 </div>
-              )}
-            </div>
-
-            {/* SECUENCIA DIDÁCTICA DETALLADA POR FASES/MOMENTOS */}
-            <div className="space-y-6 mt-8">
-              <h3 className="text-xs font-black uppercase text-slate-950 tracking-widest border-b-2 border-slate-950 pb-1 flex items-center gap-2">
-                <span>II. Secuencia de Aprendizaje</span>
-              </h3>
-
-              {plan.fases.map((fase, fIndex) => (
-                <div key={fIndex} className="border-2 border-slate-900 rounded overflow-hidden shadow-[4px_4px_0px_0px_rgba(106,27,49,0.15)] page-break-inside-avoid">
-                  {/* Encabezado de la Fase / Momento */}
-                  <div className="bg-mex-maroon text-white p-3 font-bold text-xs uppercase tracking-wider flex items-center justify-between border-b-2 border-slate-900">
-                    <span>{fase.nombre}</span>
-                    <span className="text-[9px] bg-mex-gold text-slate-950 font-black px-2 py-0.5 rounded tracking-wider">
-                      {nivel?.toLowerCase() === 'preescolar' ? 'Estructura Didáctica' : 'Fase Metodológica'}
-                    </span>
-                  </div>
-
-                  {/* Lista de Sesiones dentro de esta fase */}
-                  <div className="divide-y-2 divide-slate-900">
-                    {fase.sesiones.map((sesion, sIndex) => (
-                      <div key={sIndex} className="p-4 sm:p-5 bg-white text-xs">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2 mb-3">
-                          <span className="font-black text-xs text-slate-900 uppercase tracking-wide">
-                            Sesión {sesion.numero}: {sesion.titulo}
-                          </span>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-bold text-mex-maroon bg-mex-maroon/5 px-2.5 py-0.5 rounded border border-mex-maroon/15 text-[10px]">
-                              Duración: {sesion.duracion}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleGenerateWorksheet(fase.nombre, sesion)}
-                              className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition shadow-2xs cursor-pointer print:hidden active:scale-95"
-                              title="Crear hoja de trabajo con las actividades de esta sesión"
-                            >
-                              <FileText className="w-3.5 h-3.5 text-blue-200" />
-                              <span>Crear hoja de trabajo</span>
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Actividades de la Sesión en un diseño tabular elegante */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
-                          {/* Inicio */}
-                          <div className="border border-slate-300 rounded p-3 bg-slate-50/50">
-                            <span className="font-black text-[9px] text-mex-maroon tracking-wider uppercase block border-b border-mex-maroon/10 pb-1 mb-1.5">
-                              Actividades de Inicio (Motivación y Saberes)
-                            </span>
-                            <p className="text-slate-800 leading-relaxed font-normal whitespace-pre-line">{sesion.inicio}</p>
-                          </div>
-
-                          {/* Desarrollo */}
-                          <div className="border border-slate-300 rounded p-3 bg-white">
-                            <span className="font-black text-[9px] text-emerald-800 tracking-wider uppercase block border-b border-emerald-100 pb-1 mb-1.5">
-                              Actividades de Desarrollo (Acción e Indagación)
-                            </span>
-                            <p className="text-slate-800 leading-relaxed font-normal whitespace-pre-line">{sesion.desarrollo}</p>
-                          </div>
-
-                          {/* Cierre */}
-                          <div className="border border-slate-300 rounded p-3 bg-slate-50/50">
-                            <span className="font-black text-[9px] text-[#b45309] tracking-wider uppercase block border-b border-amber-100/50 pb-1 mb-1.5">
-                              Actividades de Cierre (Síntesis y Evaluación)
-                            </span>
-                            <p className="text-slate-800 leading-relaxed font-normal whitespace-pre-line">{sesion.cierre}</p>
-                          </div>
-                        </div>
-
-                        {/* Recursos y Materiales */}
-                        <div className="bg-slate-50 rounded p-2.5 border border-slate-200">
-                          <span className="font-bold text-slate-700 text-[9px] block uppercase tracking-wider">RECURSOS Y MATERIALES REQUERIDOS:</span>
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {sesion.materiales.map((mat, i) => (
-                              <span
-                                key={i}
-                                className="bg-white border border-slate-300 text-slate-800 text-[9px] font-semibold px-2 py-0.5 rounded"
-                              >
-                                {mat}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Evaluación Formativa Integrada de la Sesión */}
-                        {sesion.evaluacionSesion && (
-                          <div className="mt-2.5 bg-[#fffaf5] rounded p-2.5 border border-[#fed7aa]/40">
-                            <span className="font-black text-amber-900 text-[9px] block uppercase tracking-wider">EVALUACIÓN FORMATIVA INTEGRADA EN ESTA SESIÓN:</span>
-                            <p className="text-slate-800 font-medium text-xs mt-1 italic leading-relaxed whitespace-pre-line">{sesion.evaluacionSesion}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* EVALUACIÓN FORMATIVA */}
-            <div className="space-y-4 mt-8 page-break-inside-avoid">
-              <h3 className="text-xs font-black uppercase text-slate-950 tracking-widest border-b-2 border-slate-950 pb-1 flex items-center gap-2">
-                <span>III. Estrategia de Evaluación Formativa</span>
-              </h3>
-              <div className="border-2 border-slate-900 rounded p-5 bg-slate-50/20 text-xs shadow-[4px_4px_0px_0px_rgba(106,27,49,0.15)]">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <span className="font-bold text-slate-700 text-[9px] tracking-wider uppercase block mb-1">Técnicas de Evaluación Sugeridas:</span>
-                    <div className="flex flex-wrap gap-1">
-                      {plan.evaluacionFormativa.tecnicas.map((tec, i) => (
-                        <span key={i} className="bg-white border border-slate-300 text-slate-800 px-2 py-0.5 rounded font-bold">
-                          {tec}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="font-bold text-slate-700 text-[9px] tracking-wider uppercase block mb-1">
-                      Instrumentos Recomendados (Diseña e Imprime con Gemini):
-                    </span>
-                    <div className="flex flex-wrap gap-2 items-center">
-                      {plan.evaluacionFormativa.instrumentos.map((ins, i) => (
-                        <div
-                          key={i}
-                          className="bg-white border border-slate-300 text-slate-900 px-2.5 py-1 rounded-lg font-bold text-xs flex items-center gap-2 shadow-2xs hover:border-mex-maroon transition"
-                        >
-                          <span>{ins}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleGenerateInstrument(ins)}
-                            className="px-2 py-0.5 bg-mex-maroon hover:bg-mex-maroon/90 text-white rounded font-black text-[10px] tracking-wider uppercase flex items-center gap-1 transition shadow-2xs print:hidden cursor-pointer active:scale-95"
-                            title={`Diseñar ${ins} con Gemini para este proyecto`}
-                          >
-                            <Sparkles className="w-3 h-3 text-mex-gold" />
-                            <span>Crear</span>
-                          </button>
-                        </div>
-                      ))}
-
-                      {!showCustomInput ? (
+                <div>
+                  <span className="font-bold text-slate-700 text-[9px] tracking-wider uppercase block mb-1">
+                    Instrumentos Recomendados (Diseña e Imprime con Gemini):
+                  </span>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {plan.evaluacionFormativa.instrumentos.map((ins, i) => (
+                      <div
+                        key={i}
+                        className="bg-white border border-slate-300 text-slate-900 px-2.5 py-1 rounded-lg font-bold text-xs flex items-center gap-2 shadow-2xs hover:border-mex-maroon transition"
+                      >
+                        <span>{ins}</span>
                         <button
                           type="button"
-                          onClick={() => setShowCustomInput(true)}
-                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-lg text-xs font-bold flex items-center gap-1 transition print:hidden cursor-pointer"
+                          onClick={() => handleGenerateInstrument(ins)}
+                          className="px-2 py-0.5 bg-mex-maroon hover:bg-mex-maroon/90 text-white rounded font-black text-[10px] tracking-wider uppercase flex items-center gap-1 transition shadow-2xs print:hidden cursor-pointer active:scale-95"
+                          title={`Diseñar ${ins} con Gemini para este proyecto`}
                         >
-                          <Plus className="w-3.5 h-3.5 text-mex-maroon" />
-                          <span>Crear otro...</span>
+                          <Sparkles className="w-3 h-3 text-mex-gold" />
+                          <span>Crear</span>
                         </button>
-                      ) : (
-                        <div className="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-mex-maroon shadow-sm print:hidden">
-                          <input
-                            type="text"
-                            placeholder="Ej. Guía de Coevaluación"
-                            value={customInstrumentName}
-                            onChange={(e) => setCustomInstrumentName(e.target.value)}
-                            className="px-2 py-0.5 text-xs border border-slate-200 rounded text-slate-900 font-medium focus:outline-none w-36"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (customInstrumentName.trim()) {
-                                handleGenerateInstrument(customInstrumentName.trim());
-                                setCustomInstrumentName("");
-                                setShowCustomInput(false);
-                              }
-                            }}
-                            disabled={!customInstrumentName.trim()}
-                            className="px-2.5 py-1 bg-mex-maroon hover:bg-mex-maroon/90 disabled:opacity-50 text-white rounded font-black text-[10px] uppercase flex items-center gap-1 cursor-pointer"
-                          >
-                            <Sparkles className="w-3 h-3 text-mex-gold" />
-                            <span>Generar</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setShowCustomInput(false)}
-                            className="text-slate-400 hover:text-slate-600 text-xs px-1 font-bold"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    ))}
+
+                    {!showCustomInput ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowCustomInput(true)}
+                        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-lg text-xs font-bold flex items-center gap-1 transition print:hidden cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-mex-maroon" />
+                        <span>Crear otro...</span>
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-mex-maroon shadow-sm print:hidden">
+                        <input
+                          type="text"
+                          placeholder="Ej. Guía de Coevaluación"
+                          value={customInstrumentName}
+                          onChange={(e) => setCustomInstrumentName(e.target.value)}
+                          className="px-2 py-0.5 text-xs border border-slate-200 rounded text-slate-900 font-medium focus:outline-none w-36"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (customInstrumentName.trim()) {
+                              handleGenerateInstrument(customInstrumentName.trim());
+                              setCustomInstrumentName("");
+                              setShowCustomInput(false);
+                            }
+                          }}
+                          disabled={!customInstrumentName.trim()}
+                          className="px-2.5 py-1 bg-mex-maroon hover:bg-mex-maroon/90 disabled:opacity-50 text-white rounded font-black text-[10px] uppercase flex items-center gap-1 cursor-pointer"
+                        >
+                          <Sparkles className="w-3 h-3 text-mex-gold" />
+                          <span>Generar</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowCustomInput(false)}
+                          className="text-slate-400 hover:text-slate-600 text-xs px-1 font-bold"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div>
-                  <span className="font-bold text-slate-700 text-[9px] tracking-wider uppercase block mb-1">Descripción del Proceso de Evaluación:</span>
-                  <p className="text-slate-800 leading-relaxed font-normal bg-white p-3 rounded border border-slate-200">
-                    {plan.evaluacionFormativa.descripcion}
-                  </p>
-                </div>
+              </div>
+              <div>
+                <span className="font-bold text-slate-700 text-[9px] tracking-wider uppercase block mb-1">Descripción del Proceso de Evaluación:</span>
+                <p className="text-slate-800 leading-relaxed font-normal bg-white p-3 rounded border border-slate-200">
+                  {plan.evaluacionFormativa.descripcion}
+                </p>
               </div>
             </div>
+          </div>
 
-            {/* ADECUACIONES CURRICULARES / DUA */}
-            <div className="space-y-4 mt-8 page-break-inside-avoid">
-              <h3 className="text-xs font-black uppercase text-slate-950 tracking-widest border-b-2 border-slate-950 pb-1 flex items-center gap-2">
-                <span>IV. Ajustes Razonables / Diseño Universal para el Aprendizaje (DUA)</span>
-              </h3>
-              <div className="border-2 border-slate-900 rounded p-5 bg-slate-50/20 text-xs leading-relaxed text-slate-800 font-normal shadow-[4px_4px_0px_0px_rgba(106,27,49,0.15)]">
-                <p className="whitespace-pre-line">{plan.sugerenciasAdecuacion}</p>
-              </div>
+          {/* ADECUACIONES CURRICULARES / DUA */}
+          <div className="space-y-4 mt-8 page-break-inside-avoid">
+            <h3 className="text-xs font-black uppercase text-slate-950 tracking-widest border-b-2 border-slate-950 pb-1 flex items-center gap-2">
+              <span>IV. Ajustes Razonables / Diseño Universal para el Aprendizaje (DUA)</span>
+            </h3>
+            <div className="border-2 border-slate-900 rounded p-5 bg-slate-50/20 text-xs leading-relaxed text-slate-800 font-normal shadow-[4px_4px_0px_0px_rgba(106,27,49,0.15)]">
+              <p className="whitespace-pre-line">{plan.sugerenciasAdecuacion}</p>
             </div>
+          </div>
 
-            {/* SECCIÓN DE FIRMAS - MUY IMPORTANTE EN MÉXICO */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-16 pt-8 border-t-2 border-slate-900 text-xs text-center page-break-inside-avoid">
-              <div className="flex flex-col items-center">
-                <div className="w-48 border-b-2 border-slate-900 mb-2 mt-8" />
-                <span className="font-black text-slate-900 uppercase block">{docenteName}</span>
-                <span className="text-slate-500 font-bold block text-[9px] uppercase">Profesor(a) Titular de la Disciplina</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="w-48 border-b-2 border-slate-900 mb-2 mt-8" />
-                <span className="font-black text-slate-900 uppercase block">
-                  {((nivel || "").toLowerCase() === "preescolar" || (nivel || "").toLowerCase() === "primaria")
-                    ? "Dirección de la Escuela"
-                    : "Coordinación Académica"}
-                </span>
-                <span className="text-slate-500 font-bold block text-[9px] uppercase">
-                  {((nivel || "").toLowerCase() === "preescolar" || (nivel || "").toLowerCase() === "primaria")
-                    ? "Autorizado / Visto Bueno"
-                    : "Visto Bueno (Vo. Bo.) Dirección"}
-                </span>
-              </div>
+          {/* SECCIÓN DE FIRMAS - MUY IMPORTANTE EN MÉXICO */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-16 pt-8 border-t-2 border-slate-900 text-xs text-center page-break-inside-avoid">
+            <div className="flex flex-col items-center">
+              <div className="w-48 border-b-2 border-slate-900 mb-2 mt-8" />
+              <span className="font-black text-slate-900 uppercase block">{docenteName}</span>
+              <span className="text-slate-500 font-bold block text-[9px] uppercase">Profesor(a) Titular de la Disciplina</span>
             </div>
+            <div className="flex flex-col items-center">
+              <div className="w-48 border-b-2 border-slate-900 mb-2 mt-8" />
+              <span className="font-black text-slate-900 uppercase block">
+                {((nivel || "").toLowerCase() === "preescolar" || (nivel || "").toLowerCase() === "primaria")
+                  ? "Dirección de la Escuela"
+                  : "Coordinación Académica"}
+              </span>
+              <span className="text-slate-500 font-bold block text-[9px] uppercase">
+                {((nivel || "").toLowerCase() === "preescolar" || (nivel || "").toLowerCase() === "primaria")
+                  ? "Autorizado / Visto Bueno"
+                  : "Visto Bueno (Vo. Bo.) Dirección"}
+              </span>
+            </div>
+          </div>
 
           </div>
 
