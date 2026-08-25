@@ -292,3 +292,6 @@ export default function HojaDeTrabajoModal(props: HojaDeTrabajoModalProps) {
           }
         }
       `}} />
+       </div>
+  );
+}
