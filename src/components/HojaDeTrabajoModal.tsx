@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { GeneratedWorksheet } from "../types";
 import { FileText, X, Loader2, Sparkles, AlertCircle } from "lucide-react";
 import AccionesDocumento from "./AccionesDocumento";
@@ -35,151 +35,134 @@ export default function HojaDeTrabajoModal(props: HojaDeTrabajoModalProps) {
     escuelaName: "", cct: "", docenteName: "", grado: "", grupo: "", campoFormativo: "", disciplina: "", pda: "", sesionNumero: 1, sesionTitulo: ""
   };
 
-  useEffect(() => {
-    if (isOpen) window.scrollTo(0, 0);
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
   return (
-    <div className="w-full min-h-screen bg-slate-50 pb-16 print:bg-white print:pb-0">
-      
-      <div className="bg-slate-900 p-4 sm:p-6 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-md print:hidden">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-blue-600/30 border border-blue-400/30 flex items-center justify-center shrink-0">
-            <FileText className="w-6 h-6 text-blue-300" />
-          </div>
-          <div>
-            <h2 className="font-black text-base sm:text-lg uppercase tracking-wider flex items-center gap-2">Hoja de Trabajo de Clase</h2>
-            <p className="text-sm text-slate-300 font-medium">Sesión {meta.sesionNumero}: {meta.sesionTitulo}</p>
-          </div>
-        </div>
-        <button onClick={() => safeOnClose()} className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition font-bold text-sm flex items-center gap-2 cursor-pointer">
-          <X className="w-5 h-5" /><span>Cerrar y volver</span>
-        </button>
-      </div>
-
-      <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 mt-8 print:max-w-none print:px-0 print:mt-0">
+    <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 z-50 animate-fade-in overflow-y-auto print:static print:block print:p-0 print:bg-white print:opacity-100 print:animate-none">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden print:max-w-none print:max-h-none print:h-auto print:block print:overflow-visible print:shadow-none print:border-none print:rounded-none">
         
-        {isLoading && (
-          <div className="py-32 flex flex-col items-center justify-center text-center space-y-4">
-            <Loader2 className="w-16 h-16 text-blue-600 animate-spin mx-auto" />
-            <h3 className="font-black text-slate-900 text-lg">Gemini está diseñando la Hoja de Trabajo...</h3>
-          </div>
-        )}
-
-        {error && (
-          <div className="p-6 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 space-y-3 mt-8">
-            <AlertCircle className="w-6 h-6 shrink-0" />
-            <p className="text-sm font-medium">{error}</p>
-            <button onClick={() => safeOnRetry()} className="px-6 py-3 bg-rose-600 text-white font-bold text-sm uppercase rounded-xl">Reintentar</button>
-          </div>
-        )}
-
-        {worksheet && !isLoading && (
-          <div className="space-y-6">
-            <div className="print:hidden">
-              <AccionesDocumento
-                targetId="hoja-trabajo-resultado"
-                tipoRecurso="Hoja_De_Trabajo"
-                customSuffix={`Sesion_${meta.sesionNumero}_${(meta.disciplina || '').replace(/[^a-zA-Z0-9]/g, '_')}`}
-                title={<span className="font-black text-slate-800 text-sm">{worksheet.titulo}</span>}
-              />
+        {/* Modal Header */}
+        <div className="p-4 sm:p-5 bg-slate-900 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0 print:hidden">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-600/30 border border-blue-400/30 flex items-center justify-center shrink-0">
+              <FileText className="w-5 h-5 text-blue-300" />
             </div>
-
-            <div id="hoja-trabajo-resultado" className="bg-white p-6 sm:p-12 rounded-2xl border border-slate-300 shadow-sm space-y-8 text-slate-900 text-xs printable-document print:border-none print:shadow-none print:p-0">
-              
-              <div className="border-2 border-slate-900 rounded-xl p-5 bg-slate-50/50 space-y-4">
-                <div className="text-center">
-                  <h1 className="font-black text-lg text-mex-maroon uppercase tracking-wide">{worksheet.titulo}</h1>
-                  <h2 className="font-bold text-slate-700 text-sm mt-1">Sesión {meta.sesionNumero}: {meta.sesionTitulo} | {meta.disciplina}</h2>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-3 border-t border-slate-300">
-                  <div className="p-2.5 bg-white rounded border border-slate-200"><span className="font-bold text-slate-500 block uppercase text-[10px] mb-0.5">Escuela:</span><span className="font-black text-slate-900 text-sm">{meta.escuelaName} (C.C.T. {meta.cct})</span></div>
-                  <div className="p-2.5 bg-white rounded border border-slate-200"><span className="font-bold text-slate-500 block uppercase text-[10px] mb-0.5">Docente:</span><span className="font-black text-slate-900 text-sm">{meta.docenteName}</span></div>
-                  <div className="p-2.5 bg-white rounded border border-slate-200"><span className="font-bold text-slate-500 block uppercase text-[10px] mb-0.5">Alumno(a):</span><span className="block pt-1 border-b border-slate-400 mt-2"></span></div>
-                  <div className="p-2.5 bg-white rounded border border-slate-200"><span className="font-bold text-slate-500 block uppercase text-[10px] mb-0.5">Grado / Fecha:</span><span className="font-black text-slate-900 text-sm">{meta.grado} - "{meta.grupo}" | ____/____/2026</span></div>
-                </div>
-                <div className="p-3 bg-white rounded border border-slate-200 text-xs"><span className="font-bold text-slate-500 block uppercase text-[10px] mb-1">PDA:</span><span className="font-bold text-slate-900">{meta.pda}</span></div>
-              </div>
-
-              <div className="bg-amber-50/60 border border-amber-200 p-4 rounded-xl text-slate-800 text-sm font-medium">
-                <span className="font-black uppercase text-amber-900 block text-xs tracking-wider mb-1">📌 Instrucciones:</span>
-                <p className="leading-relaxed">{worksheet.instruccionesGenerales}</p>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="font-black text-sm uppercase text-mex-maroon tracking-wider border-b-2 border-mex-maroon pb-1">{worksheet.seccionInicio.titulo}</h3>
-                <p className="text-slate-600 font-semibold text-xs italic">{worksheet.seccionInicio.instrucciones}</p>
-                <div className="space-y-4">
-                  {worksheet.seccionInicio.ejercicios.map((ex, idx) => (
-                    <div key={idx} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3 break-inside-avoid">
-                      <p className="font-bold text-slate-900 text-sm leading-snug"><span className="text-mex-maroon font-black">{ex.numero}.</span> {ex.preguntaOInstruccion}</p>
-                      <div className="space-y-3 pt-2">
-                        {Array.from({ length: ex.lineasDeRespuesta || 3 }).map((_, lIdx) => <div key={lIdx} className="border-b border-dashed border-slate-300 h-6" />)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-4 pt-4">
-                <h3 className="font-black text-sm uppercase text-mex-maroon tracking-wider border-b-2 border-mex-maroon pb-1">{worksheet.seccionDesarrollo.titulo}</h3>
-                <p className="text-slate-600 font-semibold text-xs italic">{worksheet.seccionDesarrollo.instrucciones}</p>
-                <div className="space-y-4">
-                  {worksheet.seccionDesarrollo.ejercicios.map((ex, idx) => (
-                    <div key={idx} className="p-4 border border-slate-200 rounded-xl bg-white space-y-3 break-inside-avoid">
-                      <p className="font-bold text-slate-900 text-sm leading-snug"><span className="text-mex-maroon font-black">{ex.numero}.</span> {ex.preguntaOInstruccion}</p>
-                      {ex.textoOAuxiliar && <div className="p-3 bg-slate-100 border-l-4 border-slate-700 rounded-r-lg text-slate-800 text-xs italic font-medium">{ex.textoOAuxiliar}</div>}
-                      <div className="space-y-3 pt-2">
-                        {Array.from({ length: ex.lineasDeRespuesta || 4 }).map((_, lIdx) => <div key={lIdx} className="border-b border-dashed border-slate-300 h-6" />)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-4 pt-4">
-                <h3 className="font-black text-sm uppercase text-mex-maroon tracking-wider border-b-2 border-mex-maroon pb-1">{worksheet.seccionCierre.titulo}</h3>
-                <p className="text-slate-600 font-semibold text-xs italic">{worksheet.seccionCierre.instrucciones}</p>
-                <div className="space-y-4">
-                  {worksheet.seccionCierre.ejercicios.map((ex, idx) => (
-                    <div key={idx} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3 break-inside-avoid">
-                      <p className="font-bold text-slate-900 text-sm leading-snug"><span className="text-mex-maroon font-black">{ex.numero}.</span> {ex.preguntaOInstruccion}</p>
-                      <div className="space-y-3 pt-2">
-                        {Array.from({ length: ex.lineasDeRespuesta || 3 }).map((_, lIdx) => <div key={lIdx} className="border-b border-dashed border-slate-300 h-6" />)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {worksheet.ticketDeSalida && (
-                <div className="p-5 border-2 border-dashed border-amber-500 bg-amber-50/40 rounded-xl space-y-3 break-inside-avoid">
-                  <span className="font-black uppercase text-amber-900 text-sm tracking-wider flex items-center gap-1.5">🎟️ Ticket de Salida</span>
-                  <p className="font-bold text-slate-900 text-sm">{worksheet.ticketDeSalida}</p>
-                  <div className="space-y-3 pt-2"><div className="border-b border-dashed border-slate-400 h-6" /><div className="border-b border-dashed border-slate-400 h-6" /></div>
-                </div>
-              )}
+            <div>
+              <h2 className="font-black text-sm sm:text-base uppercase tracking-wider flex items-center gap-2">Hoja de Trabajo de Clase</h2>
+              <p className="text-xs text-slate-300 font-medium">Sesión {meta.sesionNumero}: {meta.sesionTitulo}</p>
             </div>
           </div>
-        )}
+          <button type="button" onClick={() => safeOnClose()} className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition cursor-pointer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <div className="p-6 overflow-y-auto grow space-y-6 bg-slate-50 print:p-0 print:overflow-visible print:block print:bg-white print:h-auto">
+          {isLoading && (
+            <div className="py-20 flex flex-col items-center justify-center text-center space-y-4">
+              <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+              <h3 className="font-black text-slate-900 text-base">Gemini está diseñando la Hoja de Trabajo...</h3>
+            </div>
+          )}
+
+          {error && (
+            <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 space-y-2">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <p className="text-xs">{error}</p>
+              <button type="button" onClick={() => safeOnRetry()} className="px-4 py-2 bg-rose-600 text-white font-bold text-xs rounded-xl">Reintentar</button>
+            </div>
+          )}
+
+          {worksheet && !isLoading && (
+            <div className="space-y-4">
+              <div className="print:hidden">
+                <AccionesDocumento
+                  targetId="hoja-trabajo-resultado"
+                  tipoRecurso="Hoja_De_Trabajo"
+                  customSuffix={`Sesion_${meta.sesionNumero}_${(meta.disciplina || '').replace(/[^a-zA-Z0-9]/g, '_')}`}
+                  title={<span className="font-black text-slate-800 text-xs sm:text-sm">{worksheet.titulo}</span>}
+                />
+              </div>
+
+              <div id="hoja-trabajo-resultado" className="bg-white p-8 rounded-2xl border border-slate-300 shadow-sm space-y-6 text-slate-900 text-xs printable-document print:p-0 print:shadow-none print:border-none">
+                
+                <div className="border-2 border-slate-900 rounded-xl p-4 bg-slate-50/50 space-y-3">
+                  <div className="text-center">
+                    <h1 className="font-black text-base text-mex-maroon uppercase tracking-wide">{worksheet.titulo}</h1>
+                    <h2 className="font-bold text-slate-700 text-xs mt-0.5">Sesión {meta.sesionNumero}: {meta.sesionTitulo} | {meta.disciplina}</h2>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-2 border-t border-slate-300">
+                    <div className="p-2 bg-white rounded border border-slate-200"><span className="font-bold text-slate-500 block uppercase text-[9px]">Escuela:</span><span className="font-bold text-slate-900">{meta.escuelaName} (C.C.T. {meta.cct})</span></div>
+                    <div className="p-2 bg-white rounded border border-slate-200"><span className="font-bold text-slate-500 block uppercase text-[9px]">Docente:</span><span className="font-bold text-slate-900">{meta.docenteName}</span></div>
+                    <div className="p-2 bg-white rounded border border-slate-200"><span className="font-bold text-slate-500 block uppercase text-[9px]">Alumno(a):</span><span className="font-medium text-slate-400">______________________________________</span></div>
+                    <div className="p-2 bg-white rounded border border-slate-200"><span className="font-bold text-slate-500 block uppercase text-[9px]">Grado y Grupo / Fecha:</span><span className="font-bold text-slate-900">{meta.grado} - Grupo "{meta.grupo}" | ____/____/2026</span></div>
+                  </div>
+                  <div className="p-2 bg-white rounded border border-slate-200 text-[11px]"><span className="font-bold text-slate-500 block uppercase text-[9px]">PDA:</span><span className="font-bold text-slate-900">{meta.pda}</span></div>
+                </div>
+
+                <div className="bg-amber-50/60 border border-amber-200 p-3.5 rounded-xl text-slate-800 text-xs font-medium">
+                  <span className="font-black uppercase text-amber-900 block text-[10px] tracking-wider mb-0.5">📌 Instrucciones Generales:</span>
+                  <p className="leading-relaxed">{worksheet.instruccionesGenerales}</p>
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="font-black text-xs uppercase text-mex-maroon tracking-wider border-b-2 border-mex-maroon pb-1">{worksheet.seccionInicio.titulo}</h3>
+                  <p className="text-slate-600 font-semibold text-[11px] italic">{worksheet.seccionInicio.instrucciones}</p>
+                  <div className="space-y-3">
+                    {worksheet.seccionInicio.ejercicios.map((ex, idx) => (
+                      <div key={idx} className="p-3.5 border border-slate-200 rounded-xl bg-slate-50/50 space-y-2 break-inside-avoid">
+                        <p className="font-bold text-slate-900 leading-snug"><span className="text-mex-maroon font-black">{ex.numero}.</span> {ex.preguntaOInstruccion}</p>
+                        <div className="space-y-2 pt-1">
+                          {Array.from({ length: ex.lineasDeRespuesta || 3 }).map((_, lIdx) => <div key={lIdx} className="border-b border-dashed border-slate-300 h-5" />)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <h3 className="font-black text-xs uppercase text-mex-maroon tracking-wider border-b-2 border-mex-maroon pb-1">{worksheet.seccionDesarrollo.titulo}</h3>
+                  <p className="text-slate-600 font-semibold text-[11px] italic">{worksheet.seccionDesarrollo.instrucciones}</p>
+                  <div className="space-y-3">
+                    {worksheet.seccionDesarrollo.ejercicios.map((ex, idx) => (
+                      <div key={idx} className="p-3.5 border border-slate-200 rounded-xl bg-white space-y-2 break-inside-avoid">
+                        <p className="font-bold text-slate-900 leading-snug"><span className="text-mex-maroon font-black">{ex.numero}.</span> {ex.preguntaOInstruccion}</p>
+                        <div className="space-y-2 pt-1">
+                          {Array.from({ length: ex.lineasDeRespuesta || 4 }).map((_, lIdx) => <div key={lIdx} className="border-b border-dashed border-slate-300 h-5" />)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <h3 className="font-black text-xs uppercase text-mex-maroon tracking-wider border-b-2 border-mex-maroon pb-1">{worksheet.seccionCierre.titulo}</h3>
+                  <p className="text-slate-600 font-semibold text-[11px] italic">{worksheet.seccionCierre.instrucciones}</p>
+                  <div className="space-y-3">
+                    {worksheet.seccionCierre.ejercicios.map((ex, idx) => (
+                      <div key={idx} className="p-3.5 border border-slate-200 rounded-xl bg-slate-50/50 space-y-2 break-inside-avoid">
+                        <p className="font-bold text-slate-900 leading-snug"><span className="text-mex-maroon font-black">{ex.numero}.</span> {ex.preguntaOInstruccion}</p>
+                        <div className="space-y-2 pt-1">
+                          {Array.from({ length: ex.lineasDeRespuesta || 3 }).map((_, lIdx) => <div key={lIdx} className="border-b border-dashed border-slate-300 h-5" />)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {worksheet.ticketDeSalida && (
+                  <div className="p-4 border-2 border-dashed border-amber-500 bg-amber-50/40 rounded-xl space-y-2 break-inside-avoid">
+                    <span className="font-black uppercase text-amber-900 text-xs tracking-wider flex items-center gap-1.5">🎟️ Ticket de Salida</span>
+                    <p className="font-bold text-slate-900">{worksheet.ticketDeSalida}</p>
+                    <div className="space-y-2 pt-1"><div className="border-b border-dashed border-slate-400 h-5" /><div className="border-b border-dashed border-slate-400 h-5" /></div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        @media print {
-          body { background-color: white !important; color: black !important; font-size: 11px !important; }
-          header, footer, nav, aside, .print\\:hidden, #google-link-banner, #planeacion-form, #history-sidebar { display: none !important; }
-          
-          /* EL TRUCO GLOBAL: Destruye el CSS del Dashboard que corta la página */
-          html, body, #root, .h-screen, .min-h-screen, .overflow-y-auto, .overflow-hidden {
-            height: auto !important; min-height: auto !important; overflow: visible !important; display: block !important; position: static !important;
-          }
-
-          #hoja-trabajo-resultado { border: none !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; width: 100% !important; }
-          .page-break-inside-avoid { page-break-inside: avoid !important; }
-        }
-      `}} />
     </div>
   );
 }
