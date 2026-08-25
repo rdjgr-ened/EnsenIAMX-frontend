@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { CompletePlan, GeneratedInstrument, UserSubscription, PaywallReason, CreditActionType } from "../types";
-import { ArrowLeft, Loader2, Sparkles, AlertCircle, CheckCircle2, BookOpen } from "lucide-react";
+import { ArrowLeft, Loader2, Sparkles, AlertCircle } from "lucide-react";
 import AccionesDocumento from "./AccionesDocumento";
 import { CREDIT_COSTS } from "../utils/planManager";
 import { saveRecursoGenerado, isSupabaseConfigured } from "../utils/supabaseClient";
@@ -87,9 +87,9 @@ export default function GeneradorInstrumentoView({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative animate-fade-in">
       
-      <div className="print:hidden bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-sm space-y-6">
+      <div className="print:hidden bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-mex-maroon/10 flex items-center justify-center border border-mex-maroon/20">
@@ -173,16 +173,16 @@ export default function GeneradorInstrumentoView({
         <div className="space-y-6">
           <div className="print:hidden">
             <AccionesDocumento
-              targetId="instrumento-evaluacion-resultado"
+              targetId="documento-resultado"
               tipoRecurso="Instrumento_Evaluacion"
               customSuffix={`${selectedInstrument}_${selectedPlan.grado}`}
               title={<span className="font-black text-slate-800 text-sm">{instrumentData.titulo}</span>}
             />
           </div>
 
-          <div id="instrumento-evaluacion-resultado" className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-300 shadow-sm font-sans text-slate-900 space-y-8 printable-document print:border-none print:shadow-none print:p-0 print:w-full">
+          <div id="documento-resultado" className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-200 shadow-sm font-sans text-slate-900 printable-document print:border-none print:shadow-none print:p-0 print:rounded-none">
             
-            <div className="text-center border-b-2 border-slate-900 pb-5">
+            <div className="text-center border-b-2 border-slate-900 pb-5 mb-6">
               <h1 className="font-black text-xl uppercase tracking-wider text-slate-950">{selectedPlan.escuelaName}</h1>
               <p className="font-extrabold text-mex-maroon text-sm uppercase mt-1">C.C.T. {selectedPlan.cct} • Ciclo Escolar 2025-2026</p>
               <div className="mt-4 inline-block bg-slate-900 text-white px-8 py-2 rounded-lg">
@@ -190,24 +190,33 @@ export default function GeneradorInstrumentoView({
               </div>
             </div>
 
-            <div className="border-2 border-slate-900 rounded-xl p-4 bg-slate-50 text-xs sm:text-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <div><span className="font-bold text-slate-500 uppercase text-[10px] block mb-0.5">DOCENTE:</span><span className="font-black text-slate-900">{selectedPlan.docenteName}</span></div>
-              <div><span className="font-bold text-slate-500 uppercase text-[10px] block mb-0.5">GRADO Y GRUPO:</span><span className="font-black text-slate-900">{selectedPlan.grado} - "{selectedPlan.grupo}"</span></div>
-              <div><span className="font-bold text-slate-500 uppercase text-[10px] block mb-0.5">CAMPO FORMATIVO:</span><span className="font-bold text-slate-900">{selectedPlan.campoFormativo}</span></div>
-              <div><span className="font-bold text-slate-500 uppercase text-[10px] block mb-0.5">DISCIPLINA:</span><span className="font-bold text-slate-900">{selectedPlan.disciplina}</span></div>
-              <div className="col-span-1 sm:col-span-2"><span className="font-bold text-slate-500 uppercase text-[10px] block mb-0.5">PRODUCTO A EVALUAR:</span><span className="font-black text-mex-maroon">{selectedPlan.plan?.producto || "Evidencia"}</span></div>
-              <div className="col-span-1 sm:col-span-2"><span className="font-bold text-slate-500 uppercase text-[10px] block mb-0.5">ALUMNO(A):</span><span className="block pt-2 border-b border-slate-400"></span></div>
-              <div className="col-span-1 sm:col-span-2 md:col-span-4"><span className="font-bold text-slate-500 uppercase text-[10px] block mb-0.5">PDA:</span><span className="font-medium text-slate-800">{selectedPlan.pda}</span></div>
+            <div className="border border-slate-300 text-xs sm:text-sm overflow-hidden rounded-lg shadow-sm mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 border-b border-slate-300">
+                <div className="p-3.5 border-r border-slate-300 bg-slate-50"><span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">DOCENTE:</span><span className="font-black text-slate-950 text-sm uppercase">{selectedPlan.docenteName}</span></div>
+                <div className="p-3.5 bg-slate-50"><span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">GRADO Y GRUPO:</span><span className="font-black text-slate-950 text-xs">{selectedPlan.grado} - "{selectedPlan.grupo}"</span></div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 border-b border-slate-300 bg-white">
+                <div className="p-3.5 border-r border-slate-300"><span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">CAMPO FORMATIVO:</span><span className="font-bold text-slate-950">{selectedPlan.campoFormativo}</span></div>
+                <div className="p-3.5"><span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">DISCIPLINA:</span><span className="font-bold text-slate-950">{selectedPlan.disciplina}</span></div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 border-b border-slate-300 bg-slate-50">
+                <div className="p-3.5 border-r border-slate-300"><span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">PRODUCTO A EVALUAR:</span><span className="font-black text-mex-maroon">{selectedPlan.plan?.producto || "Evidencia"}</span></div>
+                <div className="p-3.5"><span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">ALUMNO(A):</span><span className="block pt-2 border-b border-slate-400 mt-1"></span></div>
+              </div>
+              <div className="p-4 bg-white">
+                <span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-1">PDA:</span>
+                <span className="font-medium text-slate-900 block leading-relaxed">{selectedPlan.pda}</span>
+              </div>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm mb-8">
               <span className="font-black text-amber-950 uppercase text-xs block mb-1.5">📌 INSTRUCCIONES:</span>
               <p className="text-slate-700 font-medium leading-relaxed">{instrumentData.instrucciones}</p>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-8">
               {instrumentData.criteriosRubrica && instrumentData.criteriosRubrica.length > 0 && (
-                <div className="overflow-x-auto rounded-xl border border-slate-900">
+                <div className="overflow-x-auto rounded-xl border border-slate-900 page-break-inside-avoid">
                   <table className="w-full text-left border-collapse text-xs sm:text-sm">
                     <thead>
                       <tr className="bg-slate-900 text-white font-black text-[11px] uppercase">
@@ -220,7 +229,7 @@ export default function GeneradorInstrumentoView({
                     </thead>
                     <tbody>
                       {instrumentData.criteriosRubrica.map((crit, idx) => (
-                        <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"} style={{pageBreakInside: 'avoid'}}>
+                        <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
                           <td className="border border-slate-900 p-3 font-bold text-slate-900"><span className="block text-mex-maroon font-black mb-1">{crit.criterio}</span>{crit.ponderacion && <span className="text-xs text-slate-500">{crit.ponderacion}</span>}</td>
                           <td className="border border-slate-900 p-3 text-slate-700">{crit.sobresaliente}</td>
                           <td className="border border-slate-900 p-3 text-slate-700">{crit.satisfactorio}</td>
@@ -234,7 +243,7 @@ export default function GeneradorInstrumentoView({
               )}
 
               {instrumentData.itemsListaCotejo && instrumentData.itemsListaCotejo.length > 0 && (
-                <div className="overflow-x-auto rounded-xl border border-slate-900">
+                <div className="overflow-x-auto rounded-xl border border-slate-900 page-break-inside-avoid">
                   <table className="w-full text-left border-collapse text-xs sm:text-sm">
                     <thead>
                       <tr className="bg-slate-900 text-white font-black text-[11px] uppercase">
@@ -247,7 +256,7 @@ export default function GeneradorInstrumentoView({
                     </thead>
                     <tbody>
                       {instrumentData.itemsListaCotejo.map((item, idx) => (
-                        <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"} style={{pageBreakInside: 'avoid'}}>
+                        <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
                           <td className="border border-slate-900 p-3 text-center font-black text-slate-900">{item.num || idx + 1}</td>
                           <td className="border border-slate-900 p-3 font-bold text-slate-900">{item.indicador || item.criterio}</td>
                           <td className="border border-slate-900 p-3 text-center"><div className="w-5 h-5 border-2 border-slate-900 mx-auto rounded-sm"></div></td>
@@ -261,7 +270,7 @@ export default function GeneradorInstrumentoView({
               )}
 
               {instrumentData.itemsEscalaEstimativa && instrumentData.itemsEscalaEstimativa.length > 0 && (
-                <div className="overflow-x-auto rounded-xl border border-slate-900">
+                <div className="overflow-x-auto rounded-xl border border-slate-900 page-break-inside-avoid">
                   <table className="w-full text-left border-collapse text-xs sm:text-sm">
                     <thead>
                       <tr className="bg-slate-900 text-white font-black text-[11px] uppercase">
@@ -275,7 +284,7 @@ export default function GeneradorInstrumentoView({
                     </thead>
                     <tbody>
                       {instrumentData.itemsEscalaEstimativa.map((item, idx) => (
-                        <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"} style={{pageBreakInside: 'avoid'}}>
+                        <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
                           <td className="border border-slate-900 p-3 text-center font-black text-slate-900">{item.num || idx + 1}</td>
                           <td className="border border-slate-900 p-3 font-bold text-slate-900">{item.aspecto}</td>
                           <td className="border border-slate-900 p-3 text-center"><div className="w-5 h-5 border-2 border-slate-900 mx-auto rounded-sm"></div></td>
@@ -292,62 +301,49 @@ export default function GeneradorInstrumentoView({
               {instrumentData.guiaObservacion && instrumentData.guiaObservacion.length > 0 && (
                 <div className="space-y-4">
                   {instrumentData.guiaObservacion.map((item, idx) => (
-                    <div key={idx} className="border-2 border-slate-900 rounded-xl p-4 bg-slate-50/50 space-y-3 break-inside-avoid">
+                    <div key={idx} className="border border-slate-300 rounded-xl p-5 bg-slate-50/50 space-y-3 page-break-inside-avoid">
                       <div className="flex items-start gap-3">
-                        <span className="bg-slate-900 text-white text-xs font-black px-2.5 py-1 rounded">Punto {item.num || idx + 1}</span>
+                        <span className="bg-slate-900 text-white text-xs font-black px-3 py-1.5 rounded-lg">Punto {item.num || idx + 1}</span>
                         <div>
                           <h4 className="font-bold text-slate-900 text-sm">{item.aspecto}</h4>
-                          {item.focoAtencion && <p className="text-xs text-slate-600 font-medium italic mt-1">{item.focoAtencion}</p>}
+                          {item.focoAtencion && <p className="text-xs text-slate-600 font-medium italic mt-1.5">{item.focoAtencion}</p>}
                         </div>
                       </div>
-                      <div className="border-b border-dashed border-slate-400 h-6"></div><div className="border-b border-dashed border-slate-400 h-6"></div>
+                      <div className="border-b border-dashed border-slate-400 h-8"></div><div className="border-b border-dashed border-slate-400 h-8"></div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            <div className="border-2 border-slate-900 rounded-xl p-5 bg-slate-50 space-y-3 break-inside-avoid">
+            <div className="border border-slate-300 rounded-xl p-5 bg-slate-50 space-y-3 mt-8 page-break-inside-avoid shadow-sm">
               <span className="font-black text-slate-900 uppercase text-xs block">💬 RETROALIMENTACIÓN FORMATIVA Y ACUERDOS DE MEJORA:</span>
               <p className="text-slate-700 italic text-sm font-medium leading-relaxed">{instrumentData.retroalimentacionFormativa}</p>
+              <div className="border-b border-dashed border-slate-400 h-8 mt-4"></div>
+              <div className="border-b border-dashed border-slate-400 h-8"></div>
             </div>
 
-            <div className="grid grid-cols-2 gap-16 pt-12 text-center text-sm break-inside-avoid">
-              <div><div className="border-t-2 border-slate-900 pt-2 font-black uppercase text-slate-900">{selectedPlan.docenteName}</div><span className="text-xs text-slate-500 font-bold uppercase">Docente Evaluador(a)</span></div>
-              <div><div className="border-t-2 border-slate-900 pt-2 font-black uppercase text-slate-900">Firma de Conformidad</div><span className="text-xs text-slate-500 font-bold uppercase">Alumno(a) / Padre de Familia o Tutor</span></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-16 pt-16 mt-8 text-center text-sm page-break-inside-avoid">
+              <div className="flex flex-col items-center">
+                <div className="w-64 border-b-2 border-slate-900 pt-2 font-black uppercase text-slate-900 mb-2">{selectedPlan.docenteName}</div>
+                <span className="text-xs text-slate-500 font-bold uppercase">Docente Evaluador(a)</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <div className="w-64 border-b-2 border-slate-900 pt-2 font-black uppercase text-slate-900 mb-2">Firma de Conformidad</div>
+                <span className="text-xs text-slate-500 font-bold uppercase">Alumno(a) / Padre de Familia o Tutor</span>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* BLOQUE DE CSS NUCLEAR: ESTO DESTRUYE LA TRAMPA DE 100VH DE CHROME */}
+      {/* ESTE ES EL CSS QUE SÍ FUNCIONA EN LA PLANEACIÓN ORIGINAL */}
       <style>{`
         @media print {
           body { background-color: white !important; color: black !important; font-size: 11px !important; }
-          .print\\:hidden, header, nav, aside, footer { display: none !important; }
-          
-          /* EL TRUCO GLOBAL: Destruye el CSS del Dashboard que corta la página a 1 sola hoja blanca */
-          html, body, #root, .min-h-screen, main, main > .grid, .flex-1, .lg\\:col-span-3, .lg\\:col-span-2 { 
-            display: block !important; 
-            height: auto !important; 
-            min-height: 0 !important; 
-            overflow: visible !important; 
-            position: static !important; 
-          }
-
-          /* Garantiza que todo sea opaco y visible */
-          * { animation: none !important; transition: none !important; opacity: 1 !important; visibility: visible !important; }
-
-          #instrumento-evaluacion-resultado { 
-            border: none !important; 
-            padding: 0 !important; 
-            margin: 0 !important; 
-            box-shadow: none !important; 
-            width: 100% !important; 
-            max-width: 100% !important;
-          }
-          
-          .break-inside-avoid { page-break-inside: avoid !important; }
+          header, footer, nav, aside, .print\\:hidden { display: none !important; }
+          #documento-resultado { border: none !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; width: 100% !important; }
+          .page-break-inside-avoid { page-break-inside: avoid !important; }
         }
       `}</style>
     </div>
