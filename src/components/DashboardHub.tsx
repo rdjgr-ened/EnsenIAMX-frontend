@@ -28,7 +28,7 @@ import { checkFeatureAccess, PLAN_CONFIGS } from "../utils/planManager";
 
 interface DashboardHubProps {
   onSelectFunction?: (
-    fn: "diseno" | "sugerir" | "crear" | "programa" | "evaluacion" | "bitacora" | "organizador" | "examen" | "cuenta",
+    fn: "diseno" | "sugerir" | "crear" | "programa" | "evaluacion" | "bitacora" | "organizador" | "examen" | "cuenta" | "generar_hoja" | "generar_instrumento",
     folder?: "planeaciones" | "grupos" | "bitacora" | "seguimiento" | "evaluacion"
   ) => void;
   savedPlansCount?: number;
@@ -99,7 +99,7 @@ export default function DashboardHub(props: DashboardHubProps) {
   };
 
   const handleFunctionClick = (
-    fn: "diseno" | "sugerir" | "crear" | "programa" | "evaluacion" | "bitacora" | "organizador" | "examen"
+    fn: "diseno" | "sugerir" | "crear" | "programa" | "evaluacion" | "bitacora" | "organizador" | "examen" | "generar_hoja" | "generar_instrumento"
   ) => {
     if (fn === "evaluacion") {
       const access = checkFeatureAccess("evaluationFormat", userPlan);
@@ -187,7 +187,7 @@ export default function DashboardHub(props: DashboardHubProps) {
                     Plano Didáctico
                   </h4>
                   <p className="text-slate-500 text-xs mt-2 leading-relaxed font-semibold">
-                    Diseño y estructuración de proyectos didácticos por fases, ejes articuladores y secuencias de clase.
+                    Diseño y estructuración de proyectos didácticos por fases, hojas de trabajo e instrumentos de evaluación.
                   </p>
                 </div>
               </div>
@@ -418,12 +418,15 @@ export default function DashboardHub(props: DashboardHubProps) {
                     Plano Didáctico
                   </h3>
                   <p className="text-slate-500 text-xs font-medium">
-                    Herramientas de diseño de secuencias didácticas:
+                    Herramientas de diseño de secuencias y recursos didácticos:
                   </p>
                 </div>
               </div>
 
+              {/* AQUÍ ESTÁN TUS 3 BOTONES MAESTROS */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-2">
+                
+                {/* 1. DISEÑAR PLANEACIÓN */}
                 <div 
                   onClick={() => handleFunctionClick("diseno")}
                   className="group cursor-pointer bg-white border-2 border-mex-maroon/20 hover:border-mex-maroon rounded-2xl p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between relative overflow-hidden"
@@ -437,10 +440,10 @@ export default function DashboardHub(props: DashboardHubProps) {
                       <FileText className="w-5 h-5" />
                     </div>
                     <h4 className="font-black text-slate-800 text-sm uppercase tracking-wide">
-                      Diseñar planeación didáctica
+                      Diseñar Planeación Didáctica
                     </h4>
                     <p className="text-slate-500 text-xs font-semibold">
-                      Crea una planeación didáctica completa paso a paso con fases, ejes transversales, metodologías NEM y adecuaciones curriculares BAP (0 créditos extra).
+                      Crea una planeación didáctica completa paso a paso con fases, ejes transversales, metodologías NEM y adecuaciones curriculares BAP.
                     </p>
                   </div>
                   
@@ -449,6 +452,61 @@ export default function DashboardHub(props: DashboardHubProps) {
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
+
+                {/* 2. CREAR HOJA DE TRABAJO */}
+                <div 
+                  onClick={() => handleFunctionClick("generar_hoja")}
+                  className="group cursor-pointer bg-white border border-slate-200 hover:border-blue-600 rounded-2xl p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between relative overflow-hidden"
+                >
+                  <div className="absolute top-3 right-3 flex items-center gap-1 text-[10px] font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full">
+                    <Coins className="w-3 h-3" /> 5 créditos
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                      <ClipboardList className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-black text-slate-800 text-sm uppercase tracking-wide">
+                      Diseñar Hoja de Trabajo
+                    </h4>
+                    <p className="text-slate-500 text-xs font-semibold">
+                      Genera una hoja de trabajo lista para imprimir. Selecciona cualquier sesión de tus planeaciones y Gemini diseñará ejercicios para el alumno.
+                    </p>
+                  </div>
+                  
+                  <div className="pt-5 border-t border-slate-100 mt-5 flex items-center justify-between text-blue-600 font-extrabold text-xs uppercase">
+                    <span>Crear Hoja de Trabajo</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+
+                {/* 3. CREAR INSTRUMENTO DE EVALUACIÓN */}
+                <div 
+                  onClick={() => handleFunctionClick("generar_instrumento")}
+                  className="group cursor-pointer bg-white border border-slate-200 hover:border-emerald-600 rounded-2xl p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between relative overflow-hidden"
+                >
+                  <div className="absolute top-3 right-3 flex items-center gap-1 text-[10px] font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full">
+                    <Coins className="w-3 h-3" /> 5 créditos
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                      <BookCheck className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-black text-slate-800 text-sm uppercase tracking-wide">
+                      Instrumento de Evaluación
+                    </h4>
+                    <p className="text-slate-500 text-xs font-semibold">
+                      Diseña rúbricas, listas de cotejo o guías de observación evaluativas alineadas automáticamente al PDA y producto de tu planeación.
+                    </p>
+                  </div>
+                  
+                  <div className="pt-5 border-t border-slate-100 mt-5 flex items-center justify-between text-emerald-600 font-extrabold text-xs uppercase">
+                    <span>Crear Instrumento</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+
               </div>
             </div>
           )}
@@ -730,6 +788,3 @@ export default function DashboardHub(props: DashboardHubProps) {
     </div>
   );
 }
-
-
-
