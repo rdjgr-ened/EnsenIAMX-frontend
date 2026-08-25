@@ -47,7 +47,7 @@ export default function HojaDeTrabajoModal(props: HojaDeTrabajoModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div id="hoja-trabajo-modal-wrapper" className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 z-50 animate-fade-in overflow-y-auto">
+    <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 z-50 animate-fade-in overflow-y-auto">
       <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
         {/* Modal Header */}
         <div className="p-4 sm:p-5 bg-slate-900 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0 print:hidden">
@@ -124,9 +124,7 @@ export default function HojaDeTrabajoModal(props: HojaDeTrabajoModalProps) {
                 }
               />
 
-              <div id="hoja-trabajo-resultado"
-                className="bg-white p-8 rounded-2xl border border-slate-300 shadow-sm space-y-6 text-slate-900 text-xs printable-document"
-              >
+              <div id="hoja-trabajo-resultado" className="bg-white p-8 rounded-2xl border border-slate-300 shadow-sm space-y-6 text-slate-900 text-xs printable-document">
                 {/* Encabezado Escolar / Matriz */}
                 <div className="border-2 border-slate-900 rounded-xl p-4 bg-slate-50/50 space-y-3">
                   <div className="text-center">
@@ -266,56 +264,35 @@ export default function HojaDeTrabajoModal(props: HojaDeTrabajoModalProps) {
         </div>
       </div>
 
-      {/* CSS MAGICO DE IMPRESIÓN (VERSIÓN DEFINITIVA Y BLINDADA) */}
+      {/* ESTILO DE IMPRESIÓN NUCLEAR (ELIMINA TODO LO QUE NO SEA ESTE DOCUMENTO) */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          /* 1. Liberar el body de cualquier bloqueo de React */
-          body, html, #root {
+          /* 1. Ocultar absolutamente todo en la app que NO sea el documento a imprimir o sus padres */
+          body *:not(:has(#hoja-trabajo-resultado)):not(#hoja-trabajo-resultado):not(#hoja-trabajo-resultado *) {
+            display: none !important;
+          }
+          
+          /* 2. Quitar el fondo gris oscuro y liberar el scroll para que pueda paginar */
+          body, html, :has(#hoja-trabajo-resultado) {
+            background: transparent !important;
+            position: static !important;
+            display: block !important;
             height: auto !important;
+            max-height: none !important;
             overflow: visible !important;
           }
           
-          /* 2. Ocultar TODO el fondo y la aplicación normal */
-          body * {
-            visibility: hidden !important;
-          }
-          
-          /* 3. Volver visible SOLO el wrapper del modal y todo su contenido */
-          #hoja-trabajo-modal-wrapper, 
-          #hoja-trabajo-modal-wrapper * {
-            visibility: visible !important;
-          }
-          
-          /* 4. Sacar el modal de la "trampa" del DOM y ponerlo al inicio de la página */
-          #hoja-trabajo-modal-wrapper {
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
+          /* 3. Asegurar que el documento principal abarque el 100% de la hoja */
+          #hoja-trabajo-resultado {
+            position: static !important;
             width: 100% !important;
-            height: auto !important;
             margin: 0 !important;
             padding: 0 !important;
-          }
-          
-          /* 5. Destruir las cajas flexibles y barras de scroll que causan que Chrome corte las hojas */
-          #hoja-trabajo-modal-wrapper > div {
-            display: block !important;
-            height: auto !important;
-            max-height: none !important;
-            overflow: visible !important;
-            border: none !important;
             box-shadow: none !important;
+            border: none !important;
           }
           
-          #hoja-trabajo-modal-wrapper .overflow-y-auto,
-          #hoja-trabajo-modal-wrapper .overflow-x-auto {
-            display: block !important;
-            height: auto !important;
-            max-height: none !important;
-            overflow: visible !important;
-          }
-          
-          /* 6. Ocultar los botones de cerrar y el encabezado del modal */
+          /* 4. Ocultar los botones de la interfaz del modal (Cerrar, Imprimir, etc) */
           .print\\:hidden, .print\\:hidden * {
             display: none !important;
           }
