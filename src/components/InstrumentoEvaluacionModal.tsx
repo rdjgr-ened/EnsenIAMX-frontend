@@ -40,7 +40,7 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
   } = planData;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto print:p-0 print:static print:bg-white print:overflow-visible">
+    <div id="instrumento-modal-wrapper" className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto print:p-0 print:static print:bg-white print:overflow-visible">
       <div className="bg-white rounded-2xl border-2 border-slate-900 shadow-2xl w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden print:max-h-none print:shadow-none print:border-none print:rounded-none">
         
         {/* Barra Superior - Oculta en impresión */}
@@ -120,7 +120,9 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
                 }
               />
 
-              <div id="instrumento-evaluacion-resultado" className="bg-white p-6 sm:p-8 rounded-xl border-2 border-slate-900 shadow-sm font-sans text-slate-900 space-y-6 print:border-none print:p-0 print:shadow-none printable-document">
+              <div id="instrumento-evaluacion-resultado"
+                className="bg-white p-6 sm:p-8 rounded-xl border-2 border-slate-900 shadow-sm font-sans text-slate-900 space-y-6 print:border-none print:p-0 print:shadow-none printable-document"
+              >
                 {/* Encabezado del Instrumento */}
                 <div className="text-center border-b-2 border-slate-900 pb-4">
                   <h1 className="font-black text-base uppercase tracking-wider text-slate-950">{escuelaName}</h1>
@@ -359,40 +361,61 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
         </div>
       </div>
 
-      {/* ESTILO DE IMPRESIÓN NUCLEAR (ELIMINA TODO LO QUE NO SEA ESTE DOCUMENTO) */}
+      {/* ESTILO DE IMPRESIÓN (SIN FLEXBOX QUE ROMPE LA PÁGINA) */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          /* 1. Ocultar absolutamente todo en la app que NO sea el documento a imprimir o sus padres */
-          body *:not(:has(#instrumento-evaluacion-resultado)):not(#instrumento-evaluacion-resultado):not(#instrumento-evaluacion-resultado *) {
-            display: none !important;
+          /* 1. Ocultar la planeacion de fondo por su ID para no sumar hojas extra */
+          #documento-resultado { 
+            display: none !important; 
           }
           
-          /* 2. Quitar el fondo gris oscuro y liberar el scroll para que pueda paginar */
-          body, html, :has(#instrumento-evaluacion-resultado) {
-            background: transparent !important;
-            position: static !important;
+          /* 2. Normalizar el body y html para permitir scroll y cortes de página naturales */
+          body, html, #root {
+            height: auto !important;
+            overflow: visible !important;
+          }
+
+          /* 3. ¡EL TRUCO VITAL! Romper el Flexbox Centrado que causaba la página en blanco.
+             Forzamos display: block y position: relative para que caiga natural en la hoja */
+          #instrumento-modal-wrapper {
+            position: relative !important;
+            display: block !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: auto !important;
+            bottom: auto !important;
+            background: white !important;
+            z-index: 99999 !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+
+          /* 4. Quitar restricciones de altura y overflow a los contenedores internos */
+          #instrumento-modal-wrapper > div {
             display: block !important;
             height: auto !important;
             max-height: none !important;
-            overflow: visible !important;
-          }
-          
-          /* 3. Asegurar que el documento principal abarque el 100% de la hoja */
-          #instrumento-evaluacion-resultado {
-            position: static !important;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
             box-shadow: none !important;
             border: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
-          
-          /* 4. Ocultar los botones de la interfaz del modal (Cerrar, Imprimir, etc) */
-          .print\\:hidden, .print\\:hidden * {
-            display: none !important;
+
+          #instrumento-modal-wrapper .overflow-y-auto {
+            display: block !important;
+            overflow: visible !important;
+            height: auto !important;
+          }
+
+          /* 5. Ocultar los controles y fondo oscuro */
+          .print\\:hidden { 
+            display: none !important; 
           }
         }
       `}} />
+
     </div>
   );
 }
