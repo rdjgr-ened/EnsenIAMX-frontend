@@ -40,7 +40,7 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
   } = planData;
 
   return (
-    <div id="instrumento-modal-wrapper" className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto print:p-0 print:static print:bg-white print:overflow-visible">
+    <div id="instrumento-modal-wrapper" className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto print:p-0 print:static print:bg-white print:overflow-visible animate-fade-in">
       <div className="bg-white rounded-2xl border-2 border-slate-900 shadow-2xl w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden print:max-h-none print:shadow-none print:border-none print:rounded-none">
         
         {/* Barra Superior - Oculta en impresión */}
@@ -361,61 +361,66 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
         </div>
       </div>
 
-      {/* ESTILO DE IMPRESIÓN (SIN FLEXBOX QUE ROMPE LA PÁGINA) */}
+      {/* ESTILO FINAL Y BLINDADO */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          /* 1. Ocultar la planeacion de fondo por su ID para no sumar hojas extra */
-          #documento-resultado { 
-            display: none !important; 
-          }
+          /* 1. ELIMINAR EL FONDO (Planeación) */
+          #documento-resultado { display: none !important; }
           
-          /* 2. Normalizar el body y html para permitir scroll y cortes de página naturales */
-          body, html, #root {
+          /* 2. RESETEAR EL BODY PARA QUE FLUYA NATURALMENTE */
+          body, html {
             height: auto !important;
             overflow: visible !important;
+            background-color: white !important;
           }
 
-          /* 3. ¡EL TRUCO VITAL! Romper el Flexbox Centrado que causaba la página en blanco.
-             Forzamos display: block y position: relative para que caiga natural en la hoja */
+          /* 3. DESTRUIR EL COMPORTAMIENTO MODAL Y LA ANIMACIÓN FADE-IN */
           #instrumento-modal-wrapper {
             position: relative !important;
             display: block !important;
-            top: 0 !important;
-            left: 0 !important;
-            right: auto !important;
-            bottom: auto !important;
-            background: white !important;
-            z-index: 99999 !important;
-            opacity: 1 !important;
-            visibility: visible !important;
+            background-color: white !important;
             padding: 0 !important;
             margin: 0 !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            transform: none !important;
+            animation: none !important; /* APAGA LA ANIMACIÓN QUE CAUSA LA HOJA EN BLANCO */
           }
 
-          /* 4. Quitar restricciones de altura y overflow a los contenedores internos */
-          #instrumento-modal-wrapper > div {
+          /* 4. DESTRUIR LAS RESTRICCIONES DE ALTURA Y SCROLL */
+          #instrumento-modal-wrapper > div,
+          #instrumento-modal-wrapper .overflow-y-auto {
             display: block !important;
+            position: relative !important;
             height: auto !important;
             max-height: none !important;
+            overflow: visible !important;
             box-shadow: none !important;
             border: none !important;
             margin: 0 !important;
             padding: 0 !important;
+            opacity: 1 !important;
+            animation: none !important;
           }
 
-          #instrumento-modal-wrapper .overflow-y-auto {
+          /* 5. FORZAR LA VISIBILIDAD DEL CONTENIDO */
+          #instrumento-evaluacion-resultado, #instrumento-evaluacion-resultado * {
             display: block !important;
-            overflow: visible !important;
-            height: auto !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            color: black !important;
           }
 
-          /* 5. Ocultar los controles y fondo oscuro */
-          .print\\:hidden { 
-            display: none !important; 
+          #instrumento-evaluacion-resultado {
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
+
+          /* 6. OCULTAR ELEMENTOS DE LA INTERFAZ */
+          .print\\:hidden, .print\\:hidden * { display: none !important; }
         }
       `}} />
-
     </div>
   );
 }
