@@ -110,7 +110,7 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
           {instrumentData && !isLoading && (
             <div className="space-y-4">
               <AccionesDocumento
-                targetId="instrumento-resultado"
+                targetId="instrumento-evaluacion-resultado"
                 tipoRecurso="Instrumento_Evaluacion"
                 customSuffix={`${instrumentName.replace(/[^a-zA-Z0-9]/g, '_')}_${grado.replace(/[^a-zA-Z0-9]/g, '')}`}
                 title={
@@ -120,7 +120,7 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
                 }
               />
 
-              <div id="instrumento-resultado"
+              <div id="instrumento-evaluacion-resultado"
                 className="bg-white p-6 sm:p-8 rounded-xl border-2 border-slate-900 shadow-sm font-sans text-slate-900 space-y-6 print:border-none print:p-0 print:shadow-none printable-document"
               >
                 {/* Encabezado del Instrumento */}

@@ -265,6 +265,7 @@ export default function HojaDeTrabajoModal(props: HojaDeTrabajoModalProps) {
           )}
         </div>
       </div>
+
       {/* ESTILO PARA PERMITIR PAGINACIÓN Y OCULTAR EL FONDO */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
@@ -292,6 +293,6 @@ export default function HojaDeTrabajoModal(props: HojaDeTrabajoModalProps) {
           }
         }
       `}} />
-       </div>
+    </div>
   );
 }
