@@ -110,7 +110,7 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
           {instrumentData && !isLoading && (
             <div className="space-y-4">
               <AccionesDocumento
-                targetId="documento-resultado"
+                targetId="instrumento-resultado"
                 tipoRecurso="Instrumento_Evaluacion"
                 customSuffix={`${instrumentName.replace(/[^a-zA-Z0-9]/g, '_')}_${grado.replace(/[^a-zA-Z0-9]/g, '')}`}
                 title={
@@ -120,8 +120,7 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
                 }
               />
 
-              <div
-                id="documento-resultado"
+              <div id="instrumento-resultado"
                 className="bg-white p-6 sm:p-8 rounded-xl border-2 border-slate-900 shadow-sm font-sans text-slate-900 space-y-6 print:border-none print:p-0 print:shadow-none printable-document"
               >
                 {/* Encabezado del Instrumento */}
@@ -362,8 +361,28 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
         </div>
       </div>
 
-      {/* ESTILO PARA AISLAR LA IMPRESIÓN Y OCULTAR LA PLANEACIÓN DE FONDO */}
-      <style dangerouslySetInnerHTML={{ __html: "@media print { body * { visibility: hidden !important; } #documento-resultado, #documento-resultado * { visibility: visible !important; } #documento-resultado { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; } .fixed { position: absolute !important; } }" }} />
+     {/* ESTILO PARA AISLAR LA IMPRESIÓN Y OCULTAR LA PLANEACIÓN DE FONDO */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          body * { visibility: hidden !important; }
+          
+          /* Apagar la planeación de fondo */
+          #documento-resultado { display: none !important; }
+          
+          /* Hacer visible SOLO el instrumento */
+          #instrumento-resultado, #instrumento-resultado * { visibility: visible !important; }
+          #instrumento-resultado {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+          }
+        }
+      `}} />
     </div>
   );
 }
