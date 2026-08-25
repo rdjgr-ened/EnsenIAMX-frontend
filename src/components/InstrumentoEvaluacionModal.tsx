@@ -361,28 +361,30 @@ export default function InstrumentoEvaluacionModal(props: InstrumentoEvaluacionM
         </div>
       </div>
 
-     {/* ESTILO PARA AISLAR LA IMPRESIÓN Y OCULTAR LA PLANEACIÓN DE FONDO */}
+     {/* ESTILO PARA PERMITIR PAGINACIÓN Y OCULTAR EL FONDO */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          body * { visibility: hidden !important; }
-          
-          /* Apagar la planeación de fondo */
+          /* 1. Apagamos la planeación que está de fondo para que no ocupe espacio */
           #documento-resultado { display: none !important; }
           
-          /* Hacer visible SOLO el instrumento */
-          #instrumento-resultado, #instrumento-resultado * { visibility: visible !important; }
-          #instrumento-resultado {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100% !important;
-            margin: 0 !important;
+          /* 2. "Desempaquetamos" el modal quitándole lo fijo y el centrado para que caiga hasta arriba */
+          .fixed.inset-0 {
+            position: relative !important;
+            display: block !important;
+            background: transparent !important;
             padding: 0 !important;
+          }
+          
+          /* 3. Rompemos el límite de altura (max-h) para que el navegador se vea obligado a crear páginas nuevas */
+          .max-h-\\[92vh\\] {
+            max-height: none !important;
             box-shadow: none !important;
             border: none !important;
           }
+          
+          /* 4. Hacemos el desbordamiento visible */
+          .overflow-y-auto, .overflow-hidden {
+            overflow: visible !important;
+          }
         }
       `}} />
-    </div>
-  );
-}
