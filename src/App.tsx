@@ -17,7 +17,6 @@ import TerminosCondicionesView from "./components/TerminosCondicionesView";
 import MiCuentaView from "./components/MiCuentaView";
 import PaywallModal from "./components/PaywallModal";
 import PaymentSuccessView from "./components/PaymentSuccessView";
-// --- AQUÍ IMPORTAMOS TUS NUEVOS COMPONENTES INDEPENDIENTES ---
 import GeneradorHojaTrabajoView from "./components/GeneradorHojaTrabajoView";
 import GeneradorInstrumentoView from "./components/GeneradorInstrumentoView";
 
@@ -100,11 +99,9 @@ export default function App() {
     }
   };
 
-  // Public Landing / Login State
   const [publicView, setPublicView] = useState<"landing" | "login">("landing");
   const [loginInitialMode, setLoginInitialMode] = useState<"login" | "register">("login");
 
-  // Subscription & Paywall State
   const [subscription, setSubscription] = useState<UserSubscription>(() => loadUserSubscription());
   const [isPaywallOpen, setIsPaywallOpen] = useState<boolean>(false);
   const [paywallReason, setPaywallReason] = useState<PaywallReason | null>(null);
@@ -114,14 +111,35 @@ export default function App() {
     setIsPaywallOpen(true);
   };
 
+  // 1. OBTENEMOS EL PERFIL DESDE EL ESTADO GLOBAL
+  const [userProfile, setUserProfile] = useState<{
+    id?: string; // UUID AÑADIDO
+    docenteName: string;
+    escuelaName: string;
+    cct: string;
+    email: string;
+    escuelas?: Array<{ escuelaName: string; cct: string }>;
+  } | null>(() => {
+    const saved = localStorage.getItem("nem_secundaria_profile");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  });
+
+  // 2. CORRECCIÓN: DEDUCCIÓN DE CRÉDITOS USANDO UUID
   const handleDeductCredits = (action: CreditActionType): boolean => {
     const result = deductCreditsFromState(subscription, action);
     if (result.success && result.newSubscription) {
       setSubscription(result.newSubscription);
       
-      // Persistir la deducción en Supabase si hay perfil
+      // Persistir la deducción en Supabase usando el ID Oficial
       if (userProfile?.email && isSupabaseConfigured) {
-        const userId = `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        const userId = userProfile?.id || `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
         saveSupabaseProfile({
           id: userId,
           email: userProfile.email,
@@ -142,13 +160,14 @@ export default function App() {
     }
   };
 
+  // 3. CORRECCIÓN: ACTUALIZACIÓN DE PLAN USANDO UUID
   const handleSelectPlanTier = (plan: PlanTier, cycle?: "mensual" | "trimestral" | "anual") => {
     const updated = updateUserPlan(subscription, plan, cycle);
     setSubscription(updated);
     setIsPaywallOpen(false);
 
     if (userProfile?.email && isSupabaseConfigured) {
-      const userId = `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      const userId = userProfile?.id || `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
       saveSupabaseProfile({
         id: userId,
         email: userProfile.email,
@@ -158,34 +177,15 @@ export default function App() {
     }
   };
 
-  const [userProfile, setUserProfile] = useState<{
-    docenteName: string;
-    escuelaName: string;
-    cct: string;
-    email: string;
-    escuelas?: Array<{ escuelaName: string; cct: string }>;
-  } | null>(() => {
-    const saved = localStorage.getItem("nem_secundaria_profile");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return null;
-      }
-    }
-    return null;
-  });
-
-  // --- SE AÑADIERON LAS RUTAS "generar_hoja" Y "generar_instrumento" ---
   const [activeTab, setActiveTab] = useState<"hub" | "diseno" | "sugerir" | "crear" | "programa" | "evaluacion" | "bitacora" | "organizador" | "examen" | "cuenta" | "generar_hoja" | "generar_instrumento">("hub");
   const [organizadorTab, setOrganizadorTab] = useState<"planeaciones" | "grupos" | "bitacora" | "seguimiento" | "evaluacion">("planeaciones");
   const [prefilledData, setPrefilledData] = useState<any | null>(null);
 
-  // Función consolidada de Sincronización de Perfil y Créditos desde Supabase
-  const syncSubscriptionFromSupabase = async (email: string) => {
-    if (!isSupabaseConfigured || !email) return;
+  // 4. CORRECCIÓN: SINCRONIZACIÓN INICIAL DESDE SUPABASE USANDO UUID
+  const syncSubscriptionFromSupabase = async (profile: any) => {
+    if (!isSupabaseConfigured || !profile?.email) return;
 
-    const userId = `user_${email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    const userId = profile.id || `user_${profile.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
     try {
       const profileData = await fetchSupabaseProfile(userId);
 
@@ -195,7 +195,6 @@ export default function App() {
         let rawCredits = profileData.creditos_disponibles ?? profileData.credits;
         let credits = (rawCredits !== undefined && rawCredits !== null) ? Number(rawCredits) : 20;
 
-        // Si es plan platino en Supabase pero tiene créditos por defecto, los ajustamos a 300
         if (plan === "platino" && credits < 300) {
           credits = 300;
         }
@@ -215,7 +214,7 @@ export default function App() {
 
         await saveSupabaseProfile({
           id: userId,
-          email: email,
+          email: profile.email,
           plan: "gratuito",
           creditos_disponibles: 20
         }).catch(err => console.warn("Error registrando perfil inicial en Supabase:", err));
@@ -227,11 +226,12 @@ export default function App() {
 
   useEffect(() => {
     if (userProfile?.email) {
-      syncSubscriptionFromSupabase(userProfile.email);
+      syncSubscriptionFromSupabase(userProfile);
     }
   }, [userProfile?.email]);
 
   const handleLogin = (profile: {
+    id?: string;
     docenteName: string;
     escuelaName: string;
     cct: string;
@@ -245,6 +245,7 @@ export default function App() {
   };
 
   const handleUpdateProfile = (profile: {
+    id?: string;
     docenteName: string;
     escuelaName: string;
     cct: string;
@@ -265,6 +266,7 @@ export default function App() {
     setSubscription({ plan: "gratuito", credits: 20, billingCycle: "mensual" });
   };
 
+  // 5. CORRECCIÓN: DESCARGA DEL HISTORIAL USANDO UUID
   useEffect(() => {
     const savedPlans = localStorage.getItem("nem_secundaria_plans");
     if (savedPlans) {
@@ -276,7 +278,7 @@ export default function App() {
     }
 
     if (isSupabaseConfigured && userProfile?.email) {
-      const userId = `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      const userId = userProfile?.id || `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
 
       fetchSupabasePlaneaciones(userId).then(dbPlans => {
         if (dbPlans && dbPlans.length > 0) {
@@ -311,14 +313,14 @@ export default function App() {
     }
   }, [userProfile?.email]);
 
+  // 6. CORRECCIÓN: GUARDADO DEL HISTORIAL MAESTRO USANDO UUID
   const savePlansToStorage = (updatedPlans: CompletePlan[]) => {
     setPlans(updatedPlans);
     localStorage.setItem("nem_secundaria_plans", JSON.stringify(updatedPlans));
 
     if (isSupabaseConfigured && updatedPlans.length > 0) {
       const latestPlan = updatedPlans[0];
-      const userEmail = userProfile?.email;
-      const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
+      const userId = userProfile?.id || (userProfile?.email ? `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user');
 
       const payloadDB = {
         id: latestPlan.id || crypto.randomUUID(),
@@ -428,7 +430,7 @@ export default function App() {
               if (folder) {
                 setOrganizadorTab(folder);
               }
-              setActiveTab(func as any); // Asegurar casting con las nuevas opciones
+              setActiveTab(func as any); 
               setPrefilledData(null);
             }}
             docenteName={userProfile?.docenteName || "Docente"}
@@ -437,8 +439,6 @@ export default function App() {
             onTriggerPaywall={handleTriggerPaywall}
           />
         );
-      
-      // --- NUEVA RUTA 1: GENERADOR HOJA DE TRABAJO ---
       case "generar_hoja":
         return (
           <GeneradorHojaTrabajoView
@@ -449,8 +449,6 @@ export default function App() {
             onTriggerPaywall={handleTriggerPaywall}
           />
         );
-
-      // --- NUEVA RUTA 2: GENERADOR INSTRUMENTO DE EVALUACIÓN ---
       case "generar_instrumento":
         return (
           <GeneradorInstrumentoView
@@ -461,7 +459,6 @@ export default function App() {
             onTriggerPaywall={handleTriggerPaywall}
           />
         );
-
       case "diseno":
         return (
           <div className="space-y-6">
@@ -503,9 +500,7 @@ export default function App() {
               setPrefilledData(data);
               setActiveTab("diseno");
             }}
-            onBack={() => {
-              setActiveTab("hub");
-            }}
+            onBack={() => setActiveTab("hub")}
           />
         );
       case "crear":
@@ -515,9 +510,7 @@ export default function App() {
               setPrefilledData(data);
               setActiveTab("diseno");
             }}
-            onBack={() => {
-              setActiveTab("hub");
-            }}
+            onBack={() => setActiveTab("hub")}
           />
         );
       case "programa":
@@ -527,9 +520,7 @@ export default function App() {
               setPrefilledData(data);
               setActiveTab("diseno");
             }}
-            onBack={() => {
-              setActiveTab("hub");
-            }}
+            onBack={() => setActiveTab("hub")}
             escuelaName={userProfile?.escuelaName}
             cct={userProfile?.cct}
             docenteName={userProfile?.docenteName}
@@ -541,9 +532,7 @@ export default function App() {
       case "evaluacion":
         return (
           <FormatoEvaluacionView
-            onBack={() => {
-              setActiveTab("hub");
-            }}
+            onBack={() => setActiveTab("hub")}
             escuelaName={userProfile?.escuelaName || ""}
             cct={userProfile?.cct || ""}
             docenteName={userProfile?.docenteName || ""}
@@ -554,9 +543,7 @@ export default function App() {
       case "bitacora":
         return (
           <BitacoraIncidenciaView
-            onBack={() => {
-              setActiveTab("hub");
-            }}
+            onBack={() => setActiveTab("hub")}
             escuelaName={userProfile?.escuelaName || ""}
             cct={userProfile?.cct || ""}
             docenteName={userProfile?.docenteName || ""}
@@ -570,16 +557,10 @@ export default function App() {
           <OrganizadorEscolarView
             initialTab={organizadorTab}
             plans={plans}
-            onSelectPlan={(plan) => {
-              setCurrentPlan(plan);
-            }}
+            onSelectPlan={(plan) => setCurrentPlan(plan)}
             onDeletePlan={handleDeletePlan}
-            onBack={() => {
-              setActiveTab("hub");
-            }}
-            onGoToBitacora={() => {
-              setActiveTab("bitacora");
-            }}
+            onBack={() => setActiveTab("hub")}
+            onGoToBitacora={() => setActiveTab("bitacora")}
             onGoToDiseno={() => {
               setActiveTab("diseno");
               setPrefilledData(null);
@@ -593,9 +574,7 @@ export default function App() {
       case "examen":
         return (
           <CrearExamenView
-            onBack={() => {
-              setActiveTab("hub");
-            }}
+            onBack={() => setActiveTab("hub")}
             escuelaName={userProfile?.escuelaName}
             cct={userProfile?.cct}
             docenteName={userProfile?.docenteName}
@@ -608,9 +587,9 @@ export default function App() {
       case "cuenta":
         return (
           <MiCuentaView
-            userProfile={userProfile}
+            userProfile={userProfile as any}
             subscription={subscription}
-            onUpdateProfile={handleUpdateProfile}
+            onUpdateProfile={handleUpdateProfile as any}
             onTriggerPaywall={handleTriggerPaywall}
             onBack={() => setActiveTab("hub")}
             onNavigateToPrivacy={() => navigateTo("/politica-de-privacidad")}
@@ -622,7 +601,7 @@ export default function App() {
     }
   };
 
-  // Procesamiento global de pago exitoso (Blindado y sin errores)
+  // 7. CORRECCIÓN: PROCESAMIENTO GLOBAL DEL PAGO EXITOSO USANDO UUID
   useEffect(() => {
     if (currentPath === "/payment-success") {
       try {
@@ -658,20 +637,26 @@ export default function App() {
           saveSubscriptionToStorage(updatedSub);
 
           let userEmail = userProfile?.email;
+          let currentUserId = userProfile?.id || 'anonymous_user';
+
           if (!userEmail) {
             try {
               const savedProf = localStorage.getItem("nem_secundaria_profile");
               if (savedProf) {
                 const parsed = JSON.parse(savedProf);
                 if (parsed?.email) userEmail = parsed.email;
+                if (parsed?.id) currentUserId = parsed.id;
               }
             } catch (err) {}
           }
 
+          if (currentUserId === 'anonymous_user' && userEmail) {
+             currentUserId = `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
+          }
+
           if (userEmail && isSupabaseConfigured) {
-            const userId = `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
             saveSupabaseProfile({
-              id: userId,
+              id: currentUserId,
               email: userEmail,
               plan: updatedSub.plan,
               creditos_disponibles: updatedSub.credits,
