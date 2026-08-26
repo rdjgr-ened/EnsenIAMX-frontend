@@ -292,6 +292,7 @@ export default function GeneradorHojaTrabajoView({
             padding: 0 !important;
             border: none !important;
             box-shadow: none !important;
+            grid-column: 1 / -1 !important; 
           }
 
           /* 5. REGLAS DE PAGINACIÓN CORRECTAS */
@@ -301,6 +302,3 @@ export default function GeneradorHojaTrabajoView({
           }
         }
       `}</style>
-    </div>
-  );
-}
