@@ -218,8 +218,8 @@ export default function BitacoraIncidenciaView({
   // Supabase Load Effect on mount
   useEffect(() => {
     const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-    const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
-    const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
+    const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
+    const userId = userProfile?.id || (userProfile?.email ? `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user');
 
     if (isSupabaseConfigured) {
       // Fetch Alumnos from Supabase
@@ -526,8 +526,8 @@ export default function BitacoraIncidenciaView({
 
     // Sync to Supabase
     const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-    const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
-    const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
+    const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
+    const userId = userProfile?.id || (userProfile?.email ? `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user');
 
     if (isSupabaseConfigured) {
       insertSupabaseIncidencia({
@@ -566,8 +566,9 @@ export default function BitacoraIncidenciaView({
 
       // Supabase Delete
       const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-      const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
-      const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
+      const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
+      const userId = userProfile?.id || (userProfile?.email ? `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user');
+      
       deleteSupabaseIncidencia(id, userId).catch(err => console.warn("Error borrando incidencia en Supabase:", err));
     }
   };

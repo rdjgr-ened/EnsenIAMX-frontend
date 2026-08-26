@@ -84,9 +84,15 @@ export default function GeneradorHojaTrabajoView({
         setWorksheetData(data.worksheet);
         if (isSupabaseConfigured) {
           const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-          const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
-          const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
-          saveRecursoGenerado({ id: `ws_${Date.now()}`, user_id: userId, tipo_recurso: "hoja_de_trabajo", contenido_json: data.worksheet }).catch(e => console.warn(e));
+          const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
+          const userId = userProfile?.id || (userProfile?.email ? `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user');
+          
+          saveRecursoGenerado({ 
+            id: `ws_${Date.now()}`, 
+            user_id: userId, 
+            tipo_recurso: "hoja_de_trabajo", 
+            contenido_json: data.worksheet 
+          }).catch(e => console.warn(e));
         }
       } else throw new Error("No se recibieron datos de la hoja de trabajo.");
     } catch (err: any) {
