@@ -170,12 +170,11 @@ export default function GeneradorHojaTrabajoView({
       {worksheetData && selectedPlan && selectedSessionData && !isLoading && (
         <div className="space-y-6">
             <AccionesDocumento
-              targetId="hoja-trabajo-resultado"
-              tipoRecurso="Hoja_De_Trabajo"
-              customSuffix={`Sesion_${selectedSessionData.sesion.numero}_${selectedPlan.disciplina}`}
-              title={<span className="font-black text-slate-800 text-sm">{worksheetData.titulo}</span>}
-            />
-          </div>
+  targetId="hoja-trabajo-resultado"
+  tipoRecurso="Hoja_De_Trabajo"
+  customSuffix={`Sesion_${selectedSessionData.sesion.numero}_${selectedPlan.disciplina}`}
+  title={<span className="font-black text-slate-800 text-sm">{worksheetData.titulo}</span>}
+/>
 
           <div id="hoja-trabajo-resultado" className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-300 shadow-sm space-y-8 text-slate-900 text-xs printable-document print:p-0 print:border-none print:shadow-none print:w-full">
             

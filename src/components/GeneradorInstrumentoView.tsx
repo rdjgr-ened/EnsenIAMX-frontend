@@ -172,12 +172,11 @@ export default function GeneradorInstrumentoView({
       {instrumentData && selectedPlan && !isLoading && (
         <div className="space-y-6">
             <AccionesDocumento
-              targetId="instrumento-evaluacion-resultado"
-              tipoRecurso="Instrumento_Evaluacion"
-              customSuffix={`${selectedInstrument}_${selectedPlan.grado}`}
-              title={<span className="font-black text-slate-800 text-sm">{instrumentData.titulo}</span>}
-            />
-          </div>
+  targetId="instrumento-evaluacion-resultado"
+  tipoRecurso="Instrumento_Evaluacion"
+  customSuffix={`${selectedInstrument}_${selectedPlan.grado}`}
+  title={<span className="font-black text-slate-800 text-sm">{instrumentData.titulo}</span>}
+/>
 
           <div id="instrumento-evaluacion-resultado" className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-200 shadow-sm font-sans text-slate-900 printable-document print:border-none print:shadow-none print:p-0 print:rounded-none">
             
