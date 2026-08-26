@@ -169,7 +169,6 @@ export default function GeneradorHojaTrabajoView({
 
       {worksheetData && selectedPlan && selectedSessionData && !isLoading && (
         <div className="space-y-6">
-          <div className="print:hidden">
             <AccionesDocumento
               targetId="hoja-trabajo-resultado"
               tipoRecurso="Hoja_De_Trabajo"

@@ -171,7 +171,6 @@ export default function GeneradorInstrumentoView({
 
       {instrumentData && selectedPlan && !isLoading && (
         <div className="space-y-6">
-          <div className="print:hidden">
             <AccionesDocumento
               targetId="instrumento-evaluacion-resultado"
               tipoRecurso="Instrumento_Evaluacion"
