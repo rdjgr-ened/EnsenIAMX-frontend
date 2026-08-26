@@ -202,7 +202,7 @@ export default function GeneradorHojaTrabajoView({
               <p className="text-slate-600 font-semibold text-xs italic">{worksheetData.seccionInicio.instrucciones}</p>
               <div className="space-y-4">
                 {worksheetData.seccionInicio.ejercicios.map((ex, idx) => (
-                  <div key={idx} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3 break-inside-avoid">
+                  <div key={idx} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3 page-break-inside-avoid">
                     <p className="font-bold text-slate-900 text-sm leading-snug"><span className="text-mex-maroon font-black">{ex.numero}.</span> {ex.preguntaOInstruccion}</p>
                     <div className="space-y-3 pt-2">
                       {Array.from({ length: ex.lineasDeRespuesta || 3 }).map((_, lIdx) => <div key={lIdx} className="border-b border-dashed border-slate-300 h-6" />)}
@@ -217,7 +217,7 @@ export default function GeneradorHojaTrabajoView({
               <p className="text-slate-600 font-semibold text-xs italic">{worksheetData.seccionDesarrollo.instrucciones}</p>
               <div className="space-y-4">
                 {worksheetData.seccionDesarrollo.ejercicios.map((ex, idx) => (
-                  <div key={idx} className="p-4 border border-slate-200 rounded-xl bg-white space-y-3 break-inside-avoid">
+                  <div key={idx} className="p-4 border border-slate-200 rounded-xl bg-white space-y-3 page-break-inside-avoid">
                     <p className="font-bold text-slate-900 text-sm leading-snug"><span className="text-mex-maroon font-black">{ex.numero}.</span> {ex.preguntaOInstruccion}</p>
                     {ex.textoOAuxiliar && <div className="p-3 bg-slate-100 border-l-4 border-slate-700 rounded-r-lg text-slate-800 text-xs italic font-medium">{ex.textoOAuxiliar}</div>}
                     <div className="space-y-3 pt-2">
@@ -233,7 +233,7 @@ export default function GeneradorHojaTrabajoView({
               <p className="text-slate-600 font-semibold text-xs italic">{worksheetData.seccionCierre.instrucciones}</p>
               <div className="space-y-4">
                 {worksheetData.seccionCierre.ejercicios.map((ex, idx) => (
-                  <div key={idx} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3 break-inside-avoid">
+                  <div key={idx} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3 page-break-inside-avoid">
                     <p className="font-bold text-slate-900 text-sm leading-snug"><span className="text-mex-maroon font-black">{ex.numero}.</span> {ex.preguntaOInstruccion}</p>
                     <div className="space-y-3 pt-2">
                       {Array.from({ length: ex.lineasDeRespuesta || 3 }).map((_, lIdx) => <div key={lIdx} className="border-b border-dashed border-slate-300 h-6" />)}
@@ -244,7 +244,7 @@ export default function GeneradorHojaTrabajoView({
             </div>
 
             {worksheetData.ticketDeSalida && (
-              <div className="p-5 border-2 border-dashed border-amber-500 bg-amber-50/40 rounded-xl space-y-3 break-inside-avoid">
+              <div className="p-5 border-2 border-dashed border-amber-500 bg-amber-50/40 rounded-xl space-y-3 page-break-inside-avoid">
                 <span className="font-black uppercase text-amber-900 text-sm tracking-wider flex items-center gap-1.5">🎟️ Ticket de Salida (Entregar al finalizar la clase)</span>
                 <p className="font-bold text-slate-900 text-sm">{worksheetData.ticketDeSalida}</p>
                 <div className="space-y-3 pt-2"><div className="border-b border-dashed border-slate-400 h-6" /><div className="border-b border-dashed border-slate-400 h-6" /></div>
