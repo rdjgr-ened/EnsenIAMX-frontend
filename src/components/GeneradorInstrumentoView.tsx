@@ -171,12 +171,12 @@ export default function GeneradorInstrumentoView({
 
       {instrumentData && selectedPlan && !isLoading && (
         <div className="space-y-6">
-            <AccionesDocumento
-  targetId="instrumento-evaluacion-resultado"
-  tipoRecurso="Instrumento_Evaluacion"
-  customSuffix={`${selectedInstrument}_${selectedPlan.grado}`}
-  title={<span className="font-black text-slate-800 text-sm">{instrumentData.titulo}</span>}
-/>
+          <AccionesDocumento
+            targetId="instrumento-evaluacion-resultado"
+            tipoRecurso="Instrumento_Evaluacion"
+            customSuffix={`${selectedInstrument}_${selectedPlan.grado}`}
+            title={<span className="font-black text-slate-800 text-sm">{instrumentData.titulo}</span>}
+          />
 
           <div id="instrumento-evaluacion-resultado" className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-200 shadow-sm font-sans text-slate-900 printable-document print:border-none print:shadow-none print:p-0 print:rounded-none">
             
@@ -335,12 +335,29 @@ export default function GeneradorInstrumentoView({
         </div>
       )}
 
-      {/* AQUÍ ESTÁ LA CORRECCIÓN EXACTA DEL ID PARA QUE NO CORTE EL PDF */}
       <style>{`
         @media print {
           body { background-color: white !important; color: black !important; font-size: 11px !important; }
           header, footer, nav, aside, .print\\:hidden { display: none !important; }
-          #instrumento-evaluacion-resultado { border: none !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; width: 100% !important; }
+          
+          /* AISLAMIENTO DE IMPRESIÓN (PRINT ISOLATION) */
+          body * { visibility: hidden !important; }
+          
+          #instrumento-evaluacion-resultado, #instrumento-evaluacion-resultado * { 
+            visibility: visible !important; 
+          }
+          
+          #instrumento-evaluacion-resultado { 
+            position: absolute !important; 
+            left: 0 !important; 
+            top: 0 !important; 
+            border: none !important; 
+            padding: 0 !important; 
+            margin: 0 !important; 
+            box-shadow: none !important; 
+            width: 100% !important; 
+          }
+          
           .page-break-inside-avoid { page-break-inside: avoid !important; }
         }
       `}</style>

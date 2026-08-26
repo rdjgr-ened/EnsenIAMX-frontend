@@ -169,12 +169,12 @@ export default function GeneradorHojaTrabajoView({
 
       {worksheetData && selectedPlan && selectedSessionData && !isLoading && (
         <div className="space-y-6">
-            <AccionesDocumento
-  targetId="hoja-trabajo-resultado"
-  tipoRecurso="Hoja_De_Trabajo"
-  customSuffix={`Sesion_${selectedSessionData.sesion.numero}_${selectedPlan.disciplina}`}
-  title={<span className="font-black text-slate-800 text-sm">{worksheetData.titulo}</span>}
-/>
+          <AccionesDocumento
+            targetId="hoja-trabajo-resultado"
+            tipoRecurso="Hoja_De_Trabajo"
+            customSuffix={`Sesion_${selectedSessionData.sesion.numero}_${selectedPlan.disciplina}`}
+            title={<span className="font-black text-slate-800 text-sm">{worksheetData.titulo}</span>}
+          />
 
           <div id="hoja-trabajo-resultado" className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-300 shadow-sm space-y-8 text-slate-900 text-xs printable-document print:p-0 print:border-none print:shadow-none print:w-full">
             
@@ -259,8 +259,26 @@ export default function GeneradorHojaTrabajoView({
           body { background-color: white !important; color: black !important; font-size: 11px !important; }
           header, footer, nav, aside, .print\\:hidden { display: none !important; }
           
-          /* AQUÍ ESTÁ LA CORRECCIÓN EXACTA DEL ID PARA QUE NO CORTE EL PDF */
-          #hoja-trabajo-resultado { border: none !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; width: 100% !important; }
+          /* AISLAMIENTO DE IMPRESIÓN (PRINT ISOLATION) */
+          /* Oculta todo el cuerpo por si hay conflictos de layouts globales */
+          body * { visibility: hidden !important; }
+          
+          /* Fuerza la visibilidad EXCLUSIVAMENTE de este ID y sus hijos */
+          #hoja-trabajo-resultado, #hoja-trabajo-resultado * { 
+            visibility: visible !important; 
+          }
+          
+          /* Lo posiciona al inicio de la página ignorando contenedores padres */
+          #hoja-trabajo-resultado { 
+            position: absolute !important; 
+            left: 0 !important; 
+            top: 0 !important; 
+            border: none !important; 
+            padding: 0 !important; 
+            margin: 0 !important; 
+            box-shadow: none !important; 
+            width: 100% !important; 
+          }
           
           .page-break-inside-avoid { page-break-inside: avoid !important; }
         }
