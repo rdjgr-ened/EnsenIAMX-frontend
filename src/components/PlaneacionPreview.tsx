@@ -207,7 +207,6 @@ export default function PlaneacionPreview({
                           <span className="font-bold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200 text-[11px]">
                             Duración: {sesion.duracion}
                           </span>
-                          {/* El botón de crear hoja de trabajo ahora vive en el Generador Independiente */}
                         </div>
                       </div>
 
@@ -363,10 +362,45 @@ export default function PlaneacionPreview({
 
       <style>{`
         @media print {
-          body { background-color: white !important; color: black !important; font-size: 11px !important; }
-          header, footer, nav, aside, .print\\:hidden { display: none !important; }
-          #documento-resultado { border: none !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; width: 100% !important; }
-          .page-break-inside-avoid { page-break-inside: avoid !important; }
+          /* 1. RESET AGRESIVO PARA REPARAR EL BUG DE LA HOJA EN BLANCO EN CHROME/REACT */
+          html, body, #root {
+            height: auto !important;
+            min-height: 100% !important;
+            overflow: visible !important;
+            position: static !important;
+          }
+          
+          /* Quitar restricciones de altura y scroll a todos los contenedores padre */
+          body * {
+            max-height: none !important;
+            overflow-y: visible !important;
+          }
+
+          body {
+            background-color: white !important;
+            color: black !important;
+            font-size: 11px !important;
+          }
+
+          /* 2. OCULTAR INTERFAZ INNECESARIA */
+          header, footer, nav, aside, .print\\:hidden, .no-print {
+            display: none !important;
+          }
+
+          /* 3. GARANTIZAR QUE EL DOCUMENTO OCUPE TODA LA PÁGINA (Col-span fix) */
+          #documento-resultado {
+            grid-column: 1 / -1 !important; 
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
+
+          .page-break-inside-avoid { 
+            page-break-inside: avoid !important; 
+          }
         }
       `}</style>
     </div>
