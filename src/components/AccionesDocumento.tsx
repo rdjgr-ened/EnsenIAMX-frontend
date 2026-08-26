@@ -42,8 +42,8 @@ export default function AccionesDocumento({
   const triggerNativePrint = () => {
     setIsExporting(true);
     
-    // Este pequeño retraso permite que React termine de procesar el DOM
-    // antes de que la ventana de impresión congele el navegador.
+    // 300ms asegura que React complete sus ciclos de renderizado y Tailwind
+    // aplique los estilos antes de que window.print() pause el navegador.
     setTimeout(() => {
       try {
         window.print();
@@ -58,7 +58,7 @@ export default function AccionesDocumento({
       } finally {
         setIsExporting(false);
       }
-    }, 150);
+    }, 300);
   };
 
   const handlePrint = () => {

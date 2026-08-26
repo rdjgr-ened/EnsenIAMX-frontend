@@ -256,34 +256,36 @@ export default function GeneradorHojaTrabajoView({
 
       <style>{`
         @media print {
-          /* 1. RESET AGRESIVO PARA REPARAR EL BUG DE LA HOJA EN BLANCO EN CHROME/REACT */
+          /* 1. RESET DE RESTRICCIONES DE ALTURA Y SCROLL EN TAILWIND */
           html, body, #root {
             height: auto !important;
-            min-height: 100% !important;
+            min-height: 100vh !important;
+            overflow: visible !important;
+          }
+
+          /* Forzamos a que cualquier contenedor padre (sidebar, main) permita expandirse */
+          div[class*="h-screen"], div[class*="h-full"], div[class*="overflow"], main {
+            height: auto !important;
+            max-height: none !important;
             overflow: visible !important;
             position: static !important;
           }
-          
-          /* Quitar restricciones de altura y scroll a todos los contenedores padre */
-          body * {
-            max-height: none !important;
-            overflow-y: visible !important;
+
+          /* 2. OCULTAR LA INTERFAZ DE USUARIO */
+          header, footer, nav, aside, .print\\:hidden, .no-print {
+            display: none !important;
           }
 
+          /* 3. ESTILOS BASE DEL DOCUMENTO */
           body {
             background-color: white !important;
             color: black !important;
             font-size: 11px !important;
           }
 
-          /* 2. OCULTAR INTERFAZ INNECESARIA */
-          header, footer, nav, aside, .print\\:hidden, .no-print {
-            display: none !important;
-          }
-
-          /* 3. GARANTIZAR QUE EL DOCUMENTO OCUPE TODA LA PÁGINA (Col-span fix) */
+          /* 4. EXPANDIR EL CONTENEDOR DEL DOCUMENTO */
           #hoja-trabajo-resultado {
-            grid-column: 1 / -1 !important; 
+            display: block !important;
             width: 100% !important;
             max-width: 100% !important;
             margin: 0 !important;
@@ -292,8 +294,10 @@ export default function GeneradorHojaTrabajoView({
             box-shadow: none !important;
           }
 
+          /* 5. REGLAS DE PAGINACIÓN CORRECTAS */
           .page-break-inside-avoid { 
             page-break-inside: avoid !important; 
+            break-inside: avoid !important;
           }
         }
       `}</style>
