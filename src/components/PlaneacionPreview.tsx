@@ -35,8 +35,9 @@ export default function PlaneacionPreview({
   React.useEffect(() => {
     if (isSupabaseConfigured && planData) {
       const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-      const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
-      const userId = userProfile?.id || (userProfile?.email ? `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user');
+        const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
+        const userId = userProfile?.id;
+        if (!userId) return;
 
       const payloadDB = {
         id: planData.id || crypto.randomUUID(),

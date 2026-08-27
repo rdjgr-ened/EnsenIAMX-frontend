@@ -172,8 +172,9 @@ export default function FormatoEvaluacionView({
     // If Supabase configured and user is Oro/Platino, load latest
     if (isSupabaseConfigured && (userPlan === "oro" || userPlan === "platino")) {
       const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-      const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
-      const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
+        const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
+        const userId = userProfile?.id;
+        if (!userId) return;
 
       fetchSupabaseEvaluacionContinua(userId, userPlan).then(records => {
         if (records && records.length > 0) {
@@ -207,8 +208,9 @@ export default function FormatoEvaluacionView({
 
     if (isSupabaseConfigured && (userPlan === "oro" || userPlan === "platino") && (elements.length > 0 || students.length > 0)) {
       const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-      const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
-      const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
+        const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
+        const userId = userProfile?.id;
+        if (!userId) return;
 
       const timer = setTimeout(() => {
         saveSupabaseEvaluacionContinua({

@@ -182,9 +182,9 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
 
         if (isSupabaseConfigured) {
           const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-          const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
-          // Usa el UUID oficial de Supabase
-          const userId = userProfile?.id || (userProfile?.email ? `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user');
+        const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
+        const userId = userProfile?.id;
+        if (!userId) return;
 
           saveRecursoGenerado({
             id: `pa_${crypto.randomUUID()}`,

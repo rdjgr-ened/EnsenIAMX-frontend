@@ -74,8 +74,9 @@ export default function GeneradorInstrumentoView({
         setInstrumentData(data.instrument);
         if (isSupabaseConfigured) {
           const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-          const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
-          const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
+        const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
+        const userId = userProfile?.id;
+        if (!userId) return;
           saveRecursoGenerado({ id: `ins_${Date.now()}`, user_id: userId, tipo_recurso: "instrumento_evaluacion", contenido_json: data.instrument }).catch(e => console.warn(e));
         }
       } else throw new Error("No se recibieron datos del instrumento.");

@@ -138,8 +138,8 @@ export default function App() {
       setSubscription(result.newSubscription);
       
       // Persistir la deducción en Supabase usando el ID Oficial
-      if (userProfile?.email && isSupabaseConfigured) {
-        const userId = userProfile?.id || `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      if (userProfile?.id && isSupabaseConfigured) {
+        const userId = userProfile.id;
         saveSupabaseProfile({
           id: userId,
           email: userProfile.email,
@@ -166,8 +166,8 @@ export default function App() {
     setSubscription(updated);
     setIsPaywallOpen(false);
 
-    if (userProfile?.email && isSupabaseConfigured) {
-      const userId = userProfile?.id || `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    if (userProfile?.id && isSupabaseConfigured) {
+      const userId = userProfile.id;
       saveSupabaseProfile({
         id: userId,
         email: userProfile.email,
@@ -182,10 +182,10 @@ export default function App() {
   const [prefilledData, setPrefilledData] = useState<any | null>(null);
 
   // 4. CORRECCIÓN: SINCRONIZACIÓN INICIAL DESDE SUPABASE USANDO UUID
-  const syncSubscriptionFromSupabase = async (profile: any) => {
-    if (!isSupabaseConfigured || !profile?.email) return;
+  const syncSubscriptionFromSupabase = async (email: string) => {
+    if (!isSupabaseConfigured || !userProfile?.id) return;
 
-    const userId = profile.id || `user_${profile.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    const userId = userProfile.id;
     try {
       const profileData = await fetchSupabaseProfile(userId);
 
@@ -277,8 +277,8 @@ export default function App() {
       }
     }
 
-    if (isSupabaseConfigured && userProfile?.email) {
-      const userId = userProfile?.id || `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    if (isSupabaseConfigured && userProfile?.id) {
+      const userId = userProfile.id;
 
       fetchSupabasePlaneaciones(userId).then(dbPlans => {
         if (dbPlans && dbPlans.length > 0) {
@@ -320,7 +320,8 @@ export default function App() {
 
     if (isSupabaseConfigured && updatedPlans.length > 0) {
       const latestPlan = updatedPlans[0];
-      const userId = userProfile?.id || (userProfile?.email ? `user_${userProfile.email.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user');
+      const userId = userProfile?.id;
+      if (!userId) return;
 
       const payloadDB = {
         id: latestPlan.id || crypto.randomUUID(),

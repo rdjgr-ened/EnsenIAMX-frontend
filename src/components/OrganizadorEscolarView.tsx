@@ -193,8 +193,9 @@ export default function OrganizadorEscolarView({
   // Load from Supabase on mount if available
   useEffect(() => {
     const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-    const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
-    const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
+        const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
+        const userId = userProfile?.id;
+        if (!userId) return;
 
     if (isSupabaseConfigured) {
       fetchSupabaseGrupos(userId).then(async (dbGrupos) => {
@@ -261,8 +262,9 @@ export default function OrganizadorEscolarView({
 
     // Supabase persist
     const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-    const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
-    const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
+        const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
+        const userId = userProfile?.id;
+        if (!userId) return;
     saveSupabaseGrupo({
       id,
       user_id: userId,
@@ -286,8 +288,9 @@ export default function OrganizadorEscolarView({
 
     // Supabase delete
     const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-    const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
-    const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
+        const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
+        const userId = userProfile?.id;
+        if (!userId) return;
     deleteSupabaseGrupo(groupToDeleteId, userId).catch(err => console.warn("Error borrando grupo en Supabase:", err));
 
     setGroupToDeleteId(null);
@@ -298,8 +301,9 @@ export default function OrganizadorEscolarView({
     if (!selectedGroupId) return;
 
     const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-    const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
-    const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
+        const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
+        const userId = userProfile?.id;
+        if (!userId) return;
 
     if (isBatchMode) {
       const names = batchStudentText
@@ -377,8 +381,9 @@ export default function OrganizadorEscolarView({
     setGrupos(updated);
 
     const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-    const userEmail = userProfileStr ? JSON.parse(userProfileStr)?.email : null;
-    const userId = userEmail ? `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : 'anonymous_user';
+        const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
+        const userId = userProfile?.id;
+        if (!userId) return;
     deleteSupabaseAlumno(studentId, userId).catch(err => console.warn("Error borrando alumno en Supabase:", err));
   };
 
