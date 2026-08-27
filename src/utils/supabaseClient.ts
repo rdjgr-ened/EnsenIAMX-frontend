@@ -69,6 +69,7 @@ export async function getProfile(userId: string): Promise<DbProfile | null> {
 
 // En tu archivo utils/supabaseClient.ts
 export async function upsertProfile(profileData: {
+  id: string; // <-- Ahora exigimos el UUID real
   email: string;
   plan?: string;
   creditos_disponibles?: number;
@@ -76,13 +77,12 @@ export async function upsertProfile(profileData: {
 }) {
   if (!isSupabaseConfigured) return null;
 
-  // Generamos el ID obligatorio basado en el email para cumplir con la Primary Key
-  const userId = `user_${profileData.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
-
+  // Eliminamos el generador de texto (user_gmail). 
+  // Ahora usamos directamente el UUID seguro que viene de App.tsx
   const { data, error } = await supabase
     .from("profiles")
     .upsert({
-      id: userId,
+      id: profileData.id, 
       email: profileData.email,
       plan: profileData.plan ?? "gratuito",
       creditos_disponibles: profileData.creditos_disponibles ?? 20,
