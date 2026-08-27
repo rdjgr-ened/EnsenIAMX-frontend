@@ -31,6 +31,7 @@ import {
   PLANS_CONFIG 
 } from "./utils/planManager";
 import {
+  supabase,
   getPlaneaciones as fetchSupabasePlaneaciones,
   savePlaneacion as saveSupabasePlaneacion,
   getProfile as fetchSupabaseProfile,
@@ -183,18 +184,29 @@ export default function App() {
 
   // 4. CORRECCIÓN: SINCRONIZACIÓN INICIAL DESDE SUPABASE USANDO UUID
   const syncSubscriptionFromSupabase = async (email: string) => {
-    if (!isSupabaseConfigured || !userProfile?.id) return;
+    if (!isSupabaseConfigured) return;
 
-    const userId = userProfile.id;
     try {
-      const profileData = await fetchSupabaseProfile(userId);
+      // 1. Rescatar el UUID real directamente de la sesión activa de Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      const realUserId = session?.user?.id;
 
+      if (!realUserId) return; // Si no hay sesión válida, abortamos
+
+      // 2. AUTO-REPARACIÓN: Inyectar el UUID en el perfil de React y LocalStorage
+      if (userProfile && userProfile.id !== realUserId) {
+        const updatedProfile = { ...userProfile, id: realUserId };
+        setUserProfile(updatedProfile);
+        localStorage.setItem("nem_secundaria_profile", JSON.stringify(updatedProfile));
+      }
+
+      // 3. Sincronizar los créditos usando el UUID real asegurado
+      const profileData = await fetchSupabaseProfile(realUserId);
+      
       if (profileData) {
-        const plan = (profileData.plan || profileData.plan_type || "gratuito").toLowerCase();
+        const plan = (profileData.plan || "gratuito").toLowerCase();
+        let credits = profileData.creditos_disponibles ?? 20;
         
-        let rawCredits = profileData.creditos_disponibles ?? profileData.credits;
-        let credits = (rawCredits !== undefined && rawCredits !== null) ? Number(rawCredits) : 20;
-
         if (plan === "platino" && credits < 300) {
           credits = 300;
         }
@@ -202,25 +214,26 @@ export default function App() {
         const updatedSub: UserSubscription = {
           plan: plan as any,
           credits: credits,
-          billingCycle: profileData.billing_cycle || profileData.billingCycle || "mensual"
+          billingCycle: profileData.billing_cycle || "mensual"
         };
-
+        
         setSubscription(updatedSub);
         saveSubscriptionToStorage(updatedSub);
       } else {
+        // Si el usuario es nuevo y no tiene perfil, se lo creamos en Supabase
         const defaultSub: UserSubscription = { plan: "gratuito", credits: 20, billingCycle: "mensual" };
         setSubscription(defaultSub);
         saveSubscriptionToStorage(defaultSub);
 
         await saveSupabaseProfile({
-          id: userId,
-          email: profile.email,
+          id: realUserId,
+          email: email,
           plan: "gratuito",
           creditos_disponibles: 20
         }).catch(err => console.warn("Error registrando perfil inicial en Supabase:", err));
       }
     } catch (err) {
-      console.warn("Error al sincronizar suscripción desde Supabase:", err);
+      console.warn("Error al sincronizar con Supabase:", err);
     }
   };
 
