@@ -220,7 +220,7 @@ export default function BitacoraIncidenciaView({
     const userProfileStr = localStorage.getItem("nem_secundaria_profile");
         const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
         const userId = userProfile?.id;
-        if (!userId) return;);
+        if (!userId) return;
 
     if (isSupabaseConfigured) {
       // Fetch Alumnos from Supabase
