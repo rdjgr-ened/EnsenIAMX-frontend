@@ -4,7 +4,7 @@ import {
   Search, Plus, Trash2, Printer, ArrowLeft, CheckSquare, Sparkles, 
   FileSpreadsheet, FileText, CheckCircle2, ChevronRight, Edit3, Download,
   BookOpen, HelpCircle, UserPlus, RefreshCw, Layers, ChevronDown,
-  Lock, Crown, Gem
+  Lock, Crown, Gem, ClipboardList, BookCheck, GraduationCap
 } from "lucide-react";
 import { 
   CompletePlan, BitacoraIncidencia, EscolarGroup, StudentItem, 
@@ -42,7 +42,7 @@ interface OrganizadorEscolarViewProps {
   onTriggerPaywall?: (reason: PaywallReason) => void;
 }
 
-type TabFolder = "planeaciones" | "grupos" | "bitacora" | "seguimiento" | "evaluacion";
+type TabFolder = "planeaciones" | "grupos" | "bitacora" | "evaluacion" | "hojas" | "instrumentos" | "programas" | "examenes";
 
 export default function OrganizadorEscolarView({
   initialTab = "planeaciones",
@@ -80,14 +80,6 @@ export default function OrganizadorEscolarView({
         featureName: "Bitácora de Incidencias Escolares",
         requiredPlan: "basico",
         message: "Esta función requiere el Plan Básico o superior."
-      });
-      return;
-    } else if (tab === "seguimiento" && !isOroPlatino) {
-      safeTriggerPaywall({
-        type: "feature",
-        featureName: "Seguimiento de Clases",
-        requiredPlan: "oro",
-        message: "Esta función requiere el Plan Oro o Platino."
       });
       return;
     } else if (tab === "evaluacion" && !isPlatino) {
@@ -872,22 +864,24 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
           {userPlan === "gratuito" && <Lock className="w-3 h-3 text-slate-400 ml-1" />}
         </button>
 
-        <button
-          type="button"
-          onClick={() => handleTabChange("seguimiento")}
-          className={`px-4 py-2.5 rounded-xl text-xs font-black tracking-wider uppercase flex items-center gap-2 transition cursor-pointer ${
-            activeTab === "seguimiento"
-              ? "bg-white text-mex-maroon shadow-md border border-slate-200 ring-2 ring-mex-maroon/20"
-              : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
-          }`}
-        >
-          <CalendarCheck className="w-4 h-4 text-emerald-600" />
-          <span>Seguimiento de Clases</span>
-          {(userPlan === "gratuito" || userPlan === "basico") && (
-            <span className="flex items-center gap-1 text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-black">
-              <Crown className="w-3 h-3 text-amber-600" /> Oro
-            </span>
-          )}
+        <button onClick={() => handleTabChange("hojas")} className={`px-4 py-2.5 rounded-xl text-xs font-black tracking-wider uppercase flex items-center gap-2 transition cursor-pointer ${activeTab === "hojas" ? "bg-white text-blue-600 shadow-md border border-slate-200 ring-2 ring-blue-600/20" : "text-slate-600 hover:text-slate-900 hover:bg-white/50"}`}>
+          <ClipboardList className="w-4 h-4 text-blue-600" />
+          <span>Mis Hojas de Trabajo</span>
+        </button>
+
+        <button onClick={() => handleTabChange("instrumentos")} className={`px-4 py-2.5 rounded-xl text-xs font-black tracking-wider uppercase flex items-center gap-2 transition cursor-pointer ${activeTab === "instrumentos" ? "bg-white text-emerald-600 shadow-md border border-slate-200 ring-2 ring-emerald-600/20" : "text-slate-600 hover:text-slate-900 hover:bg-white/50"}`}>
+          <BookCheck className="w-4 h-4 text-emerald-600" />
+          <span>Mis Instrumentos</span>
+        </button>
+
+        <button onClick={() => handleTabChange("programas")} className={`px-4 py-2.5 rounded-xl text-xs font-black tracking-wider uppercase flex items-center gap-2 transition cursor-pointer ${activeTab === "programas" ? "bg-white text-amber-600 shadow-md border border-slate-200 ring-2 ring-amber-600/20" : "text-slate-600 hover:text-slate-900 hover:bg-white/50"}`}>
+          <Layers className="w-4 h-4 text-amber-600" />
+          <span>Mis Programas Analíticos</span>
+        </button>
+
+        <button onClick={() => handleTabChange("examenes")} className={`px-4 py-2.5 rounded-xl text-xs font-black tracking-wider uppercase flex items-center gap-2 transition cursor-pointer ${activeTab === "examenes" ? "bg-white text-purple-600 shadow-md border border-slate-200 ring-2 ring-purple-600/20" : "text-slate-600 hover:text-slate-900 hover:bg-white/50"}`}>
+          <GraduationCap className="w-4 h-4 text-purple-600" />
+          <span>Mis Exámenes</span>
         </button>
 
         <button
@@ -1360,188 +1354,90 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
       )}
 
       {/* ========================================================================= */}
-      {/* FOLDER 4: SEGUIMIENTO DE CLASES */}
+      {/* FOLDER 4: MIS HOJAS DE TRABAJO */}
       {/* ========================================================================= */}
-      {activeTab === "seguimiento" && (
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+      {activeTab === "hojas" && (
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6 animate-fade-in">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
             <div>
               <h3 className="font-extrabold text-slate-800 text-base flex items-center gap-2 uppercase tracking-wider">
-                <CalendarCheck className="w-5 h-5 text-emerald-600" />
-                <span>Seguimiento de Clases Impartidas</span>
+                <ClipboardList className="w-5 h-5 text-blue-600" />
+                <span>Mis Hojas de Trabajo</span>
               </h3>
-              <p className="text-slate-500 text-xs mt-1">
-                Marca las clases/sesiones ya impartidas por grupo y sincroniza el avance directamente con tu planeación didáctica.
-              </p>
+              <p className="text-slate-500 text-xs mt-1">Archivo de ejercicios y actividades para imprimir.</p>
             </div>
           </div>
+          <div className="p-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+            <ClipboardList className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+            <p className="font-bold text-slate-700 text-sm">No hay hojas de trabajo generadas aún</p>
+            <p className="text-xs text-slate-500 mt-1">Tus hojas de trabajo guardadas aparecerán aquí próximamente.</p>
+          </div>
+        </div>
+      )}
 
-          {grupos.length === 0 ? (
-            <div className="p-8 text-center text-slate-400 border border-slate-200 rounded-xl">
-              <p className="font-bold text-slate-600">No tienes grupos creados aún.</p>
-              <p className="text-xs text-slate-500 mt-1">Ve a la pestaña "Mis Grupos" para dar de alta tus grupos.</p>
+      {/* ========================================================================= */}
+      {/* FOLDER 5: MIS INSTRUMENTOS DE EVALUACIÓN */}
+      {/* ========================================================================= */}
+      {activeTab === "instrumentos" && (
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6 animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+            <div>
+              <h3 className="font-extrabold text-slate-800 text-base flex items-center gap-2 uppercase tracking-wider">
+                <BookCheck className="w-5 h-5 text-emerald-600" />
+                <span>Mis Instrumentos de Evaluación</span>
+              </h3>
+              <p className="text-slate-500 text-xs mt-1">Rúbricas, listas de cotejo y guías de observación.</p>
             </div>
-          ) : (() => {
-            // Helper function to calculate total sessions for a group based on its selected planeación
-            const getGroupSessionsCount = (grp: any) => {
-              const rec = trackingRecords[grp.id];
-              const syncedPlan = plans.find(p => p.id === (grp.syncedPlanId || rec?.syncedPlanId));
-              if (syncedPlan?.plan?.fases) {
-                const totalInPlan = syncedPlan.plan.fases.flatMap(f => f.sesiones).length;
-                if (totalInPlan > 0) return totalInPlan;
-              }
-              return 10; // Default fallback if no planeación is synced
-            };
+          </div>
+          <div className="p-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+            <BookCheck className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+            <p className="font-bold text-slate-700 text-sm">No hay instrumentos guardados aún</p>
+            <p className="text-xs text-slate-500 mt-1">Tus rúbricas y formatos generados aparecerán aquí próximamente.</p>
+          </div>
+        </div>
+      )}
 
-            // Compute table header columns: max session count among all groups, at least 1
-            const headerColsCount = Math.max(
-              ...grupos.map(g => getGroupSessionsCount(g)),
-              1
-            );
+      {/* ========================================================================= */}
+      {/* FOLDER 6: MIS PROGRAMAS ANALÍTICOS */}
+      {/* ========================================================================= */}
+      {activeTab === "programas" && (
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6 animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+            <div>
+              <h3 className="font-extrabold text-slate-800 text-base flex items-center gap-2 uppercase tracking-wider">
+                <Layers className="w-5 h-5 text-amber-600" />
+                <span>Mis Programas Analíticos</span>
+              </h3>
+              <p className="text-slate-500 text-xs mt-1">Diseño curricular, contextualización y codiseño.</p>
+            </div>
+          </div>
+          <div className="p-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+            <Layers className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+            <p className="font-bold text-slate-700 text-sm">No hay programas analíticos guardados aún</p>
+            <p className="text-xs text-slate-500 mt-1">Tus programas estructurados aparecerán aquí próximamente.</p>
+          </div>
+        </div>
+      )}
 
-            return (
-              <div className="space-y-4">
-                <div className="overflow-x-auto border border-slate-200 rounded-xl shadow-2xs">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-900 text-white font-black uppercase text-[10px] tracking-wider">
-                      <tr>
-                        <th className="p-3 min-w-[220px]">Grupo & Planeación Sincronizada</th>
-                        {Array.from({ length: headerColsCount }, (_, i) => i + 1).map((sNum) => (
-                          <th key={sNum} className="p-2 text-center min-w-[48px] border-l border-slate-800">
-                            S{sNum}
-                          </th>
-                        ))}
-                        <th className="p-3 text-center min-w-[110px] border-l border-slate-800">Progreso</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200 font-semibold text-slate-800">
-                      {grupos.map((grp) => {
-                        const rec = trackingRecords[grp.id] || { groupId: grp.id, completedSessions: [] };
-                        const syncedPlan = plans.find(p => p.id === (grp.syncedPlanId || rec.syncedPlanId));
-                        
-                        // Dynamic session count for THIS specific group/planeación
-                        const groupSessionsCount = getGroupSessionsCount(grp);
-
-                        // Sessions completed SPECIFICALLY for the currently selected planeación
-                        const groupCompletedSessions = getCompletedSessionsForGroup(grp, rec);
-
-                        // Only count completed sessions that are within this group's active plan length
-                        const validCompletedSessions = groupCompletedSessions.filter(sNum => sNum <= groupSessionsCount);
-                        const completedCount = validCompletedSessions.length;
-                        const pct = groupSessionsCount > 0 ? Math.round((completedCount / groupSessionsCount) * 100) : 0;
-
-                        return (
-                          <tr key={grp.id} className="hover:bg-slate-50 transition">
-                            {/* Group & Plan Selector */}
-                            <td className="p-3 bg-slate-50">
-                              <div className="flex items-center justify-between gap-1">
-                                <div className="font-black text-slate-900 text-xs uppercase">
-                                  {grp.grado} {grp.grupo} - {grp.disciplina || "General"}
-                                </div>
-                                {syncedPlan && (
-                                  <span className="text-[9px] font-bold text-emerald-800 bg-emerald-100/80 px-1.5 py-0.5 rounded border border-emerald-300 shrink-0">
-                                    {groupSessionsCount} ses.
-                                  </span>
-                                )}
-                              </div>
-
-                              <div className="mt-1">
-                                <select
-                                  value={grp.syncedPlanId || ""}
-                                  onChange={(e) => handleSyncPlanToGroup(grp.id, e.target.value)}
-                                  className="w-full text-[10px] p-1 border border-slate-300 rounded bg-white font-bold text-slate-700 focus:outline-none"
-                                >
-                                  <option value="">-- Sin planeación vinculada --</option>
-                                  {plans.map(p => {
-                                    const count = p.plan?.fases ? p.plan.fases.flatMap(f => f.sesiones).length : 0;
-                                    return (
-                                      <option key={p.id} value={p.id}>
-                                        {p.plan.producto} ({p.disciplina}) — {count} ses.
-                                      </option>
-                                    );
-                                  })}
-                                </select>
-                              </div>
-                            </td>
-
-                            {/* Session Checkboxes up to headerColsCount */}
-                            {Array.from({ length: headerColsCount }, (_, i) => i + 1).map((sNum) => {
-                              const isWithinPlan = sNum <= groupSessionsCount;
-                              const isDone = isWithinPlan && groupCompletedSessions.includes(sNum);
-                              
-                              if (!isWithinPlan) {
-                                return (
-                                  <td key={sNum} className="p-2 text-center border-l border-slate-200 bg-slate-50/60 select-none">
-                                    <span className="text-slate-300 font-bold text-xs">—</span>
-                                  </td>
-                                );
-                              }
-
-                              // Find corresponding session details in synced plan
-                              let lessonDetail: any = null;
-                              if (syncedPlan && syncedPlan.plan?.fases) {
-                                const allLessons = syncedPlan.plan.fases.flatMap(f => f.sesiones);
-                                lessonDetail = allLessons.find(l => l.numero === sNum);
-                              }
-
-                              return (
-                                <td
-                                  key={sNum}
-                                  className={`p-2 text-center border-l border-slate-200 transition relative ${
-                                    isDone ? "bg-emerald-50" : ""
-                                  }`}
-                                  onMouseEnter={() => setActiveSessionHover({ groupId: grp.id, sessionNum: sNum })}
-                                  onMouseLeave={() => setActiveSessionHover(null)}
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={() => handleToggleSession(grp.id, sNum)}
-                                    className={`w-7 h-7 rounded-lg border flex items-center justify-center mx-auto transition cursor-pointer ${
-                                      isDone
-                                        ? "bg-emerald-600 border-emerald-700 text-white shadow-2xs font-bold"
-                                        : "bg-white border-slate-300 text-slate-400 hover:border-slate-500 hover:text-slate-700 font-bold"
-                                    }`}
-                                    title={`Sesión ${sNum}${lessonDetail ? `: ${lessonDetail.titulo}` : ""}`}
-                                  >
-                                    {isDone ? "✓" : sNum}
-                                  </button>
-
-                                  {/* Hover Tooltip for Synced Lesson */}
-                                  {lessonDetail && activeSessionHover?.groupId === grp.id && activeSessionHover?.sessionNum === sNum && (
-                                    <div className="absolute z-30 bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2.5 bg-slate-900 text-white rounded-xl shadow-xl text-[10px] text-left pointer-events-none animate-fade-in">
-                                      <span className="text-mex-gold font-black uppercase block border-b border-slate-700 pb-1 mb-1">
-                                        Sesión {sNum}: {lessonDetail.titulo}
-                                      </span>
-                                      <p className="line-clamp-2 text-slate-300 font-medium">
-                                        {lessonDetail.inicio}
-                                      </p>
-                                    </div>
-                                  )}
-                                </td>
-                              );
-                            })}
-
-                            {/* Progress */}
-                            <td className="p-3 border-l border-slate-200 text-center">
-                              <span className="font-black text-xs text-emerald-800 block">
-                                {completedCount} / {groupSessionsCount} ({pct}%)
-                              </span>
-                              <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden mt-1">
-                                <div
-                                  className="bg-emerald-500 h-full transition-all duration-300"
-                                  style={{ width: `${pct}%` }}
-                                />
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            );
-          })()}
+      {/* ========================================================================= */}
+      {/* FOLDER 7: MIS EXÁMENES */}
+      {/* ========================================================================= */}
+      {activeTab === "examenes" && (
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6 animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+            <div>
+              <h3 className="font-extrabold text-slate-800 text-base flex items-center gap-2 uppercase tracking-wider">
+                <GraduationCap className="w-5 h-5 text-purple-600" />
+                <span>Mis Exámenes</span>
+              </h3>
+              <p className="text-slate-500 text-xs mt-1">Pruebas trimestrales, diagnósticas y claves docentes.</p>
+            </div>
+          </div>
+          <div className="p-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+            <GraduationCap className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+            <p className="font-bold text-slate-700 text-sm">No hay exámenes guardados aún</p>
+            <p className="text-xs text-slate-500 mt-1">Tus exámenes generados aparecerán aquí próximamente.</p>
+          </div>
         </div>
       )}
 

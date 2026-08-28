@@ -7,7 +7,7 @@ interface HistorySidebarProps {
   onSelectPlan?: (plan: CompletePlan) => void;
   onDeletePlan?: (id: string) => void;
   currentPlanId?: string;
-  onOpenOrganizador?: (folder?: "planeaciones" | "grupos" | "bitacora" | "seguimiento" | "evaluacion") => void;
+  onOpenOrganizador?: (folder?: "planeaciones" | "hojas" | "instrumentos" | "programas" | "examenes" | "grupos" | "bitacora" | "evaluacion") => void;
 }
 
 export default function HistorySidebar(props: HistorySidebarProps) {
@@ -40,35 +40,29 @@ export default function HistorySidebar(props: HistorySidebarProps) {
 
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
             <ul className="text-xs text-slate-700 font-bold space-y-1.5">
-              <li 
-                onClick={() => safeOnOpenOrganizador("planeaciones")}
-                className="flex items-center justify-between hover:text-mex-maroon cursor-pointer transition p-1 rounded hover:bg-white"
-              >
+              <li onClick={() => safeOnOpenOrganizador("planeaciones")} className="flex items-center justify-between hover:text-mex-maroon cursor-pointer transition p-1 rounded hover:bg-white">
                 <span>1. Mis Planeaciones</span>
               </li>
-              <li 
-                onClick={() => safeOnOpenOrganizador("grupos")}
-                className="flex items-center justify-between hover:text-blue-600 cursor-pointer transition p-1 rounded hover:bg-white"
-              >
-                <span>2. Mis Grupos</span>
+              <li onClick={() => safeOnOpenOrganizador("hojas")} className="flex items-center justify-between hover:text-blue-600 cursor-pointer transition p-1 rounded hover:bg-white">
+                <span>2. Mis Hojas de Trabajo</span>
               </li>
-              <li 
-                onClick={() => safeOnOpenOrganizador("bitacora")}
-                className="flex items-center justify-between hover:text-rose-600 cursor-pointer transition p-1 rounded hover:bg-white"
-              >
-                <span>3. Bitácora de Incidencias</span>
+              <li onClick={() => safeOnOpenOrganizador("instrumentos")} className="flex items-center justify-between hover:text-emerald-600 cursor-pointer transition p-1 rounded hover:bg-white">
+                <span>3. Mis Instrumentos</span>
               </li>
-              <li 
-                onClick={() => safeOnOpenOrganizador("seguimiento")}
-                className="flex items-center justify-between hover:text-emerald-600 cursor-pointer transition p-1 rounded hover:bg-white"
-              >
-                <span>4. Seguimiento de Clases</span>
+              <li onClick={() => safeOnOpenOrganizador("programas")} className="flex items-center justify-between hover:text-amber-600 cursor-pointer transition p-1 rounded hover:bg-white">
+                <span>4. Mis Programas Analíticos</span>
               </li>
-              <li 
-                onClick={() => safeOnOpenOrganizador("evaluacion")}
-                className="flex items-center justify-between hover:text-amber-600 cursor-pointer transition p-1 rounded hover:bg-white"
-              >
-                <span>5. Evaluación Continua</span>
+              <li onClick={() => safeOnOpenOrganizador("examenes")} className="flex items-center justify-between hover:text-purple-600 cursor-pointer transition p-1 rounded hover:bg-white">
+                <span>5. Mis Exámenes</span>
+              </li>
+              <li onClick={() => safeOnOpenOrganizador("grupos")} className="flex items-center justify-between hover:text-blue-600 cursor-pointer transition p-1 rounded hover:bg-white">
+                <span>6. Mis Grupos</span>
+              </li>
+              <li onClick={() => safeOnOpenOrganizador("bitacora")} className="flex items-center justify-between hover:text-rose-600 cursor-pointer transition p-1 rounded hover:bg-white">
+                <span>7. Bitácora de Incidencias</span>
+              </li>
+              <li onClick={() => safeOnOpenOrganizador("evaluacion")} className="flex items-center justify-between hover:text-amber-600 cursor-pointer transition p-1 rounded hover:bg-white">
+                <span>8. Evaluación Continua</span>
               </li>
             </ul>
           </div>

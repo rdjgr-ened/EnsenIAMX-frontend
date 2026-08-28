@@ -29,7 +29,7 @@ import { checkFeatureAccess, PLAN_CONFIGS } from "../utils/planManager";
 interface DashboardHubProps {
   onSelectFunction?: (
     fn: "diseno" | "sugerir" | "crear" | "programa" | "evaluacion" | "bitacora" | "organizador" | "examen" | "cuenta" | "generar_hoja" | "generar_instrumento",
-    folder?: "planeaciones" | "grupos" | "bitacora" | "seguimiento" | "evaluacion"
+folder?: "planeaciones" | "hojas" | "instrumentos" | "programas" | "examenes" | "grupos" | "bitacora" | "evaluacion"
   ) => void;
   savedPlansCount?: number;
   docenteName?: string;
@@ -68,14 +68,6 @@ export default function DashboardHub(props: DashboardHubProps) {
         featureName: "Bitácora de Incidencias Escolares",
         requiredPlan: "basico",
         message: "Esta función requiere el Plan Básico o superior."
-      });
-      return;
-    } else if (folder === "seguimiento" && !isOroPlatino) {
-      safeTriggerPaywall({
-        type: "feature",
-        featureName: "Seguimiento de Clases",
-        requiredPlan: "oro",
-        message: "Esta función requiere el Plan Oro o Platino."
       });
       return;
     } else if (folder === "evaluacion" && !isPlatino) {
@@ -300,100 +292,86 @@ export default function DashboardHub(props: DashboardHubProps) {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-                <div
-                  onClick={() => handleFolderClick("planeaciones")}
-                  className="group cursor-pointer bg-white border border-slate-200 hover:border-mex-maroon p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col justify-between"
-                >
+                <div onClick={() => handleFolderClick("planeaciones")} className="group cursor-pointer bg-white border border-slate-200 hover:border-mex-maroon p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">Todos los planes</span>
-                    </div>
                     <h4 className="font-extrabold text-slate-800 text-sm">1. Mis Planeaciones</h4>
                     <p className="text-slate-500 text-xs mt-1">Consulta, imprime y edita tus secuencias creadas.</p>
                   </div>
                   <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-mex-maroon text-xs font-black uppercase">
-                    <span>Abrir Carpeta</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    <span>Abrir Carpeta</span><ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
 
-                <div
-                  onClick={() => handleFolderClick("grupos")}
-                  className="group cursor-pointer bg-white border border-slate-200 hover:border-blue-600 p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col justify-between relative"
-                >
-                  {userPlan === "gratuito" && (
-                    <span className="absolute top-3 right-3 text-[9px] font-black bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md flex items-center gap-1">
-                      <Lock className="w-3 h-3" /> Plan Básico
-                    </span>
-                  )}
+                <div onClick={() => handleFolderClick("hojas")} className="group cursor-pointer bg-white border border-slate-200 hover:border-blue-600 p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col justify-between">
                   <div>
-                    <h4 className="font-extrabold text-slate-800 text-sm">2. Mis Grupos</h4>
-                    <p className="text-slate-500 text-xs mt-1">Gestión de listas de estudiantes por grado y grupo.</p>
+                    <h4 className="font-extrabold text-slate-800 text-sm">2. Mis Hojas de Trabajo</h4>
+                    <p className="text-slate-500 text-xs mt-1">Archivo de ejercicios y actividades para imprimir.</p>
                   </div>
                   <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-blue-600 text-xs font-black uppercase">
-                    <span>Abrir Carpeta</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    <span>Abrir Carpeta</span><ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
 
-                <div
-                  onClick={() => handleFolderClick("bitacora")}
-                  className="group cursor-pointer bg-white border border-slate-200 hover:border-rose-600 p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col justify-between relative"
-                >
-                  {userPlan === "gratuito" && (
-                    <span className="absolute top-3 right-3 text-[9px] font-black bg-rose-100 text-rose-800 px-2 py-0.5 rounded-md flex items-center gap-1">
-                      <Lock className="w-3 h-3" /> Plan Básico
-                    </span>
-                  )}
+                <div onClick={() => handleFolderClick("instrumentos")} className="group cursor-pointer bg-white border border-slate-200 hover:border-emerald-600 p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col justify-between">
                   <div>
-                    <h4 className="font-extrabold text-slate-800 text-sm">3. Bitácora de Incidencias</h4>
+                    <h4 className="font-extrabold text-slate-800 text-sm">3. Mis Instrumentos de Eval.</h4>
+                    <p className="text-slate-500 text-xs mt-1">Rúbricas, listas de cotejo y guías de observación.</p>
+                  </div>
+                  <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-emerald-600 text-xs font-black uppercase">
+                    <span>Abrir Carpeta</span><ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+
+                <div onClick={() => handleFolderClick("programas")} className="group cursor-pointer bg-white border border-slate-200 hover:border-amber-600 p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                  <div>
+                    <h4 className="font-extrabold text-slate-800 text-sm">4. Mis Programas Analíticos</h4>
+                    <p className="text-slate-500 text-xs mt-1">Diseño curricular, contextualización y codiseño.</p>
+                  </div>
+                  <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-amber-600 text-xs font-black uppercase">
+                    <span>Abrir Carpeta</span><ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+
+                <div onClick={() => handleFolderClick("examenes")} className="group cursor-pointer bg-white border border-slate-200 hover:border-purple-600 p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                  <div>
+                    <h4 className="font-extrabold text-slate-800 text-sm">5. Mis Exámenes</h4>
+                    <p className="text-slate-500 text-xs mt-1">Pruebas trimestrales, diagnósticas y claves docentes.</p>
+                  </div>
+                  <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-purple-600 text-xs font-black uppercase">
+                    <span>Abrir Carpeta</span><ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+
+                <div onClick={() => handleFolderClick("grupos")} className="group cursor-pointer bg-white border border-slate-200 hover:border-indigo-600 p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col justify-between relative">
+                  <div>
+                    <h4 className="font-extrabold text-slate-800 text-sm">6. Mis Grupos</h4>
+                    <p className="text-slate-500 text-xs mt-1">Gestión de listas de estudiantes por grado y grupo.</p>
+                  </div>
+                  <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-indigo-600 text-xs font-black uppercase">
+                    <span>Abrir Carpeta</span><ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+
+                <div onClick={() => handleFolderClick("bitacora")} className="group cursor-pointer bg-white border border-slate-200 hover:border-rose-600 p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col justify-between relative">
+                  <div>
+                    <h4 className="font-extrabold text-slate-800 text-sm">7. Bitácora de Incidencias</h4>
                     <p className="text-slate-500 text-xs mt-1">Registro de hechos, compromisos y firmas oficiales.</p>
                   </div>
                   <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-rose-600 text-xs font-black uppercase">
-                    <span>Abrir Carpeta</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    <span>Abrir Carpeta</span><ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
 
-                <div
-                  onClick={() => handleFolderClick("seguimiento")}
-                  className="group cursor-pointer bg-white border border-slate-200 hover:border-emerald-600 p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col justify-between relative"
-                >
-                  {(userPlan === "gratuito" || userPlan === "basico") && (
-                    <span className="absolute top-3 right-3 text-[9px] font-black bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md flex items-center gap-1">
-                      <Crown className="w-3 h-3" /> Plan Oro
-                    </span>
-                  )}
+                <div onClick={() => handleFolderClick("evaluacion")} className="group cursor-pointer bg-white border border-slate-200 hover:border-amber-600 p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col justify-between relative">
                   <div>
-                    <h4 className="font-extrabold text-slate-800 text-sm">4. Seguimiento de Clases</h4>
-                    <p className="text-slate-500 text-xs mt-1">Avance sesión por sesión de proyectos vinculados.</p>
-                  </div>
-                  <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-emerald-600 text-xs font-black uppercase">
-                    <span>Abrir Carpeta</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-
-                <div
-                  onClick={() => handleFolderClick("evaluacion")}
-                  className="group cursor-pointer bg-white border border-slate-200 hover:border-amber-600 p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col justify-between relative"
-                >
-                  {userPlan !== "platino" && (
-                    <span className="absolute top-3 right-3 text-[9px] font-black bg-purple-100 text-purple-800 px-2 py-0.5 rounded-md flex items-center gap-1">
-                      <Gem className="w-3 h-3" /> Plan Platino
-                    </span>
-                  )}
-                  <div>
-                    <h4 className="font-extrabold text-slate-800 text-sm">5. Evaluación Continua</h4>
+                    <h4 className="font-extrabold text-slate-800 text-sm">8. Evaluación Continua</h4>
                     <p className="text-slate-500 text-xs mt-1">Suma automática de entregables y ponderaciones.</p>
                   </div>
                   <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-amber-600 text-xs font-black uppercase">
-                    <span>Abrir Carpeta</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    <span>Abrir Carpeta</span><ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               </div>
-            </div>
           )}
 
           {/* CATEGORY 2 PAGE: PLANO DIDÁCTICO */}
