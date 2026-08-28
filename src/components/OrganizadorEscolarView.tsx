@@ -120,39 +120,7 @@ export default function OrganizadorEscolarView({
         console.error(e);
       }
     }
-    // Default initial groups
-    return [
-      {
-        id: "grp_1a",
-        grado: "1º",
-        grupo: "A",
-        nombreCompleto: "1º A - General",
-        disciplina: "Español",
-        turno: "Matutino",
-        estudiantes: [
-          { id: "st_1", nombre: "Aguilar Morales Carlos" },
-          { id: "st_2", nombre: "Benítez Castro Sofía" },
-          { id: "st_3", nombre: "Castillo Gómez Diego" },
-          { id: "st_4", nombre: "Domínguez López Ana María" },
-          { id: "st_5", nombre: "Estrada Pérez Juan Pablo" },
-        ]
-      },
-      {
-        id: "grp_2b",
-        grado: "2º",
-        grupo: "B",
-        nombreCompleto: "2º B - General",
-        disciplina: "Historia",
-        turno: "Matutino",
-        estudiantes: [
-          { id: "st_6", nombre: "Fernández Ruiz Gabriel" },
-          { id: "st_7", nombre: "García Hernández Mateo" },
-          { id: "st_8", nombre: "Juárez Ramírez Valeria" },
-          { id: "st_9", nombre: "Lara Torres Fernando" },
-        ]
-      }
-    ];
-  });
+    
 
   const [selectedGroupId, setSelectedGroupId] = useState<string>(() => grupos[0]?.id || "");
   const [showAddGroupModal, setShowAddGroupModal] = useState<boolean>(false);
