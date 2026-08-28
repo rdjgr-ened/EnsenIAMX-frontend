@@ -118,8 +118,6 @@ export default function PaymentSuccessView({
         // CORRECCIÓN 2: Eliminamos la llamada a 'upsertProfile' aquí. 
         // El Frontend ya NO DEBE sobrescribir Supabase. El Webhook hizo el trabajo.
       }
-        }
-      }
 
       setPaymentDetails({
         status,
