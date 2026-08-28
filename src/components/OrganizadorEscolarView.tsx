@@ -127,8 +127,7 @@ export default function OrganizadorEscolarView({
 
   const [selectedGroupId, setSelectedGroupId] = useState<string>(() => grupos[0]?.id || "");
   const [showAddGroupModal, setShowAddGroupModal] = useState<boolean>(false);
-  const [newGroupData, setNewGroupData] = useState({ grado: "1º", grupo: "A", disciplina: "General", turno: "Matutino" });
-  
+const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grupo: "A", disciplina: "General", turno: "Matutino" });  
   const [showAddStudentModal, setShowAddStudentModal] = useState<boolean>(false);
   const [newStudentName, setNewStudentName] = useState<string>("");
   const [batchStudentText, setBatchStudentText] = useState<string>("");
@@ -221,7 +220,7 @@ export default function OrganizadorEscolarView({
     setGrupos(updated);
     setSelectedGroupId(id);
     setShowAddGroupModal(false);
-    setNewGroupData({ grado: "1º", grupo: "A", disciplina: "General", turno: "Matutino" });
+    setNewGroupData({ grado: "1º Secundaria", grupo: "A", disciplina: "General", turno: "Matutino" });
 
     // Supabase persist
     const userProfileStr = localStorage.getItem("nem_secundaria_profile");
@@ -1855,9 +1854,24 @@ export default function OrganizadorEscolarView({
                     onChange={(e) => setNewGroupData({ ...newGroupData, grado: e.target.value })}
                     className="w-full p-2 border border-slate-300 rounded-lg bg-white font-bold focus:outline-none"
                   >
-                    <option value="1º">1º de Secundaria</option>
-                    <option value="2º">2º de Secundaria</option>
-                    <option value="3º">3º de Secundaria</option>
+                    <optgroup label="Preescolar">
+                      <option value="1º Preescolar">1º de Preescolar</option>
+                      <option value="2º Preescolar">2º de Preescolar</option>
+                      <option value="3º Preescolar">3º de Preescolar</option>
+                    </optgroup>
+                    <optgroup label="Primaria">
+                      <option value="1º Primaria">1º de Primaria</option>
+                      <option value="2º Primaria">2º de Primaria</option>
+                      <option value="3º Primaria">3º de Primaria</option>
+                      <option value="4º Primaria">4º de Primaria</option>
+                      <option value="5º Primaria">5º de Primaria</option>
+                      <option value="6º Primaria">6º de Primaria</option>
+                    </optgroup>
+                    <optgroup label="Secundaria">
+                      <option value="1º Secundaria">1º de Secundaria</option>
+                      <option value="2º Secundaria">2º de Secundaria</option>
+                      <option value="3º Secundaria">3º de Secundaria</option>
+                    </optgroup>
                   </select>
                 </div>
 
