@@ -372,6 +372,7 @@ export default function DashboardHub(props: DashboardHubProps) {
                   </div>
                 </div>
               </div>
+              </div>
           )}
 
           {/* CATEGORY 2 PAGE: PLANO DIDÁCTICO */}
