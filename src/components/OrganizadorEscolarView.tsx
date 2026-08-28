@@ -112,15 +112,18 @@ export default function OrganizadorEscolarView({
 
   // ==================== STATE: MIS GRUPOS ====================
   const [grupos, setGrupos] = useState<EscolarGroup[]>(() => {
-    const saved = localStorage.getItem("nem_grupos_organizador");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error(e);
-      }
+  const saved = localStorage.getItem("nem_grupos_organizador");
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
     }
-    
+  }
+  
+  // Retornamos un arreglo vacío para que inicie limpio sin datos de prueba
+  return []; 
+});
 
   const [selectedGroupId, setSelectedGroupId] = useState<string>(() => grupos[0]?.id || "");
   const [showAddGroupModal, setShowAddGroupModal] = useState<boolean>(false);
