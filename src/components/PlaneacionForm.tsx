@@ -197,7 +197,6 @@ export default function PlaneacionForm(props: PlaneacionFormProps) {
   // Other NEM details
   const [selectedMetodologia, setSelectedMetodologia] = useState<string>("Aprendizaje Basado en Proyectos Comunitarios (ABPC)");
   const [situacionProblema, setSituacionProblema] = useState<string>(
-    "Describe la situación problema."
   );
 
   // Dynamic calculated cascading options based on current state
