@@ -221,20 +221,39 @@ export function getPlanLimits(planTier: PlanTier): PlanDetails {
 }
 
 export const PLAN_CONFIGS = PLANS_CONFIG;
-export function checkFeatureAccess(subscription: any, featureKey?: string): boolean {
-  if (!subscription) return false;
-  const plan = (subscription.plan || "gratuito").toLowerCase();
+export function checkFeatureAccess(param1: any, param2?: any): any {
+  // Detecta si le mandan el plan a la antigua o a la nueva forma
+  const plan = (typeof param2 === "string" ? param2 : (param1?.plan || "gratuito")).toLowerCase();
   
-  // Los planes superiores tienen acceso total a las funciones avanzadas
+  // El Plan Platino (y los premium) tienen acceso
   if (plan === "platino" || plan === "oro" || plan === "basico") {
-    return true;
+    return { allowed: true };
   }
-  
-  // Para el plan gratuito, puedes definir restricciones si lo deseas
-  return true;
+  return { allowed: false, message: "Esta función requiere un plan superior." };
 }
-export function checkBitacoraLimit(subscription: any, currentCount?: number): boolean {
-  return true;
+
+export function checkBitacoraLimit(param1: any, param2?: any): any {
+  const plan = (typeof param2 === "string" ? param2 : (param1?.plan || "gratuito")).toLowerCase();
+  const count = typeof param1 === "number" ? param1 : 0;
+
+  // 1. Oro y Platino son ILIMITADOS
+  if (plan === "oro" || plan === "platino") {
+    return { allowed: true };
+  }
+
+  // 2. Límites para planes menores
+  const maxAllowed = plan === "basico" ? 25 : 5; 
+  
+  if (count >= maxAllowed) {
+    return {
+      allowed: false,
+      maxAllowed: maxAllowed,
+      requiredPlan: "oro",
+      message: "Has alcanzado el límite de actas. Sube al Plan Oro o Platino para crear registros ilimitados."
+    };
+  }
+
+  return { allowed: true };
 }
 
 export function checkExamLimit(subscription: any, currentCount?: number): boolean {
