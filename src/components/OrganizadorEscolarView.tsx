@@ -25,7 +25,9 @@ import {
   getEvaluacionContinua as fetchSupabaseEvaluacionContinua,
   saveEvaluacionContinua as saveSupabaseEvaluacionContinua,
   deleteEvaluacionContinua as deleteSupabaseEvaluacionContinua,
-  isSupabaseConfigured
+  isSupabaseConfigured,
+  getRecursosGenerados,
+  deleteRecursoGenerado
 } from "../utils/supabaseClient";
 
 interface OrganizadorEscolarViewProps {
@@ -152,6 +154,19 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
         if (!userId) return;
 
     if (isSupabaseConfigured) {
+      getRecursosGenerados(userId).then(dbRecursos => {
+        if (dbRecursos && dbRecursos.length > 0) {
+          const recursosMapeados = dbRecursos.map(r => ({
+            id: r.id,
+            tipo_recurso: r.tipo_recurso,
+            titulo: r.contenido_json?.titulo || r.contenido_json?.tema || (r.contenido_json?.fase ? `Programa ${r.contenido_json.fase} - ${r.contenido_json.grado}` : "Documento Generado"),
+            contenido: r.contenido_json,
+            createdAt: r.created_at
+          }));
+          setRecursosGuardados(recursosMapeados);
+          localStorage.setItem("nem_recursos_generados", JSON.stringify(recursosMapeados));
+        }
+      });
       fetchSupabaseGrupos(userId).then(async (dbGrupos) => {
         if (dbGrupos && dbGrupos.length > 0) {
           const dbAlumnos = await fetchSupabaseAlumnos(userId);
@@ -781,6 +796,31 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
     }));
   };
 
+  // ==================== STATE: RECURSOS GENERADOS ====================
+  const [recursosGuardados, setRecursosGuardados] = useState<any[]>(() => {
+    const saved = localStorage.getItem("nem_recursos_generados");
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { console.error(e); }
+    }
+    return [];
+  });
+
+  const misHojas = recursosGuardados.filter(r => String(r.id).startsWith("ws_") || r.tipo_recurso === "hoja_de_trabajo");
+  const misInstrumentos = recursosGuardados.filter(r => String(r.id).startsWith("ins_") || r.tipo_recurso === "instrumento_evaluacion");
+  const misProgramas = recursosGuardados.filter(r => String(r.id).startsWith("prog_") || r.tipo_recurso === "programa_analitico");
+  const misExamenes = recursosGuardados.filter(r => String(r.id).startsWith("exam_") || r.tipo_recurso === "examen");
+
+  const handleDeleteRecursoLocal = (id: string) => {
+    if(confirm("¿Eliminar este documento de tu organizador?")) {
+      const updated = recursosGuardados.filter(r => r.id !== id);
+      setRecursosGuardados(updated);
+      localStorage.setItem("nem_recursos_generados", JSON.stringify(updated));
+      
+      const userProfileStr = localStorage.getItem("nem_secundaria_profile");
+      const userId = userProfileStr ? JSON.parse(userProfileStr)?.id : null;
+      if (userId) deleteRecursoGenerado(id, userId);
+    }
+  };
   // Search for Planeaciones
   const [planSearch, setPlanSearch] = useState<string>("");
   const filteredPlans = useMemo(() => {
@@ -1367,11 +1407,27 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
               <p className="text-slate-500 text-xs mt-1">Archivo de ejercicios y actividades para imprimir.</p>
             </div>
           </div>
-          <div className="p-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
-            <ClipboardList className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-            <p className="font-bold text-slate-700 text-sm">No hay hojas de trabajo generadas aún</p>
-            <p className="text-xs text-slate-500 mt-1">Tus hojas de trabajo guardadas aparecerán aquí próximamente.</p>
-          </div>
+          {misHojas.length === 0 ? (
+            <div className="p-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+              <ClipboardList className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+              <p className="font-bold text-slate-700 text-sm">No hay hojas de trabajo generadas aún</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {misHojas.map(recurso => (
+                <div key={recurso.id} className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col justify-between gap-3 hover:shadow-md transition">
+                  <div>
+                    <span className="text-[9px] font-black text-blue-600 bg-blue-100 px-2 py-0.5 rounded uppercase">Hoja de Trabajo</span>
+                    <h4 className="font-extrabold text-slate-800 text-sm mt-2 line-clamp-2">{recurso.titulo}</h4>
+                  </div>
+                  <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
+                    <button onClick={() => handleDeleteRecursoLocal(recurso.id)} className="text-slate-400 hover:text-rose-500 transition p-1"><Trash2 className="w-4 h-4"/></button>
+                    <button className="text-xs font-black uppercase text-blue-600 flex items-center gap-1 hover:underline"><Printer className="w-3.5 h-3.5"/> Abrir / Imprimir</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -1389,11 +1445,27 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
               <p className="text-slate-500 text-xs mt-1">Rúbricas, listas de cotejo y guías de observación.</p>
             </div>
           </div>
-          <div className="p-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
-            <BookCheck className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-            <p className="font-bold text-slate-700 text-sm">No hay instrumentos guardados aún</p>
-            <p className="text-xs text-slate-500 mt-1">Tus rúbricas y formatos generados aparecerán aquí próximamente.</p>
-          </div>
+          {misInstrumentos.length === 0 ? (
+            <div className="p-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+              <BookCheck className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+              <p className="font-bold text-slate-700 text-sm">No hay instrumentos guardados aún</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {misInstrumentos.map(recurso => (
+                <div key={recurso.id} className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col justify-between gap-3 hover:shadow-md transition">
+                  <div>
+                    <span className="text-[9px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded uppercase">Instrumento de Evaluación</span>
+                    <h4 className="font-extrabold text-slate-800 text-sm mt-2 line-clamp-2">{recurso.titulo}</h4>
+                  </div>
+                  <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
+                    <button onClick={() => handleDeleteRecursoLocal(recurso.id)} className="text-slate-400 hover:text-rose-500 transition p-1"><Trash2 className="w-4 h-4"/></button>
+                    <button className="text-xs font-black uppercase text-emerald-600 flex items-center gap-1 hover:underline"><Printer className="w-3.5 h-3.5"/> Abrir / Imprimir</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -1411,11 +1483,27 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
               <p className="text-slate-500 text-xs mt-1">Diseño curricular, contextualización y codiseño.</p>
             </div>
           </div>
-          <div className="p-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
-            <Layers className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-            <p className="font-bold text-slate-700 text-sm">No hay programas analíticos guardados aún</p>
-            <p className="text-xs text-slate-500 mt-1">Tus programas estructurados aparecerán aquí próximamente.</p>
-          </div>
+          {misProgramas.length === 0 ? (
+            <div className="p-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+              <Layers className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+              <p className="font-bold text-slate-700 text-sm">No hay programas analíticos guardados aún</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {misProgramas.map(recurso => (
+                <div key={recurso.id} className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col justify-between gap-3 hover:shadow-md transition">
+                  <div>
+                    <span className="text-[9px] font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded uppercase">Programa Analítico</span>
+                    <h4 className="font-extrabold text-slate-800 text-sm mt-2 line-clamp-2">{recurso.titulo}</h4>
+                  </div>
+                  <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
+                    <button onClick={() => handleDeleteRecursoLocal(recurso.id)} className="text-slate-400 hover:text-rose-500 transition p-1"><Trash2 className="w-4 h-4"/></button>
+                    <button className="text-xs font-black uppercase text-amber-600 flex items-center gap-1 hover:underline"><Printer className="w-3.5 h-3.5"/> Abrir / Imprimir</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -1433,11 +1521,27 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
               <p className="text-slate-500 text-xs mt-1">Pruebas trimestrales, diagnósticas y claves docentes.</p>
             </div>
           </div>
-          <div className="p-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
-            <GraduationCap className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-            <p className="font-bold text-slate-700 text-sm">No hay exámenes guardados aún</p>
-            <p className="text-xs text-slate-500 mt-1">Tus exámenes generados aparecerán aquí próximamente.</p>
-          </div>
+          {misExamenes.length === 0 ? (
+            <div className="p-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+              <GraduationCap className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+              <p className="font-bold text-slate-700 text-sm">No hay exámenes guardados aún</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {misExamenes.map(recurso => (
+                <div key={recurso.id} className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col justify-between gap-3 hover:shadow-md transition">
+                  <div>
+                    <span className="text-[9px] font-black text-purple-700 bg-purple-100 px-2 py-0.5 rounded uppercase">Examen / Prueba</span>
+                    <h4 className="font-extrabold text-slate-800 text-sm mt-2 line-clamp-2">{recurso.titulo}</h4>
+                  </div>
+                  <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
+                    <button onClick={() => handleDeleteRecursoLocal(recurso.id)} className="text-slate-400 hover:text-rose-500 transition p-1"><Trash2 className="w-4 h-4"/></button>
+                    <button className="text-xs font-black uppercase text-purple-600 flex items-center gap-1 hover:underline"><Printer className="w-3.5 h-3.5"/> Abrir / Imprimir</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
