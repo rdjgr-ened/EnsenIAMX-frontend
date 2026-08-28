@@ -49,50 +49,43 @@ export default function DashboardHub(props: DashboardHubProps) {
   const [selectedCategory, setSelectedCategory] = useState<CategoryId>(null);
 
   const handleFolderClick = (folder: "planeaciones" | "grupos" | "bitacora" | "seguimiento" | "evaluacion") => {
-    if (folder === "grupos") {
-      const access = checkFeatureAccess("groups", userPlan);
-      if (!access.allowed) {
-        safeTriggerPaywall({
-          type: "feature",
-          featureName: "Registro y Administración de Grupos",
-          requiredPlan: "basico",
-          message: access.message
-        });
-        return;
-      }
-    } else if (folder === "bitacora") {
-      const access = checkFeatureAccess("bitacora", userPlan);
-      if (!access.allowed) {
-        safeTriggerPaywall({
-          type: "feature",
-          featureName: "Bitácora de Incidencias Escolares",
-          requiredPlan: "basico",
-          message: access.message
-        });
-        return;
-      }
-    } else if (folder === "seguimiento") {
-      const access = checkFeatureAccess("classTracking", userPlan);
-      if (!access.allowed) {
-        safeTriggerPaywall({
-          type: "feature",
-          featureName: "Seguimiento de Clases",
-          requiredPlan: "oro",
-          message: access.message
-        });
-        return;
-      }
-    } else if (folder === "evaluacion") {
-      const access = checkFeatureAccess("continuousEvaluation", userPlan);
-      if (!access.allowed) {
-        safeTriggerPaywall({
-          type: "feature",
-          featureName: "Evaluación Continua del Trabajo en Clase",
-          requiredPlan: "platino",
-          message: access.message
-        });
-        return;
-      }
+    // Validaciones directas y seguras
+    const isPremium = userPlan === "basico" || userPlan === "oro" || userPlan === "platino";
+    const isOroPlatino = userPlan === "oro" || userPlan === "platino";
+    const isPlatino = userPlan === "platino";
+
+    if (folder === "grupos" && !isPremium) {
+      safeTriggerPaywall({
+        type: "feature",
+        featureName: "Registro y Administración de Grupos",
+        requiredPlan: "basico",
+        message: "Esta función requiere el Plan Básico o superior."
+      });
+      return;
+    } else if (folder === "bitacora" && !isPremium) {
+      safeTriggerPaywall({
+        type: "feature",
+        featureName: "Bitácora de Incidencias Escolares",
+        requiredPlan: "basico",
+        message: "Esta función requiere el Plan Básico o superior."
+      });
+      return;
+    } else if (folder === "seguimiento" && !isOroPlatino) {
+      safeTriggerPaywall({
+        type: "feature",
+        featureName: "Seguimiento de Clases",
+        requiredPlan: "oro",
+        message: "Esta función requiere el Plan Oro o Platino."
+      });
+      return;
+    } else if (folder === "evaluacion" && !isPlatino) {
+      safeTriggerPaywall({
+        type: "feature",
+        featureName: "Evaluación Continua del Trabajo en Clase",
+        requiredPlan: "platino",
+        message: "Esta función es exclusiva del Plan Platino."
+      });
+      return;
     }
 
     safeOnSelectFunction("organizador", folder);
@@ -101,28 +94,25 @@ export default function DashboardHub(props: DashboardHubProps) {
   const handleFunctionClick = (
     fn: "diseno" | "sugerir" | "crear" | "programa" | "evaluacion" | "bitacora" | "organizador" | "examen" | "generar_hoja" | "generar_instrumento"
   ) => {
-    if (fn === "evaluacion") {
-      const access = checkFeatureAccess("evaluationFormat", userPlan);
-      if (!access.allowed) {
-        safeTriggerPaywall({
-          type: "feature",
-          featureName: "Formato de Evaluación (Google Sheets / Excel)",
-          requiredPlan: "platino",
-          message: access.message
-        });
-        return;
-      }
-    } else if (fn === "bitacora") {
-      const access = checkFeatureAccess("bitacora", userPlan);
-      if (!access.allowed) {
-        safeTriggerPaywall({
-          type: "feature",
-          featureName: "Bitácora de Incidencias Escolares",
-          requiredPlan: "basico",
-          message: access.message
-        });
-        return;
-      }
+    const isPremium = userPlan === "basico" || userPlan === "oro" || userPlan === "platino";
+    const isPlatino = userPlan === "platino";
+
+    if (fn === "evaluacion" && !isPlatino) {
+      safeTriggerPaywall({
+        type: "feature",
+        featureName: "Formato de Evaluación (Google Sheets / Excel)",
+        requiredPlan: "platino",
+        message: "Esta función es exclusiva del Plan Platino."
+      });
+      return;
+    } else if (fn === "bitacora" && !isPremium) {
+      safeTriggerPaywall({
+        type: "feature",
+        featureName: "Bitácora de Incidencias Escolares",
+        requiredPlan: "basico",
+        message: "Esta función requiere el Plan Básico o superior."
+      });
+      return;
     }
 
     safeOnSelectFunction(fn);

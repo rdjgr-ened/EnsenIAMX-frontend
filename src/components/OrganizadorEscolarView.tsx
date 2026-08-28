@@ -62,50 +62,42 @@ export default function OrganizadorEscolarView({
   const [activeTab, setActiveTab] = useState<TabFolder>(initialTab);
 
   const handleTabChange = (tab: TabFolder) => {
-    if (tab === "grupos") {
-      const access = checkFeatureAccess("groups", userPlan);
-      if (!access.allowed) {
-        safeTriggerPaywall({
-          type: "feature",
-          featureName: "Registro y Administración de Grupos",
-          requiredPlan: "basico",
-          message: access.message
-        });
-        return;
-      }
-    } else if (tab === "bitacora") {
-      const access = checkFeatureAccess("bitacora", userPlan);
-      if (!access.allowed) {
-        safeTriggerPaywall({
-          type: "feature",
-          featureName: "Bitácora de Incidencias Escolares",
-          requiredPlan: "basico",
-          message: access.message
-        });
-        return;
-      }
-    } else if (tab === "seguimiento") {
-      const access = checkFeatureAccess("classTracking", userPlan);
-      if (!access.allowed) {
-        safeTriggerPaywall({
-          type: "feature",
-          featureName: "Seguimiento de Clases",
-          requiredPlan: "oro",
-          message: access.message
-        });
-        return;
-      }
-    } else if (tab === "evaluacion") {
-      const access = checkFeatureAccess("continuousEvaluation", userPlan);
-      if (!access.allowed) {
-        safeTriggerPaywall({
-          type: "feature",
-          featureName: "Evaluación Continua del Trabajo en Clase",
-          requiredPlan: "platino",
-          message: access.message
-        });
-        return;
-      }
+    const isPremium = userPlan === "basico" || userPlan === "oro" || userPlan === "platino";
+    const isOroPlatino = userPlan === "oro" || userPlan === "platino";
+    const isPlatino = userPlan === "platino";
+
+    if (tab === "grupos" && !isPremium) {
+      safeTriggerPaywall({
+        type: "feature",
+        featureName: "Registro y Administración de Grupos",
+        requiredPlan: "basico",
+        message: "Esta función requiere el Plan Básico o superior."
+      });
+      return;
+    } else if (tab === "bitacora" && !isPremium) {
+      safeTriggerPaywall({
+        type: "feature",
+        featureName: "Bitácora de Incidencias Escolares",
+        requiredPlan: "basico",
+        message: "Esta función requiere el Plan Básico o superior."
+      });
+      return;
+    } else if (tab === "seguimiento" && !isOroPlatino) {
+      safeTriggerPaywall({
+        type: "feature",
+        featureName: "Seguimiento de Clases",
+        requiredPlan: "oro",
+        message: "Esta función requiere el Plan Oro o Platino."
+      });
+      return;
+    } else if (tab === "evaluacion" && !isPlatino) {
+      safeTriggerPaywall({
+        type: "feature",
+        featureName: "Evaluación Continua del Trabajo en Clase",
+        requiredPlan: "platino",
+        message: "Esta función es exclusiva del Plan Platino."
+      });
+      return;
     }
 
     setActiveTab(tab);

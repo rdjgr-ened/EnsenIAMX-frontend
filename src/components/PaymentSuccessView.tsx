@@ -101,7 +101,13 @@ export default function PaymentSuccessView({
         let updatedSub = { ...currentSubscription };
 
         if (itemType === "plan" && planId && PLAN_CONFIGS[planId as PlanTier]) {
-          updatedSub = upgradeUserPlan(currentSubscription, planId as PlanTier, billingCycle);
+          // CORRECCIÓN 1: Extraer los créditos exactos desde la configuración local
+          updatedSub = {
+            ...currentSubscription,
+            plan: planId as PlanTier,
+            billingCycle: billingCycle,
+            credits: PLAN_CONFIGS[planId as PlanTier].credits
+          };
         } else if (itemType === "credits") {
           updatedSub = addExtraCredits(currentSubscription, creditsAdded);
         }
@@ -109,29 +115,9 @@ export default function PaymentSuccessView({
         onSubscriptionUpdate(updatedSub);
         saveUserSubscription(updatedSub);
 
-        // Sincronización secundaria con Supabase
-        if (isSupabaseConfigured) {
-          const userProfileStr = localStorage.getItem("user_profile") || localStorage.getItem("nem_secundaria_profile");
-          if (userProfileStr) {
-            try {
-              const userProfile = JSON.parse(userProfileStr);
-              const realUserId = userProfile.id;
-              const userEmailStored = userProfile.email || userEmail;
-
-              if (realUserId) {
-                upsertProfile({
-                  id: realUserId,
-                  email: userEmailStored,
-                  plan: updatedSub.plan,
-                  creditos_disponibles: updatedSub.credits,
-                }).then(() => {
-                  console.log("Supabase actualizado correctamente a Plan:", updatedSub.plan);
-                }).catch((err) => console.warn("Error updating Supabase:", err));
-              }
-            } catch (e) {
-              console.error("Error parsing profile for Supabase:", e);
-            }
-          }
+        // CORRECCIÓN 2: Eliminamos la llamada a 'upsertProfile' aquí. 
+        // El Frontend ya NO DEBE sobrescribir Supabase. El Webhook hizo el trabajo.
+      }
         }
       }
 
@@ -284,7 +270,7 @@ export default function PaymentSuccessView({
 
             <button
               type="button"
-              onClick={onGoToDashboard}
+              onClick={() => window.location.href = "/"}
               className="w-full py-3.5 px-5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black rounded-xl text-xs uppercase tracking-wider transition flex items-center justify-center gap-2 cursor-pointer"
             >
               <Home className="w-4 h-4 text-slate-600" />
