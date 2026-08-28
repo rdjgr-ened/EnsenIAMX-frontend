@@ -85,48 +85,15 @@ export default function MiCuentaView({
     setTimeout(() => setSavedSuccess(false), 3000);
   };
 
-  const handleDirectPayment = async () => {
-    const userId = userProfile?.id || (subscription as any)?.userId;
-
-    if (!userId) {
-      onTriggerPaywall({
-        type: "feature",
-        featureName: "Gestión de Planes y Suscripción",
-        requiredPlan: isPremium ? "platino" : "oro",
-        message: "Personaliza tu plan, amplía tu cuota mensual de créditos o cambia tu ciclo de facturación."
-      });
-      return;
-    }
-
-    setIsProcessingPayment(true);
-    setPaymentError(null);
-
-    try {
-      const response = await fetch('/api/create-preference', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: userId,
-          planName: 'Plan Platino',
-          price: 149
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.init_point) {
-        throw new Error(data.error || 'No se pudo generar la orden de pago.');
-      }
-
-      window.location.href = data.init_point;
-    } catch (err: any) {
-      console.error('Error al procesar el pago:', err);
-      setPaymentError(err.message || 'Ocurrió un error al conectar con Mercado Pago.');
-      setIsProcessingPayment(false);
-    }
+  const handleDirectPayment = () => {
+    // En lugar de forzar un pago de $149 directo, abrimos el Paywall
+    // para que el usuario elija qué plan y qué ciclo de facturación desea.
+    onTriggerPaywall({
+      type: "manual_upgrade",
+    });
   };
 
-  const maxQuota = planConfig.creditsPerMonth || 20;
+const maxQuota = planConfig.credits || 20;
   
   // Soporte dual para 'creditos_disponibles' (Supabase) y 'credits'[cite: 3]
   const userCredits = (subscription as any)?.creditos_disponibles ?? subscription?.credits ?? 0;

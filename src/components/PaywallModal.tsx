@@ -62,11 +62,16 @@ export default function PaywallModal({
     setLoadingItem(itemId);
     setCheckoutError(null);
 
-    const userId = profile.id || `user_${(profile.email || "docente").replace(/[^a-zA-Z0-9]/g, "_")}`;
+    const userId = profile.id;
+if (!userId) {
+  setCheckoutError("Error de sesión: Por favor cierra sesión y vuelve a entrar para sincronizar tu cuenta de forma segura.");
+  setLoadingItem(null);
+  return;
+}
 
     try {
-      const response = await fetch("/api/checkout", {
-        method: "POST",
+const response = await fetch("/api/create-preference", {
+      method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           planId: plan,

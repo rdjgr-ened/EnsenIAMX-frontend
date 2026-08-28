@@ -615,75 +615,26 @@ export default function App() {
     }
   };
 
-  // 7. CORRECCIÓN: PROCESAMIENTO GLOBAL DEL PAGO EXITOSO USANDO UUID
+  // 7. CORRECCIÓN: PROCESAMIENTO SEGURO DEL PAGO EXITOSO
   useEffect(() => {
     if (currentPath === "/payment-success") {
-      try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const status = urlParams.get("collection_status") || urlParams.get("status") || "approved";
+      const urlParams = new URLSearchParams(window.location.search);
+      const status = urlParams.get("collection_status") || urlParams.get("status");
+      
+      if (status === "approved" || status === "authorized") {
+        console.log("Pago aprobado detectado. Descargando plan real desde el servidor...");
         
-        if (status === "approved" || status === "authorized" || urlParams.get("is_demo") === "true") {
-          const externalRefRaw = urlParams.get("external_reference") || "platino";
-          let planId = "platino";
-          let billingCycle: "mensual" | "trimestral" | "anual" = "mensual";
-
-          try {
-            const decoded = decodeURIComponent(externalRefRaw).trim();
-            if (decoded.startsWith("{") && decoded.endsWith("}")) {
-              const parsed = JSON.parse(decoded);
-              if (parsed.planId) planId = parsed.planId;
-              if (parsed.billingCycle) billingCycle = parsed.billingCycle;
-            } else if (decoded.toLowerCase().includes("oro")) {
-              planId = "oro";
-            } else if (decoded.toLowerCase().includes("basico")) {
-              planId = "basico";
-            }
-          } catch (e) {
-            // Manejo seguro de excepción
-          }
-
-          let updatedSub = loadUserSubscription();
-          updatedSub = updateUserPlan(updatedSub, planId as PlanTier, billingCycle);
-          updatedSub.plan = "platino";
-          updatedSub.credits = Math.max(updatedSub.credits, 300);
-
-          setSubscription(updatedSub);
-          saveSubscriptionToStorage(updatedSub);
-
-          let userEmail = userProfile?.email;
-          let currentUserId = userProfile?.id || 'anonymous_user';
-
-          if (!userEmail) {
-            try {
-              const savedProf = localStorage.getItem("nem_secundaria_profile");
-              if (savedProf) {
-                const parsed = JSON.parse(savedProf);
-                if (parsed?.email) userEmail = parsed.email;
-                if (parsed?.id) currentUserId = parsed.id;
-              }
-            } catch (err) {}
-          }
-
-          if (currentUserId === 'anonymous_user' && userEmail) {
-             currentUserId = `user_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
-          }
-
-          if (userEmail && isSupabaseConfigured) {
-            saveSupabaseProfile({
-              id: currentUserId,
-              email: userEmail,
-              plan: updatedSub.plan,
-              creditos_disponibles: updatedSub.credits,
-            })
-            .then(() => console.log("¡Suscripción y créditos sincronizados en Supabase exitosamente!"))
-            .catch(err => console.error("Error al sincronizar Supabase tras pago:", err));
-          }
+        // NO guardamos nada en Supabase desde aquí. El Webhook ya lo hizo en el backend.
+        // Solo forzamos una recarga segura de los datos oficiales desde la base de datos:
+        if (userProfile?.email) {
+          // Damos un pequeño margen de 2 segundos para asegurar que el Webhook haya terminado de procesar
+          setTimeout(() => {
+            syncSubscriptionFromSupabase(userProfile.email);
+          }, 2000);
         }
-      } catch (err) {
-        console.error("Error processing payment return in App.tsx:", err);
       }
     }
-  }, [currentPath]);
+  }, [currentPath, userProfile?.email]);
 
   if (currentPath === "/politica-de-privacidad") {
     return <PoliticaPrivacidadView onBack={handleBackFromLegal} />;
