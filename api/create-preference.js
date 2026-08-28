@@ -50,7 +50,7 @@ export default async function handler(req, res) {
       },
     });
 
-    return res.status(200).json({ initPoint: result.init_point });
+    return res.status(200).json({ success: true, initPoint: result.init_point });
   } catch (error) {
     console.error('Error al crear preferencia:', error);
     return res.status(500).json({ error: error.message });
