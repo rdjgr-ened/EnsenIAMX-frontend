@@ -205,10 +205,13 @@ export default function App() {
       
       if (profileData) {
         const plan = (profileData.plan || "gratuito").toLowerCase();
-        let credits = profileData.creditos_disponibles ?? 20;
         
-        if (plan === "platino" && credits < 300) {
-          credits = 300;
+        // Toma exactamente lo que dice Supabase sin sobreescribirlo a la fuerza
+        let credits = profileData.creditos_disponibles;
+        
+        // Solo ponemos un valor por defecto si Supabase devuelve null/undefined
+        if (credits === null || credits === undefined) {
+           credits = plan === "platino" ? 300 : (plan === "oro" ? 100 : (plan === "basico" ? 50 : 20));
         }
 
         const updatedSub: UserSubscription = {
