@@ -167,6 +167,34 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
           localStorage.setItem("nem_recursos_generados", JSON.stringify(recursosMapeados));
         }
       });
+      // 1.5 DESCARGAR BITÁCORAS DE INCIDENCIA
+      fetchSupabaseIncidencias(userId).then(dbIncidencias => {
+        if (dbIncidencias && dbIncidencias.length > 0) {
+          const parsedBitacoras: BitacoraIncidencia[] = dbIncidencias.map(inc => {
+            try {
+              const parsed = JSON.parse(inc.descripcion);
+              if (parsed && typeof parsed === 'object' && parsed.folio) {
+                return { ...parsed, id: inc.id };
+              }
+            } catch (e) {}
+            // Fallback
+            return {
+              id: inc.id,
+              folio: `FOL-${inc.id.slice(-4).toUpperCase()}`,
+              createdAt: inc.created_at || inc.fecha,
+              updatedAt: inc.created_at || inc.fecha,
+              escuela: "Escuela", cct: "CCT", turno: "Matutino", cicloEscolar: "2025-2026",
+              fecha: inc.fecha, hora: "10:00", lugar: "Aula", docenteReporta: "Docente",
+              alumnoNombre: inc.alumno_id, alumnoGrado: "1º", alumnoGrupo: "A",
+              otrosInvolucrados: "", tiposIncidencia: [inc.categoria], tipoIncidenciaOtro: "",
+              descripcionHechos: inc.descripcion, accionesInmediatas: [], accionesOtro: "",
+              compromisoAlumno: "", compromisoPadre: "", compromisoEscuela: ""
+            };
+          });
+          setBitacoras(parsedBitacoras);
+          localStorage.setItem("nem_bitacoras_incidencias", JSON.stringify(parsedBitacoras));
+        }
+      }).catch(err => console.warn("Supabase incidencias load error:", err));
       fetchSupabaseGrupos(userId).then(async (dbGrupos) => {
         if (dbGrupos && dbGrupos.length > 0) {
           const dbAlumnos = await fetchSupabaseAlumnos(userId);
