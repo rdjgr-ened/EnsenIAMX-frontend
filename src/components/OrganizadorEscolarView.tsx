@@ -832,6 +832,7 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
     }
     return [];
   });
+  const [recursoToView, setRecursoToView] = useState<any | null>(null);
 
   const misHojas = recursosGuardados.filter(r => String(r.id).startsWith("ws_") || r.tipo_recurso === "hoja_de_trabajo");
   const misInstrumentos = recursosGuardados.filter(r => String(r.id).startsWith("ins_") || r.tipo_recurso === "instrumento_evaluacion");
@@ -862,6 +863,57 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
       );
     });
   }, [plans, planSearch]);
+// -> VISOR DE RECURSOS DE PANTALLA COMPLETA <-
+  if (recursoToView) {
+    return (
+      <div id="visor-recurso-container" className="space-y-6 animate-fade-in print:space-y-0">
+        {/* Barra superior (Se oculta al imprimir) */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-xl bg-mex-maroon text-white flex items-center justify-center shadow-md shrink-0">
+              <FileText className="w-6 h-6 text-mex-gold" />
+            </div>
+            <div>
+              <h2 className="font-black text-slate-900 text-xl tracking-tight line-clamp-1">
+                {recursoToView.titulo || "Documento Guardado"}
+              </h2>
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                {String(recursoToView.tipo_recurso).replace(/_/g, " ")}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start md:self-center shrink-0">
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center gap-2 cursor-pointer shadow-md"
+            >
+              <Printer className="w-4 h-4 text-mex-gold" />
+              <span>Imprimir PDF</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRecursoToView(null)}
+              className="px-4 py-2.5 bg-slate-100 hover:bg-rose-100 border border-slate-300 hover:border-rose-200 text-slate-800 hover:text-rose-700 rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center gap-2 cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Cerrar Visor</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Hoja del Documento (Es lo único que saldrá en la impresión) */}
+        <div className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-200 shadow-sm print:border-none print:shadow-none print:p-0">
+          <div className="prose max-w-none text-slate-800 text-sm leading-relaxed print:text-xs">
+            <div className="whitespace-pre-wrap font-medium">
+              {recursoToView.contenido?.markdown || recursoToView.contenido?.texto || recursoToView.contenido?.html || JSON.stringify(recursoToView.contenido, null, 2)}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div id="organizador-escolar-container" className="space-y-6 animate-fade-in">
@@ -1450,7 +1502,7 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
                   </div>
                   <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
                     <button onClick={() => handleDeleteRecursoLocal(recurso.id)} className="text-slate-400 hover:text-rose-500 transition p-1"><Trash2 className="w-4 h-4"/></button>
-                    <button className="text-xs font-black uppercase text-blue-600 flex items-center gap-1 hover:underline"><Printer className="w-3.5 h-3.5"/> Abrir / Imprimir</button>
+<button onClick={() => setRecursoToView(recurso)} className="text-xs font-black uppercase text-blue-600 flex items-center gap-1 hover:underline cursor-pointer"><Printer className="w-3.5 h-3.5"/> Abrir / Imprimir</button>
                   </div>
                 </div>
               ))}
@@ -1488,7 +1540,7 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
                   </div>
                   <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
                     <button onClick={() => handleDeleteRecursoLocal(recurso.id)} className="text-slate-400 hover:text-rose-500 transition p-1"><Trash2 className="w-4 h-4"/></button>
-                    <button className="text-xs font-black uppercase text-emerald-600 flex items-center gap-1 hover:underline"><Printer className="w-3.5 h-3.5"/> Abrir / Imprimir</button>
+                    <button onClick={() => setRecursoToView(recurso)} className="text-xs font-black uppercase text-emerald-600 flex items-center gap-1 hover:underline cursor-pointer"><Printer className="w-3.5 h-3.5"/> Abrir / Imprimir</button>
                   </div>
                 </div>
               ))}
@@ -1526,7 +1578,7 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
                   </div>
                   <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
                     <button onClick={() => handleDeleteRecursoLocal(recurso.id)} className="text-slate-400 hover:text-rose-500 transition p-1"><Trash2 className="w-4 h-4"/></button>
-                    <button className="text-xs font-black uppercase text-amber-600 flex items-center gap-1 hover:underline"><Printer className="w-3.5 h-3.5"/> Abrir / Imprimir</button>
+                    <button onClick={() => setRecursoToView(recurso)} className="text-xs font-black uppercase text-amber-600 flex items-center gap-1 hover:underline cursor-pointer"><Printer className="w-3.5 h-3.5"/> Abrir / Imprimir</button>
                   </div>
                 </div>
               ))}
@@ -1564,7 +1616,7 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
                   </div>
                   <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
                     <button onClick={() => handleDeleteRecursoLocal(recurso.id)} className="text-slate-400 hover:text-rose-500 transition p-1"><Trash2 className="w-4 h-4"/></button>
-                    <button className="text-xs font-black uppercase text-purple-600 flex items-center gap-1 hover:underline"><Printer className="w-3.5 h-3.5"/> Abrir / Imprimir</button>
+                    <button onClick={() => setRecursoToView(recurso)} className="text-xs font-black uppercase text-purple-600 flex items-center gap-1 hover:underline cursor-pointer"><Printer className="w-3.5 h-3.5"/> Abrir / Imprimir</button>
                   </div>
                 </div>
               ))}
