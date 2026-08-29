@@ -1010,6 +1010,7 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
         </div>
       </div>
     );
+    }
 
   return (
     <div id="organizador-escolar-container" className="space-y-6 animate-fade-in">
