@@ -6,6 +6,7 @@ import {
   BookOpen, HelpCircle, UserPlus, RefreshCw, Layers, ChevronDown,
   Lock, Crown, Gem, ClipboardList, BookCheck, GraduationCap
 } from "lucide-react";
+import AccionesDocumento from "./AccionesDocumento";
 import { 
   CompletePlan, BitacoraIncidencia, EscolarGroup, StudentItem, 
   ClassTrackingRecord, ContinuousEvalGroupData, EvaluationColumnItem,
@@ -865,8 +866,6 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
   }, [plans, planSearch]);
 // -> VISOR DE RECURSOS DE PANTALLA COMPLETA <-
   if (recursoToView) {
-    
-    // Función inteligente que transforma el JSON crudo en un diseño hermoso para imprimir
     const renderDocumentoInteligente = (contenido: any) => {
       if (!contenido) return null;
       if (typeof contenido === "string") return <div className="whitespace-pre-wrap">{contenido}</div>;
@@ -884,10 +883,9 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
         }
 
         if (typeof nodo === "object") {
-          // Detectar si es un "Ejercicio" o "Pregunta" (para dibujar líneas y opciones)
           if (nodo.preguntaOInstruccion || nodo.pregunta) {
             return (
-              <div className="mb-6 print:mb-4 bg-slate-50 print:bg-transparent p-4 print:p-0 rounded-xl border border-slate-200 print:border-none">
+              <div className="mb-6 print:mb-4 bg-slate-50 print:bg-transparent p-4 print:p-0 rounded-xl border border-slate-200 print:border-none page-break-inside-avoid">
                 <p className="font-bold text-slate-900 text-sm mb-2">
                   {nodo.numero ? `${nodo.numero}. ` : ""}{nodo.preguntaOInstruccion || nodo.pregunta}
                 </p>
@@ -896,7 +894,6 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
                     {nodo.opciones.map((op: string, i: number) => <li key={i}>{op}</li>)}
                   </ul>
                 )}
-                {/* Dibuja las líneas para que el alumno escriba */}
                 {nodo.lineasDeRespuesta > 0 && (
                   <div className="mt-6 space-y-6 print:space-y-8">
                     {Array.from({ length: nodo.lineasDeRespuesta }).map((_, i) => (
@@ -908,7 +905,6 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
             );
           }
 
-          // Detectar si es una sección con título (Inicio, Desarrollo, Cierre)
           if (nodo.titulo && (nodo.ejercicios || nodo.instrucciones)) {
              return (
                <div className="mb-8 mt-6 border-l-4 border-mex-maroon pl-5 py-1">
@@ -919,11 +915,22 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
              );
           }
 
-          // Si es un objeto genérico (como la rúbrica o configuraciones extras)
+          // 🚨 EL TRUCO DEL ORDEN LÓGICO ESTÁ AQUÍ 🚨
+          const ordenLogico = ["seccionInicio", "inicio", "seccionDesarrollo", "desarrollo", "seccionCierre", "cierre"];
+          const sortedKeys = Object.keys(nodo).sort((a, b) => {
+            const indexA = ordenLogico.indexOf(a);
+            const indexB = ordenLogico.indexOf(b);
+            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+            if (indexA !== -1) return -1;
+            if (indexB !== -1) return 1;
+            return 0;
+          });
+
           return (
             <div className="space-y-3">
-              {Object.entries(nodo).map(([key, value]) => {
-                if (depth === 0 && (key === 'titulo' || key === 'subtitulo' || key === 'tema')) return null;
+              {sortedKeys.map((key) => {
+                const value = nodo[key];
+                if (depth === 0 && (key === 'titulo' || key === 'subtitulo' || key === 'tema' || key === 'fase' || key === 'grado')) return null;
                 return (
                   <div key={key} className="mt-4">
                     <h4 className="text-sm font-extrabold text-mex-maroon capitalize mb-2">
@@ -959,58 +966,82 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
     };
 
     return (
-      <div 
-        id="visor-recurso-container" 
-        className="space-y-6 animate-fade-in print:animate-none print:opacity-100 print:block print:w-full print:h-auto print:overflow-visible print:m-0 print:p-0"
-      >
-        {/* Barra superior (Se oculta al imprimir) */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-xl bg-mex-maroon text-white flex items-center justify-center shadow-md shrink-0">
-              <FileText className="w-6 h-6 text-mex-gold" />
-            </div>
-            <div>
-              <h2 className="font-black text-slate-900 text-xl tracking-tight line-clamp-1">
+      <div className="space-y-6 animate-fade-in relative">
+        {/* BARRA SUPERIOR IDÉNTICA A PLANEACIÓN PREVIEW */}
+        <AccionesDocumento
+          targetId="documento-resultado"
+          tipoRecurso={recursoToView.tipo_recurso || "Documento"}
+          customSuffix={recursoToView.id}
+          title={
+            <span className="flex items-center gap-1.5 font-black text-slate-800">
+              <span className="truncate max-w-[200px] sm:max-w-[400px]">
                 {recursoToView.titulo || "Documento Guardado"}
-              </h2>
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                {String(recursoToView.tipo_recurso).replace(/_/g, " ")}
               </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 self-start md:self-center shrink-0">
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center gap-2 cursor-pointer shadow-md"
-            >
-              <Printer className="w-4 h-4 text-mex-gold" />
-              <span>Imprimir PDF</span>
-            </button>
+            </span>
+          }
+          extraActions={
             <button
               type="button"
               onClick={() => setRecursoToView(null)}
-              className="px-4 py-2.5 bg-slate-100 hover:bg-rose-100 border border-slate-300 hover:border-rose-200 text-slate-800 hover:text-rose-700 rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center gap-2 cursor-pointer mr-1"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Cerrar Visor</span>
             </button>
-          </div>
-        </div>
+          }
+        />
 
-        {/* Hoja del Documento Dinámica (Garantizada para imprimir bien) */}
-        <div className="bg-white p-8 sm:p-16 rounded-2xl border border-slate-200 shadow-sm print:border-none print:shadow-none print:p-0 print:block print:w-full print:h-auto print:overflow-visible print:opacity-100 print:text-black">
-          <div className="max-w-4xl mx-auto text-slate-800 print:text-black">
+        {/* HOJA DEL DOCUMENTO GARANTIZADA PARA IMPRESIÓN */}
+        <div id="documento-resultado" className="bg-white p-8 sm:p-16 rounded-2xl border border-slate-200 shadow-sm print:border-none print:shadow-none print:p-0 print:rounded-none printable-document">
+          <div className="max-w-4xl mx-auto text-slate-800">
             {recursoToView.contenido?.markdown 
               ? <div className="whitespace-pre-wrap">{recursoToView.contenido.markdown}</div> 
               : renderDocumentoInteligente(recursoToView.contenido)
             }
           </div>
         </div>
+
+        {/* EL BLOQUE MAESTRO DE CSS QUE USA TUS PLANEACIONES */}
+        <style>{`
+          @media print {
+            html, body, #root {
+              height: auto !important;
+              min-height: 100vh !important;
+              overflow: visible !important;
+            }
+            div[class*="h-screen"], div[class*="h-full"], div[class*="overflow"], main {
+              height: auto !important;
+              max-height: none !important;
+              overflow: visible !important;
+              position: static !important;
+            }
+            header, footer, nav, aside, .print\\:hidden, .no-print {
+              display: none !important;
+            }
+            body {
+              background-color: white !important;
+              color: black !important;
+              font-size: 11px !important;
+            }
+            #documento-resultado {
+              display: block !important;
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              border: none !important;
+              box-shadow: none !important;
+              grid-column: 1 / -1 !important;
+            }
+            .page-break-inside-avoid { 
+              page-break-inside: avoid !important; 
+              break-inside: avoid !important;
+            }
+          }
+        `}</style>
       </div>
     );
-    }
+  }
 
   return (
     <div id="organizador-escolar-container" className="space-y-6 animate-fade-in">
