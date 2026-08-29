@@ -865,8 +865,104 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
   }, [plans, planSearch]);
 // -> VISOR DE RECURSOS DE PANTALLA COMPLETA <-
   if (recursoToView) {
+    
+    // Función inteligente que transforma el JSON crudo en un diseño hermoso para imprimir
+    const renderDocumentoInteligente = (contenido: any) => {
+      if (!contenido) return null;
+      if (typeof contenido === "string") return <div className="whitespace-pre-wrap">{contenido}</div>;
+
+      const renderNodo = (nodo: any, depth = 0): any => {
+        if (!nodo) return null;
+        if (typeof nodo === "string" || typeof nodo === "number") return <span className="text-sm font-medium">{nodo}</span>;
+        
+        if (Array.isArray(nodo)) {
+          return (
+            <div className="space-y-4 mt-2">
+              {nodo.map((item, idx) => <div key={idx}>{renderNodo(item, depth + 1)}</div>)}
+            </div>
+          );
+        }
+
+        if (typeof nodo === "object") {
+          // Detectar si es un "Ejercicio" o "Pregunta" (para dibujar líneas y opciones)
+          if (nodo.preguntaOInstruccion || nodo.pregunta) {
+            return (
+              <div className="mb-6 print:mb-4 bg-slate-50 print:bg-transparent p-4 print:p-0 rounded-xl border border-slate-200 print:border-none">
+                <p className="font-bold text-slate-900 text-sm mb-2">
+                  {nodo.numero ? `${nodo.numero}. ` : ""}{nodo.preguntaOInstruccion || nodo.pregunta}
+                </p>
+                {nodo.opciones && (
+                  <ul className="list-[circle] pl-6 mt-3 space-y-2 text-sm text-slate-700 font-medium">
+                    {nodo.opciones.map((op: string, i: number) => <li key={i}>{op}</li>)}
+                  </ul>
+                )}
+                {/* Dibuja las líneas para que el alumno escriba */}
+                {nodo.lineasDeRespuesta > 0 && (
+                  <div className="mt-6 space-y-6 print:space-y-8">
+                    {Array.from({ length: nodo.lineasDeRespuesta }).map((_, i) => (
+                      <div key={i} className="border-b border-slate-400 w-full h-1"></div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          // Detectar si es una sección con título (Inicio, Desarrollo, Cierre)
+          if (nodo.titulo && (nodo.ejercicios || nodo.instrucciones)) {
+             return (
+               <div className="mb-8 mt-6 border-l-4 border-mex-maroon pl-5 py-1">
+                 <h3 className="text-lg font-black text-slate-800 uppercase tracking-wide mb-2">{nodo.titulo}</h3>
+                 {nodo.instrucciones && <p className="text-sm italic text-slate-600 mb-4">{nodo.instrucciones}</p>}
+                 {nodo.ejercicios && renderNodo(nodo.ejercicios, depth + 1)}
+               </div>
+             );
+          }
+
+          // Si es un objeto genérico (como la rúbrica o configuraciones extras)
+          return (
+            <div className="space-y-3">
+              {Object.entries(nodo).map(([key, value]) => {
+                if (depth === 0 && (key === 'titulo' || key === 'subtitulo' || key === 'tema')) return null;
+                return (
+                  <div key={key} className="mt-4">
+                    <h4 className="text-sm font-extrabold text-mex-maroon capitalize mb-2">
+                      {key.replace(/([A-Z])/g, ' $1').trim()}
+                    </h4>
+                    <div className="pl-1">
+                      {renderNodo(value, depth + 1)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        }
+        return null;
+      };
+
+      return (
+        <div className="space-y-4">
+          <div className="text-center border-b-2 border-slate-800 pb-5 mb-8">
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 uppercase tracking-tight">
+              {contenido.titulo || contenido.tema || "Documento Escolar"}
+            </h1>
+            {(contenido.subtitulo || contenido.fase || contenido.grado) && (
+              <h2 className="text-sm font-bold text-slate-600 mt-2 uppercase tracking-widest">
+                {contenido.subtitulo || `${contenido.fase || ''} ${contenido.grado ? `- ${contenido.grado}` : ''}`}
+              </h2>
+            )}
+          </div>
+          {renderNodo(contenido, 0)}
+        </div>
+      );
+    };
+
     return (
-      <div id="visor-recurso-container" className="space-y-6 animate-fade-in print:space-y-0">
+      <div 
+        id="visor-recurso-container" 
+        className="space-y-6 animate-fade-in print:animate-none print:opacity-100 print:block print:w-full print:h-auto print:overflow-visible print:m-0 print:p-0"
+      >
         {/* Barra superior (Se oculta al imprimir) */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
           <div className="flex items-center gap-3.5">
@@ -903,17 +999,17 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
           </div>
         </div>
 
-        {/* Hoja del Documento (Es lo único que saldrá en la impresión) */}
-        <div className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-200 shadow-sm print:border-none print:shadow-none print:p-0">
-          <div className="prose max-w-none text-slate-800 text-sm leading-relaxed print:text-xs">
-            <div className="whitespace-pre-wrap font-medium">
-              {recursoToView.contenido?.markdown || recursoToView.contenido?.texto || recursoToView.contenido?.html || JSON.stringify(recursoToView.contenido, null, 2)}
-            </div>
+        {/* Hoja del Documento Dinámica (Garantizada para imprimir bien) */}
+        <div className="bg-white p-8 sm:p-16 rounded-2xl border border-slate-200 shadow-sm print:border-none print:shadow-none print:p-0 print:block print:w-full print:h-auto print:overflow-visible print:opacity-100 print:text-black">
+          <div className="max-w-4xl mx-auto text-slate-800 print:text-black">
+            {recursoToView.contenido?.markdown 
+              ? <div className="whitespace-pre-wrap">{recursoToView.contenido.markdown}</div> 
+              : renderDocumentoInteligente(recursoToView.contenido)
+            }
           </div>
         </div>
       </div>
     );
-  }
 
   return (
     <div id="organizador-escolar-container" className="space-y-6 animate-fade-in">
