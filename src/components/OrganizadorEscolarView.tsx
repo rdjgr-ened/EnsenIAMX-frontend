@@ -565,33 +565,7 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
   const [newColDate, setNewColDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
   const [showSyncDrawer, setShowSyncDrawer] = useState<boolean>(false);
 
-// Efecto de Guardado Automático con "Debounce" (Espera 1.5s después de teclear)
-  useEffect(() => {
-    // 1. Siempre guardamos en local por velocidad
-    localStorage.setItem("nem_evaluacion_continua", JSON.stringify(evalData));
 
-    // 2. Preparamos el guardado en la nube
-    const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-    const userId = userProfileStr ? JSON.parse(userProfileStr)?.id : null;
-    
-    if (isSupabaseConfigured && userId && Object.keys(evalData).length > 0) {
-      
-      const timer = setTimeout(() => {
-        // Recorremos los grupos y guardamos su JSON en Supabase
-        Object.values(evalData).forEach(groupData => {
-          if (groupData.groupId) {
-            saveSupabaseEvaluacionContinua({
-              grupo_id: groupData.groupId,
-              user_id: userId,
-              contenido_json: groupData
-            }, userPlan).catch(err => console.warn("Error auto-guardando evaluación:", err));
-          }
-        });
-      }, 1500); // Espera 1.5 segundos de inactividad antes de enviar a Supabase
-
-      return () => clearTimeout(timer); // Si el usuario sigue tecleando, cancela el timer anterior
-    }
-  }, [evalData, userPlan]);
 
   // Helper date formatting functions
   const formatDateForInput = (str: string) => {
