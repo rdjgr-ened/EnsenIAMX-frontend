@@ -911,7 +911,7 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
                 </div>
 
                 <div className="space-y-5">
-                  {exam.reactivos.map((reactivo, idx) => (
+                  {exam.reactivos.map((reactivo: any, idx: number) => (
                     <div key={idx} className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3 break-inside-avoid">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2">
@@ -919,7 +919,7 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
                             {reactivo.numero}
                           </span>
                           <span className="font-black text-xs text-slate-800 uppercase">
-                            Reactivo #{reactivo.numero} • {reactivo.tipo === "opcion_multiple" ? "Opción Múltiple" : "Pregunta Abierta"}
+                            Reactivo #{reactivo.numero} • Opción Múltiple
                           </span>
                         </div>
                       </div>
@@ -928,9 +928,7 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
                         {reactivo.planteamiento}
                       </p>
 
-                      
-
-                        <div className="bg-white border border-emerald-200 rounded-lg p-3 space-y-2 text-xs">
+                      <div className="bg-white border border-emerald-200 rounded-lg p-3 space-y-2 text-xs">
                         <div className="flex items-center gap-2">
                           <span className="font-black text-emerald-800 uppercase text-[11px]">
                             Respuesta Correcta:
@@ -945,7 +943,11 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
                           {reactivo.pdaEvaluado && <span>• <strong>PDA:</strong> {reactivo.pdaEvaluado}</span>}
                         </div>
                       </div>
-                      )} {/* 
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* TAB 3: TABLA DE ESPECIFICACIONES */}
             {activeTab === "especificaciones" && (
@@ -970,13 +972,12 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
-                      {(exam.tablaEspecificaciones || exam.reactivos.map(r => ({
+                      {(exam.tablaEspecificaciones || exam.reactivos.map((r: any) => ({
                         numero: r.numero,
                         contenido: r.contenidoEvaluado,
                         pda: r.pdaEvaluado || "Proceso de desarrollo curricular",
-                        nivelCognitivo: r.tipo === "opcion_multiple" ? "Comprensión / Aplicación" : "Análisis y Argumentación",
-                        tipoReactivo: r.tipo === "opcion_multiple" ? "Opción Múltiple" : "Abierta"
-                      }))).map((spec, idx) => (
+                        nivelCognitivo: "Comprensión / Aplicación"
+                      }))).map((spec: any, idx: number) => (
                         <tr key={idx} className="hover:bg-slate-50">
                           <td className="p-2.5 font-bold">{spec.numero}</td>
                           <td className="p-2.5 font-medium max-w-xs">{spec.contenido}</td>
@@ -994,4 +995,4 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
       )}
     </div>
   );
-}
+} 
