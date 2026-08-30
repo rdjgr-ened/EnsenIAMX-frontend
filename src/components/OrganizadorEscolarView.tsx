@@ -61,6 +61,7 @@ export default function OrganizadorEscolarView({
   escuelaName,
   subscription,
   onTriggerPaywall,
+  onSelectExamen,
 }: OrganizadorEscolarViewProps) {
   const userPlan: PlanTier = subscription?.plan || "gratuito";
   const safeTriggerPaywall = onTriggerPaywall || (() => {});
@@ -1487,7 +1488,7 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
                   <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
                     <button onClick={() => handleDeleteRecursoLocal(recurso.id)} className="text-slate-400 hover:text-rose-500 transition p-1"><Trash2 className="w-4 h-4"/></button>
 <button 
-    onClick={() => props.onSelectExamen(recurso.contenido)} 
+    onClick={() => onSelectExamen(recurso.contenido)} 
     className="text-xs font-black uppercase text-purple-600 flex items-center gap-1 hover:underline cursor-pointer"
   >
     <Printer className="w-3.5 h-3.5"/> Abrir / Imprimir
