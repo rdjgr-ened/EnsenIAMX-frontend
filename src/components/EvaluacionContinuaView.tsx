@@ -203,8 +203,6 @@ export default function EvaluacionContinuaView({
       };
     });
 
-    // Also sync to group state
-    handleSyncPlanToGroup(selectedGroupId, planId);
 
     setEvalData(prev => ({
       ...prev,
