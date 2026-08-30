@@ -160,7 +160,7 @@ export default function AccionesDocumento({
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             Documento listo: <code className="bg-emerald-50 px-1.5 py-0.5 rounded text-emerald-950 font-mono text-[10px]">{calculatedFilename}</code>
           </span>
-          <span className="text-[10px] text-emerald-600 font-semibold uppercase">Formato NEM Oficial SEP</span>
+          <span className="text-[10px] text-emerald-600 font-semibold uppercase">Formato NEM</span>
         </div>
       )}
 
