@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { CompletePlan, UserSubscription } from "../types";
+import { CompletePlan, UserSubscription, EvaluationColumnItem } from "../types";
 import { ArrowLeft, Save, Loader2, CheckCircle2, AlertCircle, FileSpreadsheet, RefreshCw, ChevronDown, Plus } from "lucide-react";
 import { saveEvaluacionContinua, getEvaluacionContinua, isSupabaseConfigured } from "../utils/supabaseClient";
 
@@ -16,129 +16,70 @@ export default function EvaluacionContinuaView({
   onBack,
   subscription
 }: EvaluacionContinuaProps) {
-  const [selectedGroupId, setSelectedGroupId] = useState<string>("");
-  const [evalData, setEvalData] = useState<any>({});
   
-  // EL SECRETO: Guardar el ID de Supabase para saber si actualizar o insertar
+  const [selectedGroupId, setSelectedGroupId] = useState<string>("");
+  // NUEVA VARIABLE: Sabe en todo momento qué planeación estamos viendo
+  const [activePlanId, setActivePlanId] = useState<string>("libre"); 
+  
+  const [evalData, setEvalData] = useState<any>({});
   const [dbRecordId, setDbRecordId] = useState<string | null>(null); 
   
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // 1. Cargar datos y extraer alumnos
-  useEffect(() => {
-    if (!selectedGroupId || !isSupabaseConfigured) return;
-    
-    const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-    const userId = userProfileStr ? JSON.parse(userProfileStr)?.id : null;
-    if (!userId) return;
-
-    setErrorMsg(null);
-
-    getEvaluacionContinua(userId, subscription?.plan || "gratuito", selectedGroupId)
-      .then(data => {
-        if (data && data.length > 0) {
-          // Ya existe en la nube: Guardamos su ID oficial y mostramos los datos
-          setDbRecordId(data[0].id);
-          setEvalData(data[0].contenido_json);
-        } else {
-          // Es nuevo: Extraemos los alumnos reales del grupo para que la tabla no esté vacía
-          setDbRecordId(null);
-          const grupoSeleccionado = gruposGuardados.find(g => g.id === selectedGroupId);
-          const alumnosDelGrupo = grupoSeleccionado?.estudiantes || []; // <--- LA SANGRE
-          
-          setEvalData({ 
-            groupId: selectedGroupId, 
-            alumnos: alumnosDelGrupo 
-          });
-        }
-      });
-  }, [selectedGroupId, subscription, gruposGuardados]);
-
-  // 2. Guardar a la nube
-  const handleSaveToCloud = async () => {
-    if (!selectedGroupId || !isSupabaseConfigured) return;
-    
-    const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-    const userId = userProfileStr ? JSON.parse(userProfileStr)?.id : null;
-    if (!userId) return;
-
-    setIsSaving(true);
-    setSaveSuccess(false);
-    setErrorMsg(null);
-
-    try {
-      await saveEvaluacionContinua({
-        id: dbRecordId || undefined, // Mandamos el ID para que Supabase sepa qué actualizar
-        grupo_id: selectedGroupId,
-        user_id: userId,
-        contenido_json: evalData
-      }, subscription?.plan || "gratuito");
-      
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-    } catch (error: any) {
-      console.error("Error al guardar:", error);
-      setErrorMsg(error?.message || "No se pudo conectar con la base de datos.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
   const [showAddColumnModal, setShowAddColumnModal] = useState<boolean>(false);
   const [newColTitle, setNewColTitle] = useState<string>("Clase 1");
   const [newColMaxPoints, setNewColMaxPoints] = useState<number>(10);
   const [newColDate, setNewColDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
   const [showSyncDrawer, setShowSyncDrawer] = useState<boolean>(false);
 
+  // 1. CARGA INTELIGENTE (Se dispara sola al cambiar de Grupo o de Planeación)
+  useEffect(() => {
+    if (!selectedGroupId || !isSupabaseConfigured) return;
+    const userId = JSON.parse(localStorage.getItem("nem_secundaria_profile") || "{}")?.id;
+    if (!userId) return;
 
+    setErrorMsg(null);
 
-  // Helper date formatting functions
-  const formatDateForInput = (str: string) => {
-    if (!str) return new Date().toISOString().split("T")[0];
-    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-    return new Date().toISOString().split("T")[0];
-  };
+    getEvaluacionContinua(userId, subscription?.plan || "gratuito", selectedGroupId, activePlanId)
+      .then(data => {
+        if (data && data.length > 0) {
+          setDbRecordId(data[0].id);
+          setEvalData({ [selectedGroupId]: data[0].contenido_json });
+        } else {
+          setDbRecordId(null);
+          const grupoSeleccionado = gruposGuardados.find(g => g.id === selectedGroupId);
+          setEvalData({ 
+            [selectedGroupId]: { 
+              groupId: selectedGroupId, 
+              alumnos: grupoSeleccionado?.estudiantes || [],
+              calificaciones: {},
+              columnas: []
+            } 
+          });
+        }
+      });
+  }, [selectedGroupId, activePlanId, subscription, gruposGuardados]);
 
-  const formatDateDisplay = (str: string) => {
-    if (!str) return "";
-    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
-      const [year, month, day] = str.split("-").map(Number);
-      if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-        const d = new Date(year, month - 1, day);
-        return d.toLocaleDateString("es-MX", { day: "2-digit", month: "short" });
-      }
-    }
-    return str;
-  };
+  // 2. EL CEREBRO DE LA TABLA (Auto-crea columnas si la planeación es nueva)
+  const selectedGroup = useMemo(() => gruposGuardados.find(g => g.id === selectedGroupId) || null, [gruposGuardados, selectedGroupId]);
 
-  // 1. Calculamos selectedGroup (esto quita el error de la línea 119)
-  const selectedGroup = useMemo(() => {
-    return gruposGuardados.find(g => g.id === selectedGroupId) || null;
-  }, [gruposGuardados, selectedGroupId]);
-
-  // Current Group's Evaluation State
   const currentGroupEval = useMemo(() => {
     if (!selectedGroupId) return null;
     const existing = evalData[selectedGroupId];
-    const activeSyncedPlanId = existing?.syncedPlanId || selectedGroup?.syncedPlanId;
-    
-    // 2. Cambiamos 'plans' por 'planeacionesGuardadas' (esto quita el error de la línea 120)
-    const syncedPlan = planeacionesGuardadas.find(p => p.id === activeSyncedPlanId);
+    const activeSyncedPlanId = activePlanId === 'libre' ? '' : activePlanId;
+    const syncedPlan = planeacionesGuardadas.find((p: any) => p.id === activeSyncedPlanId);
 
     if (existing && existing.columnas && existing.columnas.length > 0) {
-      return {
-        ...existing,
-        syncedPlanId: activeSyncedPlanId
-      };
+      return { ...existing, syncedPlanId: activeSyncedPlanId };
     }
 
-    // Auto-generate columns from synced plan if available
     if (syncedPlan && syncedPlan.plan?.fases) {
-      const allLessons = syncedPlan.plan.fases.flatMap(f => f.sesiones);
+      const allLessons = syncedPlan.plan.fases.flatMap((f: any) => f.sesiones);
       if (allLessons.length > 0) {
         const todayIso = new Date().toISOString().split("T")[0];
-        const autoCols: EvaluationColumnItem[] = allLessons.map(les => ({
+        const autoCols: EvaluationColumnItem[] = allLessons.map((les: any) => ({
           id: `col_s${les.numero}`,
           sesionNumero: les.numero,
           fecha: todayIso,
@@ -164,112 +105,67 @@ export default function EvaluacionContinuaView({
       ],
       calificaciones: {}
     };
-  }, [evalData, selectedGroupId, selectedGroup, planeacionesGuardadas]);
+  }, [evalData, selectedGroupId, activePlanId, planeacionesGuardadas]);
 
-  // Handler to sync a planeación's lessons to evaluation columns
+  // 3. CAMBIAR PLANEACIÓN AHORA ES ASÍ DE FÁCIL
   const handleSyncPlanToEval = (planId: string) => {
-    if (!selectedGroupId) return;
-    const targetPlan = planeacionesGuardadas.find(p => p.id === planId);
-
-    if (!planId) {
-      setEvalData(prev => ({
-        ...prev,
-        [selectedGroupId]: {
-          groupId: selectedGroupId,
-          syncedPlanId: "",
-          columnas: prev[selectedGroupId]?.columnas || currentGroupEval?.columnas || [],
-          calificaciones: prev[selectedGroupId]?.calificaciones || {}
-        }
-      }));
-      setShowSyncDrawer(false);
-      return;
-    }
-
-    if (!targetPlan || !targetPlan.plan?.fases) return;
-
-    const allLessons = targetPlan.plan.fases.flatMap(f => f.sesiones);
-    if (allLessons.length === 0) return;
-
-    const todayIso = new Date().toISOString().split("T")[0];
-
-    const newCols: EvaluationColumnItem[] = allLessons.map((les) => {
-      const existingCol = currentGroupEval?.columnas.find(c => c.sesionNumero === les.numero || c.id === `col_s${les.numero}`);
-      return {
-        id: `col_s${les.numero}`,
-        sesionNumero: les.numero,
-        fecha: existingCol?.fecha || todayIso,
-        titulo: `S${les.numero}: ${les.titulo}`,
-        puntosMaximos: existingCol?.puntosMaximos ?? 10,
-      };
-    });
-
-
-    setEvalData(prev => ({
-      ...prev,
-      [selectedGroupId]: {
-        groupId: selectedGroupId,
-        syncedPlanId: planId,
-        columnas: newCols,
-        calificaciones: prev[selectedGroupId]?.calificaciones || {}
-      }
-    }));
-
-    // Auto-collapse the selection drawer
+    setActivePlanId(planId || 'libre');
     setShowSyncDrawer(false);
+  };
+
+  // 4. GUARDAR A LA NUBE
+  const handleSaveToCloud = async () => {
+    if (!selectedGroupId || !isSupabaseConfigured) return;
+    const userId = JSON.parse(localStorage.getItem("nem_secundaria_profile") || "{}")?.id;
+    if (!userId) return;
+
+    setIsSaving(true);
+    setSaveSuccess(false);
+    setErrorMsg(null);
+
+    try {
+      await saveEvaluacionContinua({
+        id: dbRecordId || undefined, 
+        grupo_id: selectedGroupId,
+        planeacion_id: activePlanId, // <-- La magia ocurre aquí
+        user_id: userId,
+        contenido_json: currentGroupEval // Guarda la foto actual
+      }, subscription?.plan || "gratuito");
+      
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (error: any) {
+      console.error("Error al guardar:", error);
+      setErrorMsg("Error guardando en la nube. Revisa tu conexión.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Resto de funciones matemáticas de la tabla...
+  const formatDateForInput = (str: string) => {
+    if (!str) return new Date().toISOString().split("T")[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+    return new Date().toISOString().split("T")[0];
   };
 
   const handleUpdateColumnDate = (columnId: string, newFecha: string) => {
     if (!selectedGroupId) return;
     const currentCols = currentGroupEval?.columnas || [];
-    const updatedCols = currentCols.map(col => col.id === columnId ? { ...col, fecha: newFecha } : col);
-
-    setEvalData(prev => ({
-      ...prev,
-      [selectedGroupId]: {
-        groupId: selectedGroupId,
-        syncedPlanId: prev[selectedGroupId]?.syncedPlanId || currentGroupEval?.syncedPlanId,
-        columnas: updatedCols,
-        calificaciones: prev[selectedGroupId]?.calificaciones || {}
-      }
-    }));
+    const updatedCols = currentCols.map((col: any) => col.id === columnId ? { ...col, fecha: newFecha } : col);
+    setEvalData((prev: any) => ({ ...prev, [selectedGroupId]: { ...prev[selectedGroupId], columnas: updatedCols } }));
   };
 
   const handleUpdateColumnMaxPoints = (columnId: string, newMaxPoints: number) => {
     if (!selectedGroupId) return;
     const currentCols = currentGroupEval?.columnas || [];
-    const updatedCols = currentCols.map(col => col.id === columnId ? { ...col, puntosMaximos: Math.max(1, newMaxPoints) } : col);
-
-    setEvalData(prev => ({
-      ...prev,
-      [selectedGroupId]: {
-        groupId: selectedGroupId,
-        syncedPlanId: prev[selectedGroupId]?.syncedPlanId || currentGroupEval?.syncedPlanId,
-        columnas: updatedCols,
-        calificaciones: prev[selectedGroupId]?.calificaciones || {}
-      }
-    }));
-  };
-
-  const handleUpdateColumnTitle = (columnId: string, newTitle: string) => {
-    if (!selectedGroupId) return;
-    const currentCols = currentGroupEval?.columnas || [];
-    const updatedCols = currentCols.map(col => col.id === columnId ? { ...col, titulo: newTitle } : col);
-
-    setEvalData(prev => ({
-      ...prev,
-      [selectedGroupId]: {
-        groupId: selectedGroupId,
-        syncedPlanId: prev[selectedGroupId]?.syncedPlanId || currentGroupEval?.syncedPlanId,
-        columnas: updatedCols,
-        calificaciones: prev[selectedGroupId]?.calificaciones || {}
-      }
-    }));
+    const updatedCols = currentCols.map((col: any) => col.id === columnId ? { ...col, puntosMaximos: Math.max(1, newMaxPoints) } : col);
+    setEvalData((prev: any) => ({ ...prev, [selectedGroupId]: { ...prev[selectedGroupId], columnas: updatedCols } }));
   };
 
   const handleAddCol = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedGroupId) return;
-
     const currentCols = currentGroupEval?.columnas || [];
     const newCol: EvaluationColumnItem = {
       id: `col_${Date.now()}`,
@@ -277,17 +173,7 @@ export default function EvaluacionContinuaView({
       titulo: newColTitle.trim() || "Criterio de Evaluación",
       puntosMaximos: Number(newColMaxPoints) || 10
     };
-
-    setEvalData(prev => ({
-      ...prev,
-      [selectedGroupId]: {
-        groupId: selectedGroupId,
-        syncedPlanId: prev[selectedGroupId]?.syncedPlanId || currentGroupEval?.syncedPlanId,
-        columnas: [...currentCols, newCol],
-        calificaciones: prev[selectedGroupId]?.calificaciones || {}
-      }
-    }));
-
+    setEvalData((prev: any) => ({ ...prev, [selectedGroupId]: { ...prev[selectedGroupId], columnas: [...currentCols, newCol] } }));
     setShowAddColumnModal(false);
     setNewColTitle("Trabajo en clase");
     setNewColMaxPoints(10);
@@ -296,65 +182,39 @@ export default function EvaluacionContinuaView({
   const handleDeleteCol = (columnId: string) => {
     if (!selectedGroupId) return;
     const currentCols = currentGroupEval?.columnas || [];
-    const updatedCols = currentCols.filter(c => c.id !== columnId);
-
-    setEvalData(prev => ({
-      ...prev,
-      [selectedGroupId]: {
-        groupId: selectedGroupId,
-        columnas: updatedCols,
-        calificaciones: prev[selectedGroupId]?.calificaciones || {}
-      }
-    }));
+    const updatedCols = currentCols.filter((c: any) => c.id !== columnId);
+    setEvalData((prev: any) => ({ ...prev, [selectedGroupId]: { ...prev[selectedGroupId], columnas: updatedCols } }));
   };
 
   const handleScoreChange = (studentId: string, columnId: string, score: number) => {
     if (!selectedGroupId) return;
     const key = `${studentId}_${columnId}`;
     const currentScores = currentGroupEval?.calificaciones || {};
-
-    setEvalData(prev => ({
+    setEvalData((prev: any) => ({
       ...prev,
       [selectedGroupId]: {
-        groupId: selectedGroupId,
-        columnas: prev[selectedGroupId]?.columnas || currentGroupEval?.columnas || [],
-        calificaciones: {
-          ...currentScores,
-          [key]: Math.max(0, score)
-        }
+        ...prev[selectedGroupId],
+        calificaciones: { ...currentScores, [key]: Math.max(0, score) }
       }
     }));
   };
 
   const handleToggleCheckCell = (studentId: string, columnId: string, maxPoints: number) => {
-    if (!selectedGroupId) return;
     const key = `${studentId}_${columnId}`;
     const currentScore = currentGroupEval?.calificaciones[key] || 0;
-    const newScore = currentScore > 0 ? 0 : maxPoints;
-
-    handleScoreChange(studentId, columnId, newScore);
+    handleScoreChange(studentId, columnId, currentScore > 0 ? 0 : maxPoints);
   };
 
   const handleBatchCheckColumn = (columnId: string, maxPoints: number) => {
     if (!selectedGroup) return;
-    
-    // Primero, hacemos una copia de las calificaciones actuales
     const currentScores = { ...(currentGroupEval?.calificaciones || {}) };
-
-    // Recorremos a todos los estudiantes y les ponemos 10 (o el maxPoints)
     selectedGroup.estudiantes.forEach((st: any) => {
       const key = `${st.id}_${columnId}`;
       currentScores[key] = maxPoints;
     });
-
-    // Guardamos todo de vuelta
     setEvalData((prev: any) => ({
       ...prev,
-      [selectedGroupId]: {
-        groupId: selectedGroupId,
-        columnas: currentGroupEval?.columnas || [],
-        calificaciones: currentScores
-      }
+      [selectedGroupId]: { ...prev[selectedGroupId], calificaciones: currentScores }
     }));
   };
   
@@ -375,7 +235,10 @@ export default function EvaluacionContinuaView({
               <span className="text-xs font-bold text-slate-700">Grupo:</span>
               <select
                 value={selectedGroupId}
-                onChange={(e) => setSelectedGroupId(e.target.value)}
+                onChange={(e) => {
+                  setSelectedGroupId(e.target.value);
+                  setActivePlanId("libre"); // Resetea la planeación
+                }}
                 className="px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-black text-slate-900 bg-slate-50 focus:outline-none"
               >
                 <option value="">-- Selecciona --</option>
@@ -444,8 +307,8 @@ export default function EvaluacionContinuaView({
 
             <div className="space-y-2">
               <select
-                value={currentGroupEval?.syncedPlanId || ""}
-                onChange={(e) => handleSyncPlanToEval(e.target.value)}
+  value={activePlanId === "libre" ? "" : activePlanId}
+  onChange={(e) => handleSyncPlanToEval(e.target.value)} 
                 className="w-full p-2.5 border border-amber-300 bg-white rounded-xl font-bold text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xs"
               >
                 <option value="">-- Sin planeación vinculada (Evaluación Libre) --</option>
