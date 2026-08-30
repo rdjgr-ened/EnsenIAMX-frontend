@@ -502,85 +502,45 @@ export interface EvaluacionContinuaResult {
   requiresUpgrade?: boolean;
 }
 
-export async function getEvaluacionContinua(userId: string, userPlan: PlanTier, grupoId?: string): Promise<DbEvaluacionContinua[]> {
-  // Verificar acceso por plan
-  if (userPlan !== 'oro' && userPlan !== 'platino') {
-    return [];
-  }
-
+export async function getEvaluacionContinua(userId: string, userPlan: PlanTier, grupoId?: string) {
+  // Verificación de seguridad: Solo Oro y Platino
+  if (userPlan !== 'oro' && userPlan !== 'platino') return [];
   if (!supabase) return [];
+  
   try {
     let query = supabase.from('evaluacion_continua').select('*').eq('user_id', userId);
     if (grupoId) {
       query = query.eq('grupo_id', grupoId);
     }
-    const { data, error } = await query.order('created_at', { ascending: false });
-
-    if (error) {
-      console.warn('Error al obtener evaluación continua de Supabase:', error.message);
-      return [];
-    }
-    return (data || []) as DbEvaluacionContinua[];
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
   } catch (err) {
-    console.error('Error de red en evaluacion_continua:', err);
+    console.error("Error descargando evaluación:", err);
     return [];
   }
 }
 
-export async function saveEvaluacionContinua(
-  evaluacion: Omit<DbEvaluacionContinua, 'created_at'> & { id?: string },
-  userPlan: PlanTier
-): Promise<EvaluacionContinuaResult> {
-  // Solo habilitado para planes Oro y Platino
-  if (userPlan !== 'oro' && userPlan !== 'platino') {
-    return {
-      success: false,
-      requiresUpgrade: true,
-      error: 'El módulo de Evaluación Continua y Seguimiento está disponible exclusivamente para planes Oro y Platino.'
-    };
+export async function saveEvaluacionContinua(data: { grupo_id: string, user_id: string, contenido_json: any }, userPlan: PlanTier) {
+  // Verificación de seguridad: Solo Oro y Platino
+  if (userPlan !== 'oro' && userPlan !== 'platino') return;
+  if (!supabase) return;
+  
+  try {
+    const { error } = await supabase
+      .from("evaluacion_continua")
+      .upsert({
+        grupo_id: data.grupo_id,
+        user_id: data.user_id,
+        contenido_json: data.contenido_json
+      }, { 
+        onConflict: 'grupo_id, user_id' // 🚨 La magia está aquí: Actualiza en lugar de duplicar o dar error
+      });
+      
+    if (error) throw error;
+  } catch (err) {
+    console.error("Error guardando evaluación en Supabase:", err);
   }
-
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('evaluacion_continua')
-        .upsert(evaluacion)
-        .select()
-        .single();
-
-      if (error) {
-        return {
-          success: false,
-          error: error.message
-        };
-      }
-      return {
-        success: true,
-        data: data as DbEvaluacionContinua
-      };
-    } catch (err: any) {
-      return {
-        success: false,
-        error: err?.message || 'Error al conectar con Supabase'
-      };
-    }
-  }
-
-  return {
-    success: true,
-    data: {
-      id: evaluacion.id || `eval_${Date.now()}`,
-      user_id: evaluacion.user_id,
-      grupo_id: evaluacion.grupo_id,
-      alumno_id: evaluacion.alumno_id,
-      fecha: evaluacion.fecha || new Date().toISOString().split('T')[0],
-      criterio: evaluacion.criterio,
-      calificacion: evaluacion.calificacion,
-      observaciones: evaluacion.observaciones,
-      contenido_json: evaluacion.contenido_json,
-      created_at: new Date().toISOString()
-    }
-  };
 }
 
 export async function deleteEvaluacionContinua(evaluacionId: string, userId: string, userPlan: PlanTier): Promise<boolean> {
