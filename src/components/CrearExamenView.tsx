@@ -176,7 +176,7 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
   // Generate Exam
   const handleGenerateExam = async () => {
     const userCredits = props.subscription?.credits ?? 0;
-    const requiredCredits = CREDIT_COSTS["disenar_examenes"]; // 10
+    const requiredCredits = CREDIT_COSTS["disenar_examenes"];
 
     if (userCredits < requiredCredits) {
       if (props.onTriggerPaywall) {
@@ -813,11 +813,22 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
             </div>
           </AccionesDocumento>
 
-          {/* TRUCO CSS PARA OCULTAR ENCABEZADOS Y PIES DE PÁGINA DEL NAVEGADOR */}
+          {/* ESTILOS DE IMPRESIÓN PROFESIONALES (SIN PARCHES) */}
           <style>{`
             @media print {
-              @page { margin: 0; }
-              body { margin: 1.5cm !important; }
+              @page {
+                size: letter;
+                margin: 1.5cm 2cm; /* Márgenes correctos para que el documento no choque con los bordes */
+              }
+              body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+              }
+              /* Evita que los reactivos se partan a la mitad en el cambio de página */
+              .break-inside-avoid {
+                page-break-inside: avoid;
+                break-inside: avoid;
+              }
             }
           `}</style>
 
