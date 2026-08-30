@@ -62,19 +62,21 @@ export default function EvaluacionContinuaView({
       });
   }, [selectedGroupId, activePlanId, subscription, gruposGuardados]);
 
-  // 2. EL CEREBRO DE LA TABLA (Auto-crea columnas si la planeación es nueva)
-  const selectedGroup = useMemo(() => gruposGuardados.find(g => g.id === selectedGroupId) || null, [gruposGuardados, selectedGroupId]);
-
+  // 2. EL CEREBRO DE LA TABLA (Con escudo protector de datos)
   const currentGroupEval = useMemo(() => {
     if (!selectedGroupId) return null;
-    const existing = evalData[selectedGroupId];
+    
+    // 🛡️ Extraemos lo que venga de Supabase, o un objeto vacío si no hay nada
+    const existing = evalData[selectedGroupId] || {}; 
     const activeSyncedPlanId = activePlanId === 'libre' ? '' : activePlanId;
     const syncedPlan = planeacionesGuardadas.find((p: any) => p.id === activeSyncedPlanId);
 
-    if (existing && existing.columnas && existing.columnas.length > 0) {
+    // Si la base de datos SÍ trajo columnas válidas, las usamos
+    if (existing.columnas && Array.isArray(existing.columnas) && existing.columnas.length > 0) {
       return { ...existing, syncedPlanId: activeSyncedPlanId };
     }
 
+    // Si se vinculó una planeación nueva, autogeneramos sus columnas
     if (syncedPlan && syncedPlan.plan?.fases) {
       const allLessons = syncedPlan.plan.fases.flatMap((f: any) => f.sesiones);
       if (allLessons.length > 0) {
@@ -87,15 +89,19 @@ export default function EvaluacionContinuaView({
           puntosMaximos: 10
         }));
         return {
+          ...existing,
           groupId: selectedGroupId,
           syncedPlanId: activeSyncedPlanId,
           columnas: autoCols,
-          calificaciones: existing?.calificaciones || {}
+          calificaciones: existing.calificaciones || {}
         };
       }
     }
 
-    return existing || {
+    // 🛡️ EL ESCUDO: Si la base de datos venía incompleta (sin columnas) y no hay planeación vinculada,
+    // inyectamos las columnas de por defecto para que NUNCA sea 'undefined'.
+    return {
+      ...existing,
       groupId: selectedGroupId,
       syncedPlanId: activeSyncedPlanId,
       columnas: [
@@ -103,7 +109,7 @@ export default function EvaluacionContinuaView({
         { id: "col_2", fecha: new Date().toISOString().split("T")[0], titulo: "S2: Actividad Individual", puntosMaximos: 10 },
         { id: "col_3", fecha: new Date().toISOString().split("T")[0], titulo: "S3: Proyecto y Participación", puntosMaximos: 10 },
       ],
-      calificaciones: {}
+      calificaciones: existing.calificaciones || {}
     };
   }, [evalData, selectedGroupId, activePlanId, planeacionesGuardadas]);
 
