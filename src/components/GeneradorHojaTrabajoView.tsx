@@ -184,7 +184,14 @@ export default function GeneradorHojaTrabajoView({
           />
 
           <div id="hoja-trabajo-resultado" className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-300 shadow-sm space-y-8 text-slate-900 text-xs printable-document print:p-0 print:border-none print:shadow-none print:w-full">
-
+<div className="text-center border-b-2 border-slate-800 pb-5 mb-6">
+  <h1 className="text-xl sm:text-2xl font-black text-slate-900 uppercase tracking-tight">
+    {worksheetData.titulo}
+  </h1>
+  <p className="text-xs font-bold text-slate-600 mt-1 uppercase tracking-widest">
+    Sesión {selectedSessionData.sesion.numero}: {selectedSessionData.sesion.titulo} | {selectedPlan.disciplina}
+  </p>
+</div>
             <div className="bg-amber-50/60 border border-amber-200 p-4 rounded-xl text-slate-800 text-sm font-medium">
               <span className="font-black uppercase text-amber-900 block text-xs tracking-wider mb-1">📌 Instrucciones Generales:</span>
               <p className="leading-relaxed">{worksheetData.instruccionesGenerales}</p>
