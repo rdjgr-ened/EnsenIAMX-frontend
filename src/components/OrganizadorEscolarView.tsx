@@ -606,8 +606,112 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
 // -> VISOR DE RECURSOS DE PANTALLA COMPLETA <-
   if (recursoToView) {
     const renderDocumentoInteligente = (contenido: any) => {
-      if (!contenido) return null;
-      if (typeof contenido === "string") return <div className="whitespace-pre-wrap">{contenido}</div>;
+    if (!contenido) return null;
+    if (typeof contenido === "string") return <div className="whitespace-pre-wrap">{contenido}</div>;
+
+    // Soporte completo para Instrumentos de Evaluación sin recortes en el visor
+    if (contenido.criteriosRubrica || contenido.itemsListaCotejo || contenido.itemsEscalaEstimativa || contenido.guiaObservacion) {
+      return (
+        <div className="space-y-6 text-slate-900">
+          <div className="text-center border-b-2 border-slate-900 pb-5 mb-6">
+            <h1 className="font-black text-xl uppercase tracking-wider text-slate-950">{contenido.titulo}</h1>
+          </div>
+
+          {contenido.instrucciones && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm mb-6">
+              <span className="font-black text-amber-950 uppercase text-xs block mb-1.5">📌 INSTRUCCIONES:</span>
+              <p className="text-slate-700 font-medium leading-relaxed">{contenido.instrucciones}</p>
+            </div>
+          )}
+
+          {contenido.criteriosRubrica && contenido.criteriosRubrica.length > 0 && (
+            <div className="overflow-x-auto rounded-xl border border-slate-900">
+              <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                <thead>
+                  <tr className="bg-slate-900 text-white font-black text-[11px] uppercase">
+                    <th className="border border-slate-900 p-3 w-1/4">Aspecto o Criterio</th>
+                    <th className="border border-slate-900 p-3 w-1/6 bg-emerald-800 text-center">Sobresaliente (10-9)</th>
+                    <th className="border border-slate-900 p-3 w-1/6 bg-blue-800 text-center">Satisfactorio (8-7)</th>
+                    <th className="border border-slate-900 p-3 w-1/6 bg-amber-700 text-center">Básico (6)</th>
+                    <th className="border border-slate-900 p-3 w-1/6 bg-rose-800 text-center">Requiere Apoyo (5)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contenido.criteriosRubrica.map((crit: any, idx: number) => (
+                    <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                      <td className="border border-slate-900 p-3 font-bold text-slate-900">
+                        <span className="block text-mex-maroon font-black mb-1">{crit.criterio}</span>
+                        {crit.ponderacion && <span className="text-xs text-slate-500">{crit.ponderacion}</span>}
+                      </td>
+                      <td className="border border-slate-900 p-3 text-slate-700">{crit.sobresaliente}</td>
+                      <td className="border border-slate-900 p-3 text-slate-700">{crit.satisfactorio}</td>
+                      <td className="border border-slate-900 p-3 text-slate-700">{crit.basico}</td>
+                      <td className="border border-slate-900 p-3 text-slate-700">{crit.requiereApoyo}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {contenido.itemsListaCotejo && contenido.itemsListaCotejo.length > 0 && (
+            <div className="overflow-x-auto rounded-xl border border-slate-900">
+              <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                <thead>
+                  <tr className="bg-slate-900 text-white font-black text-[11px] uppercase">
+                    <th className="border border-slate-900 p-3 w-12 text-center">N°</th>
+                    <th className="border border-slate-900 p-3">Indicador de Logro / Criterio Observable</th>
+                    <th className="border border-slate-900 p-3 w-20 text-center">CUMPLE</th>
+                    <th className="border border-slate-900 p-3 w-24 text-center">NO CUMPLE</th>
+                    <th className="border border-slate-900 p-3 w-1/3">Observaciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contenido.itemsListaCotejo.map((item: any, idx: number) => (
+                    <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                      <td className="border border-slate-900 p-3 text-center font-black text-slate-900">{item.num || idx + 1}</td>
+                      <td className="border border-slate-900 p-3 font-bold text-slate-900">{item.indicador || item.criterio}</td>
+                      <td className="border border-slate-900 p-3 text-center"><div className="w-5 h-5 border-2 border-slate-900 mx-auto rounded-sm"></div></td>
+                      <td className="border border-slate-900 p-3 text-center"><div className="w-5 h-5 border-2 border-slate-900 mx-auto rounded-sm"></div></td>
+                      <td className="border border-slate-900 p-3 text-slate-400 italic"></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {contenido.itemsEscalaEstimativa && contenido.itemsEscalaEstimativa.length > 0 && (
+            <div className="overflow-x-auto rounded-xl border border-slate-900">
+              <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                <thead>
+                  <tr className="bg-slate-900 text-white font-black text-[11px] uppercase">
+                    <th className="border border-slate-900 p-3 w-12 text-center">N°</th>
+                    <th className="border border-slate-900 p-3">Rasgo / Desempeño a Valorar</th>
+                    <th className="border border-slate-900 p-3 w-20 text-center">Siempre (4)</th>
+                    <th className="border border-slate-900 p-3 w-20 text-center">Casi Siempre (3)</th>
+                    <th className="border border-slate-900 p-3 w-20 text-center">A veces (2)</th>
+                    <th className="border border-slate-900 p-3 w-20 text-center">Nunca (1)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contenido.itemsEscalaEstimativa.map((item: any, idx: number) => (
+                    <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                      <td className="border border-slate-900 p-3 text-center font-black text-slate-900">{item.num || idx + 1}</td>
+                      <td className="border border-slate-900 p-3 font-bold text-slate-900">{item.aspecto}</td>
+                      <td className="border border-slate-900 p-3 text-center"><div className="w-5 h-5 border-2 border-slate-900 mx-auto rounded-sm"></div></td>
+                      <td className="border border-slate-900 p-3 text-center"><div className="w-5 h-5 border-2 border-slate-900 mx-auto rounded-sm"></div></td>
+                      <td className="border border-slate-900 p-3 text-center"><div className="w-5 h-5 border-2 border-slate-900 mx-auto rounded-sm"></div></td>
+                      <td className="border border-slate-900 p-3 text-center"><div className="w-5 h-5 border-2 border-slate-900 mx-auto rounded-sm"></div></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      );
+    }
 
       const renderNodo = (nodo: any, depth = 0): any => {
         if (!nodo) return null;

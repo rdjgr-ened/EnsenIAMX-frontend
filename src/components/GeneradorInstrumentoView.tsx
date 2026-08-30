@@ -179,40 +179,34 @@ export default function GeneradorInstrumentoView({
             title={<span className="font-black text-slate-800 text-sm">{instrumentData.titulo}</span>}
           />
 
-          <div id="instrumento-evaluacion-resultado" className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-200 shadow-sm font-sans text-slate-900 printable-document print:border-none print:shadow-none print:p-0 print:rounded-none">
+<div id="instrumento-evaluacion-resultado" className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-200 shadow-sm font-sans text-slate-900 printable-document print:border-none print:shadow-none print:p-0 print:rounded-none">
             
+            {/* TÍTULO PRINCIPAL */}
             <div className="text-center border-b-2 border-slate-900 pb-5 mb-6">
-              <h1 className="font-black text-xl uppercase tracking-wider text-slate-950">{selectedPlan.escuelaName}</h1>
-              <p className="font-extrabold text-mex-maroon text-sm uppercase mt-1">C.C.T. {selectedPlan.cct} • Ciclo Escolar 2025-2026</p>
-              <div className="mt-4 inline-block bg-slate-900 text-white px-8 py-2 rounded-lg">
+              <div className="inline-block bg-slate-900 text-white px-8 py-2 rounded-lg">
                 <h2 className="font-black text-sm uppercase tracking-widest text-mex-gold">{instrumentData.titulo}</h2>
               </div>
             </div>
 
+            {/* DATOS ESENCIALES (SIN DATOS DE ESCUELA NI DOCENTE) */}
             <div className="border border-slate-300 text-xs sm:text-sm overflow-hidden rounded-lg shadow-sm mb-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 border-b border-slate-300">
-                <div className="p-3.5 border-r border-slate-300 bg-slate-50"><span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">DOCENTE:</span><span className="font-black text-slate-950 text-sm uppercase">{selectedPlan.docenteName}</span></div>
-                <div className="p-3.5 bg-slate-50"><span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">GRADO Y GRUPO:</span><span className="font-black text-slate-950 text-xs">{selectedPlan.grado} - "{selectedPlan.grupo}"</span></div>
-              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 border-b border-slate-300 bg-white">
-                <div className="p-3.5 border-r border-slate-300"><span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">CAMPO FORMATIVO:</span><span className="font-bold text-slate-950">{selectedPlan.campoFormativo}</span></div>
-                <div className="p-3.5"><span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">DISCIPLINA:</span><span className="font-bold text-slate-950">{selectedPlan.disciplina}</span></div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 border-b border-slate-300 bg-slate-50">
-                <div className="p-3.5 border-r border-slate-300"><span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">PRODUCTO A EVALUAR:</span><span className="font-black text-mex-maroon">{selectedPlan.plan?.producto || "Evidencia"}</span></div>
+                <div className="p-3.5 border-r border-slate-300"><span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">GRADO Y GRUPO:</span><span className="font-black text-slate-950 text-xs">{selectedPlan.grado} - "{selectedPlan.grupo}"</span></div>
                 <div className="p-3.5"><span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">ALUMNO(A):</span><span className="block pt-2 border-b border-slate-400 mt-1"></span></div>
               </div>
-              <div className="p-4 bg-white">
-                <span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-1">PDA:</span>
-                <span className="font-medium text-slate-900 block leading-relaxed">{selectedPlan.pda}</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 border-b border-slate-300 bg-slate-50">
+                <div className="p-3.5 border-r border-slate-300"><span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">DISCIPLINA:</span><span className="font-bold text-slate-950">{selectedPlan.disciplina}</span></div>
+                <div className="p-3.5"><span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">PRODUCTO A EVALUAR:</span><span className="font-black text-mex-maroon">{selectedPlan.plan?.producto || "Evidencia"}</span></div>
               </div>
             </div>
 
+            {/* INSTRUCCIONES */}
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm mb-8">
               <span className="font-black text-amber-950 uppercase text-xs block mb-1.5">📌 INSTRUCCIONES:</span>
               <p className="text-slate-700 font-medium leading-relaxed">{instrumentData.instrucciones}</p>
             </div>
 
+            {/* TABLAS / CRITERIOS DE EVALUACIÓN */}
             <div className="space-y-8">
               {instrumentData.criteriosRubrica && instrumentData.criteriosRubrica.length > 0 && (
                 <div className="overflow-x-auto rounded-xl border border-slate-900 page-break-inside-avoid">
@@ -314,27 +308,7 @@ export default function GeneradorInstrumentoView({
                 </div>
               )}
             </div>
-
-            <div className="border border-slate-300 rounded-xl p-5 bg-slate-50 space-y-3 mt-8 page-break-inside-avoid shadow-sm">
-              <span className="font-black text-slate-900 uppercase text-xs block">💬 RETROALIMENTACIÓN FORMATIVA Y ACUERDOS DE MEJORA:</span>
-              <p className="text-slate-700 italic text-sm font-medium leading-relaxed">{instrumentData.retroalimentacionFormativa}</p>
-              <div className="border-b border-dashed border-slate-400 h-8 mt-4"></div>
-              <div className="border-b border-dashed border-slate-400 h-8"></div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-16 pt-16 mt-8 text-center text-sm page-break-inside-avoid">
-              <div className="flex flex-col items-center">
-                <div className="w-64 border-b-2 border-slate-900 pt-2 font-black uppercase text-slate-900 mb-2">{selectedPlan.docenteName}</div>
-                <span className="text-xs text-slate-500 font-bold uppercase">Docente Evaluador(a)</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="w-64 border-b-2 border-slate-900 pt-2 font-black uppercase text-slate-900 mb-2">Firma de Conformidad</div>
-                <span className="text-xs text-slate-500 font-bold uppercase">Alumno(a) / Padre de Familia o Tutor</span>
-              </div>
-            </div>
           </div>
-        </div>
-      )}
 
       <style>{`
         @media print {
