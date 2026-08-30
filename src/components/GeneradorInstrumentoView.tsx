@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { CompletePlan, GeneratedInstrument, UserSubscription, PaywallReason, CreditActionType } from "../types";
-import { ArrowLeft, Loader2, Sparkles, AlertCircle, CheckCircle2, BookOpen } from "lucide-react";
+import { ArrowLeft, Loader2, Sparkles, AlertCircle } from "lucide-react";
 import AccionesDocumento from "./AccionesDocumento";
 import { CREDIT_COSTS } from "../utils/planManager";
 import { saveRecursoGenerado, isSupabaseConfigured } from "../utils/supabaseClient";
@@ -74,9 +74,9 @@ export default function GeneradorInstrumentoView({
         setInstrumentData(data.instrument);
         if (isSupabaseConfigured) {
           const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-        const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
-        const userId = userProfile?.id;
-        if (!userId) return;
+          const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
+          const userId = userProfile?.id;
+          if (!userId) return;
           saveRecursoGenerado({ id: `ins_${Date.now()}`, user_id: userId, tipo_recurso: "instrumento_evaluacion", contenido_json: data.instrument }).catch(e => console.warn(e));
         }
       } else throw new Error("No se recibieron datos del instrumento.");
@@ -89,7 +89,6 @@ export default function GeneradorInstrumentoView({
 
   return (
     <div className="space-y-6 relative animate-fade-in">
-      
       <div className="print:hidden bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-sm space-y-6">
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
@@ -179,34 +178,29 @@ export default function GeneradorInstrumentoView({
             title={<span className="font-black text-slate-800 text-sm">{instrumentData.titulo}</span>}
           />
 
-<div id="instrumento-evaluacion-resultado" className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-200 shadow-sm font-sans text-slate-900 printable-document print:border-none print:shadow-none print:p-0 print:rounded-none">
-            
-            {/* TÍTULO PRINCIPAL */}
+          <div id="instrumento-evaluacion-resultado" className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-200 shadow-sm font-sans text-slate-900 printable-document print:border-none print:shadow-none print:p-0 print:rounded-none space-y-8">
             <div className="text-center border-b-2 border-slate-900 pb-5 mb-6">
               <div className="inline-block bg-slate-900 text-white px-8 py-2 rounded-lg">
                 <h2 className="font-black text-sm uppercase tracking-widest text-mex-gold">{instrumentData.titulo}</h2>
               </div>
             </div>
 
-            {/* DATOS ESENCIALES (SIN DATOS DE ESCUELA NI DOCENTE) */}
-            <div className="border border-slate-300 text-xs sm:text-sm overflow-hidden rounded-lg shadow-sm mb-8">
+            <div className="border border-slate-300 text-xs sm:text-sm overflow-hidden rounded-lg shadow-sm">
               <div className="grid grid-cols-1 md:grid-cols-2 border-b border-slate-300 bg-white">
                 <div className="p-3.5 border-r border-slate-300"><span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">GRADO Y GRUPO:</span><span className="font-black text-slate-950 text-xs">{selectedPlan.grado} - "{selectedPlan.grupo}"</span></div>
                 <div className="p-3.5"><span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">ALUMNO(A):</span><span className="block pt-2 border-b border-slate-400 mt-1"></span></div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 border-b border-slate-300 bg-slate-50">
+              <div className="grid grid-cols-1 md:grid-cols-2 bg-slate-50">
                 <div className="p-3.5 border-r border-slate-300"><span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">DISCIPLINA:</span><span className="font-bold text-slate-950">{selectedPlan.disciplina}</span></div>
                 <div className="p-3.5"><span className="font-bold text-slate-500 uppercase text-[9px] tracking-wider block mb-0.5">PRODUCTO A EVALUAR:</span><span className="font-black text-mex-maroon">{selectedPlan.plan?.producto || "Evidencia"}</span></div>
               </div>
             </div>
 
-            {/* INSTRUCCIONES */}
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm mb-8">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm">
               <span className="font-black text-amber-950 uppercase text-xs block mb-1.5">📌 INSTRUCCIONES:</span>
               <p className="text-slate-700 font-medium leading-relaxed">{instrumentData.instrucciones}</p>
             </div>
 
-            {/* TABLAS / CRITERIOS DE EVALUACIÓN */}
             <div className="space-y-8">
               {instrumentData.criteriosRubrica && instrumentData.criteriosRubrica.length > 0 && (
                 <div className="overflow-x-auto rounded-xl border border-slate-900 page-break-inside-avoid">
@@ -309,37 +303,30 @@ export default function GeneradorInstrumentoView({
               )}
             </div>
           </div>
+        </div>
+      )}
 
       <style>{`
         @media print {
-          /* 1. RESET DE RESTRICCIONES DE ALTURA Y SCROLL EN TAILWIND */
           html, body, #root {
             height: auto !important;
             min-height: 100vh !important;
             overflow: visible !important;
           }
-
-          /* Forzamos a que cualquier contenedor padre (sidebar, main) permita expandirse */
           div[class*="h-screen"], div[class*="h-full"], div[class*="overflow"], main {
             height: auto !important;
             max-height: none !important;
             overflow: visible !important;
             position: static !important;
           }
-
-          /* 2. OCULTAR LA INTERFAZ DE USUARIO */
           header, footer, nav, aside, .print\\:hidden, .no-print {
             display: none !important;
           }
-
-          /* 3. ESTILOS BASE DEL DOCUMENTO */
           body {
             background-color: white !important;
             color: black !important;
             font-size: 11px !important;
           }
-
-          /* 4. EXPANDIR EL CONTENEDOR DEL DOCUMENTO */
           #instrumento-evaluacion-resultado {
             display: block !important;
             width: 100% !important;
@@ -350,8 +337,6 @@ export default function GeneradorInstrumentoView({
             box-shadow: none !important;
             grid-column: 1 / -1 !important; 
           }
-
-          /* 5. REGLAS DE PAGINACIÓN CORRECTAS */
           .page-break-inside-avoid { 
             page-break-inside: avoid !important; 
             break-inside: avoid !important;
@@ -359,5 +344,5 @@ export default function GeneradorInstrumentoView({
         }
       `}</style>
     </div>
-  )}
-  
+  );
+}
