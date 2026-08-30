@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { CompletePlan, UserSubscription, PlanTier } from "../types";
-import { ArrowLeft, Save, Loader2, CheckCircle2 } from "lucide-react";
+import { CompletePlan, UserSubscription } from "../types";
+import { ArrowLeft, Save, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { saveEvaluacionContinua, getEvaluacionContinua, isSupabaseConfigured } from "../utils/supabaseClient";
 
 interface EvaluacionContinuaProps {
@@ -19,10 +19,14 @@ export default function EvaluacionContinuaView({
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
   const [evalData, setEvalData] = useState<any>({});
   
+  // EL SECRETO: Guardar el ID de Supabase para saber si actualizar o insertar
+  const [dbRecordId, setDbRecordId] = useState<string | null>(null); 
+  
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // 1. Cargar datos desde Supabase al seleccionar un grupo
+  // 1. Cargar datos y extraer alumnos
   useEffect(() => {
     if (!selectedGroupId || !isSupabaseConfigured) return;
     
@@ -30,19 +34,29 @@ export default function EvaluacionContinuaView({
     const userId = userProfileStr ? JSON.parse(userProfileStr)?.id : null;
     if (!userId) return;
 
+    setErrorMsg(null);
+
     getEvaluacionContinua(userId, subscription?.plan || "gratuito", selectedGroupId)
       .then(data => {
         if (data && data.length > 0) {
-          // Si ya hay datos en la nube, los mostramos
+          // Ya existe en la nube: Guardamos su ID oficial y mostramos los datos
+          setDbRecordId(data[0].id);
           setEvalData(data[0].contenido_json);
         } else {
-          // Si es nuevo, inicializamos vacío
-          setEvalData({ groupId: selectedGroupId, alumnos: [] });
+          // Es nuevo: Extraemos los alumnos reales del grupo para que la tabla no esté vacía
+          setDbRecordId(null);
+          const grupoSeleccionado = gruposGuardados.find(g => g.id === selectedGroupId);
+          const alumnosDelGrupo = grupoSeleccionado?.estudiantes || []; // <--- LA SANGRE
+          
+          setEvalData({ 
+            groupId: selectedGroupId, 
+            alumnos: alumnosDelGrupo 
+          });
         }
       });
-  }, [selectedGroupId, subscription]);
+  }, [selectedGroupId, subscription, gruposGuardados]);
 
-  // 2. Función de guardado MANUAL (Adiós errores de guardado automático)
+  // 2. Guardar a la nube
   const handleSaveToCloud = async () => {
     if (!selectedGroupId || !isSupabaseConfigured) return;
     
@@ -52,9 +66,11 @@ export default function EvaluacionContinuaView({
 
     setIsSaving(true);
     setSaveSuccess(false);
+    setErrorMsg(null);
 
     try {
       await saveEvaluacionContinua({
+        id: dbRecordId || undefined, // Mandamos el ID para que Supabase sepa qué actualizar
         grupo_id: selectedGroupId,
         user_id: userId,
         contenido_json: evalData
@@ -62,13 +78,276 @@ export default function EvaluacionContinuaView({
       
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al guardar:", error);
+      setErrorMsg(error?.message || "No se pudo conectar con la base de datos.");
     } finally {
       setIsSaving(false);
     }
   };
+  const [showAddColumnModal, setShowAddColumnModal] = useState<boolean>(false);
+  const [newColTitle, setNewColTitle] = useState<string>("Clase 1");
+  const [newColMaxPoints, setNewColMaxPoints] = useState<number>(10);
+  const [newColDate, setNewColDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
+  const [showSyncDrawer, setShowSyncDrawer] = useState<boolean>(false);
 
+
+
+  // Helper date formatting functions
+  const formatDateForInput = (str: string) => {
+    if (!str) return new Date().toISOString().split("T")[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+    return new Date().toISOString().split("T")[0];
+  };
+
+  const formatDateDisplay = (str: string) => {
+    if (!str) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      const [year, month, day] = str.split("-").map(Number);
+      if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+        const d = new Date(year, month - 1, day);
+        return d.toLocaleDateString("es-MX", { day: "2-digit", month: "short" });
+      }
+    }
+    return str;
+  };
+
+  // Current Group's Evaluation State
+  const currentGroupEval = useMemo(() => {
+    if (!selectedGroupId) return null;
+    const existing = evalData[selectedGroupId];
+    const activeSyncedPlanId = existing?.syncedPlanId || selectedGroup?.syncedPlanId;
+    const syncedPlan = plans.find(p => p.id === activeSyncedPlanId);
+
+    if (existing && existing.columnas && existing.columnas.length > 0) {
+      return {
+        ...existing,
+        syncedPlanId: activeSyncedPlanId
+      };
+    }
+
+    // Auto-generate columns from synced plan if available
+    if (syncedPlan && syncedPlan.plan?.fases) {
+      const allLessons = syncedPlan.plan.fases.flatMap(f => f.sesiones);
+      if (allLessons.length > 0) {
+        const todayIso = new Date().toISOString().split("T")[0];
+        const autoCols: EvaluationColumnItem[] = allLessons.map(les => ({
+          id: `col_s${les.numero}`,
+          sesionNumero: les.numero,
+          fecha: todayIso,
+          titulo: `S${les.numero}: ${les.titulo}`,
+          puntosMaximos: 10
+        }));
+        return {
+          groupId: selectedGroupId,
+          syncedPlanId: activeSyncedPlanId,
+          columnas: autoCols,
+          calificaciones: existing?.calificaciones || {}
+        };
+      }
+    }
+
+    return existing || {
+      groupId: selectedGroupId,
+      syncedPlanId: activeSyncedPlanId,
+      columnas: [
+        { id: "col_1", fecha: new Date().toISOString().split("T")[0], titulo: "S1: Asistencia y Trabajo", puntosMaximos: 10 },
+        { id: "col_2", fecha: new Date().toISOString().split("T")[0], titulo: "S2: Actividad Individual", puntosMaximos: 10 },
+        { id: "col_3", fecha: new Date().toISOString().split("T")[0], titulo: "S3: Proyecto y Participación", puntosMaximos: 10 },
+      ],
+      calificaciones: {}
+    };
+  }, [evalData, selectedGroupId, selectedGroup, plans]);
+
+  // Handler to sync a planeación's lessons to evaluation columns
+  const handleSyncPlanToEval = (planId: string) => {
+    if (!selectedGroupId) return;
+    const targetPlan = plans.find(p => p.id === planId);
+
+    if (!planId) {
+      setEvalData(prev => ({
+        ...prev,
+        [selectedGroupId]: {
+          groupId: selectedGroupId,
+          syncedPlanId: "",
+          columnas: prev[selectedGroupId]?.columnas || currentGroupEval?.columnas || [],
+          calificaciones: prev[selectedGroupId]?.calificaciones || {}
+        }
+      }));
+      setShowSyncDrawer(false);
+      return;
+    }
+
+    if (!targetPlan || !targetPlan.plan?.fases) return;
+
+    const allLessons = targetPlan.plan.fases.flatMap(f => f.sesiones);
+    if (allLessons.length === 0) return;
+
+    const todayIso = new Date().toISOString().split("T")[0];
+
+    const newCols: EvaluationColumnItem[] = allLessons.map((les) => {
+      const existingCol = currentGroupEval?.columnas.find(c => c.sesionNumero === les.numero || c.id === `col_s${les.numero}`);
+      return {
+        id: `col_s${les.numero}`,
+        sesionNumero: les.numero,
+        fecha: existingCol?.fecha || todayIso,
+        titulo: `S${les.numero}: ${les.titulo}`,
+        puntosMaximos: existingCol?.puntosMaximos ?? 10,
+      };
+    });
+
+    // Also sync to group state
+    handleSyncPlanToGroup(selectedGroupId, planId);
+
+    setEvalData(prev => ({
+      ...prev,
+      [selectedGroupId]: {
+        groupId: selectedGroupId,
+        syncedPlanId: planId,
+        columnas: newCols,
+        calificaciones: prev[selectedGroupId]?.calificaciones || {}
+      }
+    }));
+
+    // Auto-collapse the selection drawer
+    setShowSyncDrawer(false);
+  };
+
+  const handleUpdateColumnDate = (columnId: string, newFecha: string) => {
+    if (!selectedGroupId) return;
+    const currentCols = currentGroupEval?.columnas || [];
+    const updatedCols = currentCols.map(col => col.id === columnId ? { ...col, fecha: newFecha } : col);
+
+    setEvalData(prev => ({
+      ...prev,
+      [selectedGroupId]: {
+        groupId: selectedGroupId,
+        syncedPlanId: prev[selectedGroupId]?.syncedPlanId || currentGroupEval?.syncedPlanId,
+        columnas: updatedCols,
+        calificaciones: prev[selectedGroupId]?.calificaciones || {}
+      }
+    }));
+  };
+
+  const handleUpdateColumnMaxPoints = (columnId: string, newMaxPoints: number) => {
+    if (!selectedGroupId) return;
+    const currentCols = currentGroupEval?.columnas || [];
+    const updatedCols = currentCols.map(col => col.id === columnId ? { ...col, puntosMaximos: Math.max(1, newMaxPoints) } : col);
+
+    setEvalData(prev => ({
+      ...prev,
+      [selectedGroupId]: {
+        groupId: selectedGroupId,
+        syncedPlanId: prev[selectedGroupId]?.syncedPlanId || currentGroupEval?.syncedPlanId,
+        columnas: updatedCols,
+        calificaciones: prev[selectedGroupId]?.calificaciones || {}
+      }
+    }));
+  };
+
+  const handleUpdateColumnTitle = (columnId: string, newTitle: string) => {
+    if (!selectedGroupId) return;
+    const currentCols = currentGroupEval?.columnas || [];
+    const updatedCols = currentCols.map(col => col.id === columnId ? { ...col, titulo: newTitle } : col);
+
+    setEvalData(prev => ({
+      ...prev,
+      [selectedGroupId]: {
+        groupId: selectedGroupId,
+        syncedPlanId: prev[selectedGroupId]?.syncedPlanId || currentGroupEval?.syncedPlanId,
+        columnas: updatedCols,
+        calificaciones: prev[selectedGroupId]?.calificaciones || {}
+      }
+    }));
+  };
+
+  const handleAddCol = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedGroupId) return;
+
+    const currentCols = currentGroupEval?.columnas || [];
+    const newCol: EvaluationColumnItem = {
+      id: `col_${Date.now()}`,
+      fecha: newColDate || new Date().toISOString().split("T")[0],
+      titulo: newColTitle.trim() || "Criterio de Evaluación",
+      puntosMaximos: Number(newColMaxPoints) || 10
+    };
+
+    setEvalData(prev => ({
+      ...prev,
+      [selectedGroupId]: {
+        groupId: selectedGroupId,
+        syncedPlanId: prev[selectedGroupId]?.syncedPlanId || currentGroupEval?.syncedPlanId,
+        columnas: [...currentCols, newCol],
+        calificaciones: prev[selectedGroupId]?.calificaciones || {}
+      }
+    }));
+
+    setShowAddColumnModal(false);
+    setNewColTitle("Trabajo en clase");
+    setNewColMaxPoints(10);
+  };
+
+  const handleDeleteCol = (columnId: string) => {
+    if (!selectedGroupId) return;
+    const currentCols = currentGroupEval?.columnas || [];
+    const updatedCols = currentCols.filter(c => c.id !== columnId);
+
+    setEvalData(prev => ({
+      ...prev,
+      [selectedGroupId]: {
+        groupId: selectedGroupId,
+        columnas: updatedCols,
+        calificaciones: prev[selectedGroupId]?.calificaciones || {}
+      }
+    }));
+  };
+
+  const handleScoreChange = (studentId: string, columnId: string, score: number) => {
+    if (!selectedGroupId) return;
+    const key = `${studentId}_${columnId}`;
+    const currentScores = currentGroupEval?.calificaciones || {};
+
+    setEvalData(prev => ({
+      ...prev,
+      [selectedGroupId]: {
+        groupId: selectedGroupId,
+        columnas: prev[selectedGroupId]?.columnas || currentGroupEval?.columnas || [],
+        calificaciones: {
+          ...currentScores,
+          [key]: Math.max(0, score)
+        }
+      }
+    }));
+  };
+
+  const handleToggleCheckCell = (studentId: string, columnId: string, maxPoints: number) => {
+    if (!selectedGroupId) return;
+    const key = `${studentId}_${columnId}`;
+    const currentScore = currentGroupEval?.calificaciones[key] || 0;
+    const newScore = currentScore > 0 ? 0 : maxPoints;
+
+    handleScoreChange(studentId, columnId, newScore);
+  };
+
+  const handleBatchCheckColumn = (columnId: string, maxPoints: number) => {
+    if (!selectedGroup) return;
+
+    selectedGroup.estudiantes.forEach(st => {
+      const key = `${st.id}_${columnId}`;
+      currentScores[key] = maxPoints;
+    });
+
+    setEvalData(prev => ({
+      ...prev,
+      [selectedGroupId]: {
+        groupId: selectedGroupId,
+        columnas: currentGroupEval?.columnas || [],
+        calificaciones: currentScores
+      }
+    }));
+  };
+  
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ENCABEZADO Y CONTROLES */}
@@ -97,7 +376,10 @@ export default function EvaluacionContinuaView({
             </select>
           </div>
           
-          <div className="flex items-end justify-end">
+          <div className="flex flex-col items-end justify-end gap-2">
+            {errorMsg && (
+               <span className="text-xs font-bold text-red-600 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5"/> {errorMsg}</span>
+            )}
             <button
               onClick={handleSaveToCloud}
               disabled={!selectedGroupId || isSaving}

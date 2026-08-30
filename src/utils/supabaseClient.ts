@@ -502,16 +502,16 @@ export interface EvaluacionContinuaResult {
   requiresUpgrade?: boolean;
 }
 
-export async function getEvaluacionContinua(userId: string, userPlan: PlanTier, grupoId?: string) {
-  // Verificación de seguridad: Solo Oro y Platino
+
+
+export async function getEvaluacionContinua(userId: string, userPlan: string, grupoId?: string) {
   if (userPlan !== 'oro' && userPlan !== 'platino') return [];
   if (!supabase) return [];
   
   try {
     let query = supabase.from('evaluacion_continua').select('*').eq('user_id', userId);
-    if (grupoId) {
-      query = query.eq('grupo_id', grupoId);
-    }
+    if (grupoId) query = query.eq('grupo_id', grupoId);
+    
     const { data, error } = await query;
     if (error) throw error;
     return data || [];
@@ -521,25 +521,32 @@ export async function getEvaluacionContinua(userId: string, userPlan: PlanTier, 
   }
 }
 
-export async function saveEvaluacionContinua(data: { grupo_id: string, user_id: string, contenido_json: any }, userPlan: PlanTier) {
-  // Verificación de seguridad: Solo Oro y Platino
-  if (userPlan !== 'oro' && userPlan !== 'platino') return;
-  if (!supabase) return;
+export async function saveEvaluacionContinua(data: { id?: string, grupo_id: string, user_id: string, contenido_json: any }, userPlan: string) {
+  if (userPlan !== 'oro' && userPlan !== 'platino') throw new Error("Plan no autorizado");
+  if (!supabase) throw new Error("Sin conexión a Supabase");
   
   try {
-    const { error } = await supabase
-      .from("evaluacion_continua")
-      .upsert({
-        grupo_id: data.grupo_id,
-        user_id: data.user_id,
-        contenido_json: data.contenido_json
-      }, { 
-        onConflict: 'grupo_id, user_id' // 🚨 La magia está aquí: Actualiza en lugar de duplicar o dar error
-      });
-      
-    if (error) throw error;
-  } catch (err) {
+    if (data.id) {
+      // Si ya tenemos el ID de la base de datos, ACTUALIZAMOS (A prueba de fallos)
+      const { error } = await supabase
+        .from("evaluacion_continua")
+        .update({ contenido_json: data.contenido_json })
+        .eq("id", data.id);
+      if (error) throw error;
+    } else {
+      // Si es la primera vez, INSERTAMOS
+      const { error } = await supabase
+        .from("evaluacion_continua")
+        .insert({
+          grupo_id: data.grupo_id,
+          user_id: data.user_id,
+          contenido_json: data.contenido_json
+        });
+      if (error) throw error;
+    }
+  } catch (err: any) {
     console.error("Error guardando evaluación en Supabase:", err);
+    throw err; // Lanzamos el error para que tu botón muestre que falló
   }
 }
 
