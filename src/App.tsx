@@ -103,7 +103,12 @@ export default function App() {
   const [publicView, setPublicView] = useState<"landing" | "login">("landing");
   const [loginInitialMode, setLoginInitialMode] = useState<"login" | "register">("login");
 
-  const [subscription, setSubscription] = useState<UserSubscription>(() => loadUserSubscription());
+  const [subscription, setSubscription] = useState<UserSubscription>({
+  plan: "gratuito",
+  credits: 0,
+  billingCycle: "mensual"
+});
+const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
   const [isPaywallOpen, setIsPaywallOpen] = useState<boolean>(false);
   const [paywallReason, setPaywallReason] = useState<PaywallReason | null>(null);
 
@@ -223,6 +228,7 @@ export default function App() {
         
         setSubscription(updatedSub);
         saveSubscriptionToStorage(updatedSub);
+        setIsSubSynced(true);
       } else {
         // Si el usuario es nuevo y no tiene perfil, se lo creamos en Supabase
         const defaultSub: UserSubscription = { plan: "gratuito", credits: 20, billingCycle: "mensual" };
