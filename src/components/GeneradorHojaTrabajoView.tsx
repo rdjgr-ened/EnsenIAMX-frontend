@@ -184,20 +184,6 @@ export default function GeneradorHojaTrabajoView({
           />
 
           <div id="hoja-trabajo-resultado" className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-300 shadow-sm space-y-8 text-slate-900 text-xs printable-document print:p-0 print:border-none print:shadow-none print:w-full">
-            
-            <div className="border-2 border-slate-900 rounded-xl p-5 bg-slate-50/50 space-y-4">
-              <div className="text-center">
-                <h1 className="font-black text-lg text-mex-maroon uppercase tracking-wide">{worksheetData.titulo}</h1>
-                <h2 className="font-bold text-slate-700 text-sm mt-1">Sesión {selectedSessionData.sesion.numero}: {selectedSessionData.sesion.titulo} | {selectedPlan.disciplina}</h2>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-3 border-t border-slate-300">
-                <div className="p-2.5 bg-white rounded border border-slate-200"><span className="font-bold text-slate-500 block uppercase text-[10px] mb-0.5">Escuela:</span><span className="font-black text-slate-900 text-sm">{selectedPlan.escuelaName} (C.C.T. {selectedPlan.cct})</span></div>
-                <div className="p-2.5 bg-white rounded border border-slate-200"><span className="font-bold text-slate-500 block uppercase text-[10px] mb-0.5">Docente:</span><span className="font-black text-slate-900 text-sm">{selectedPlan.docenteName}</span></div>
-                <div className="p-2.5 bg-white rounded border border-slate-200"><span className="font-bold text-slate-500 block uppercase text-[10px] mb-0.5">Alumno(a):</span><span className="block pt-1 border-b border-slate-400 mt-2"></span></div>
-                <div className="p-2.5 bg-white rounded border border-slate-200"><span className="font-bold text-slate-500 block uppercase text-[10px] mb-0.5">Grado y Grupo / Fecha:</span><span className="font-black text-slate-900 text-sm">{selectedPlan.grado} - Grupo "{selectedPlan.grupo}" | ____/____/2026</span></div>
-              </div>
-              <div className="p-3 bg-white rounded border border-slate-200 text-xs"><span className="font-bold text-slate-500 block uppercase text-[10px] mb-1">PDA:</span><span className="font-bold text-slate-900">{selectedPlan.pda}</span></div>
-            </div>
 
             <div className="bg-amber-50/60 border border-amber-200 p-4 rounded-xl text-slate-800 text-sm font-medium">
               <span className="font-black uppercase text-amber-900 block text-xs tracking-wider mb-1">📌 Instrucciones Generales:</span>
