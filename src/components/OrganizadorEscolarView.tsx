@@ -609,6 +609,129 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
     if (!contenido) return null;
     if (typeof contenido === "string") return <div className="whitespace-pre-wrap">{contenido}</div>;
 
+// 🌟 SOPORTE PARA PROGRAMA ANALÍTICO EN EL VISOR DEL ORGANIZADOR
+    if (contenido.camposFormativos && contenido.problema) {
+      return (
+        <div className="space-y-6 text-slate-900">
+          <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-2xl p-6 text-white text-center sm:text-left flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black tracking-tight">
+                Programa Analítico Integrado
+              </h2>
+            </div>
+            <div className="bg-white/10 px-4 py-2 rounded-xl border border-white/25 text-xs font-black uppercase tracking-wider self-center">
+              {contenido.fase} • {contenido.grado}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <div className="min-w-[1200px] grid grid-cols-7 gap-4 text-[11px] leading-relaxed">
+              {/* 1. Problema */}
+              <div className="bg-fuchsia-50/40 border border-fuchsia-100 rounded-2xl p-4 space-y-3">
+                <div className="bg-fuchsia-700 text-white font-black text-[10px] uppercase tracking-wider text-center py-2 px-3 rounded-lg">
+                  Problema identificado y jerarquizado
+                </div>
+                <div className="bg-white p-3.5 rounded-xl border border-fuchsia-200 font-bold text-slate-800 text-xs shadow-sm">
+                  {contenido.problema}
+                </div>
+              </div>
+
+              {/* 2. Saberes */}
+              <div className="bg-teal-50/40 border border-teal-100 rounded-2xl p-4 space-y-3">
+                <div className="bg-teal-600 text-white font-black text-[10px] uppercase tracking-wider text-center py-2 px-3 rounded-lg">
+                  Saberes y pensamiento científico
+                </div>
+                <div className="space-y-3">
+                  {contenido.camposFormativos.saberes?.map((item: any, idx: number) => (
+                    <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm space-y-2">
+                      <p className="text-[10px] text-slate-400 font-semibold"><strong className="text-slate-500 uppercase text-[9px] block">Contenido:</strong>{item.contenido}</p>
+                      <p className="text-slate-800 font-bold text-[10px]"><strong className="text-slate-500 uppercase text-[9px] block">PDA:</strong>{item.pda}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 3. Lenguajes */}
+              <div className="bg-orange-50/40 border border-orange-100 rounded-2xl p-4 space-y-3">
+                <div className="bg-orange-600 text-white font-black text-[10px] uppercase tracking-wider text-center py-2 px-3 rounded-lg">
+                  Lenguajes
+                </div>
+                <div className="space-y-3">
+                  {contenido.camposFormativos.lenguajes?.map((item: any, idx: number) => (
+                    <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm space-y-2">
+                      <p className="text-[10px] text-slate-400 font-semibold"><strong className="text-slate-500 uppercase text-[9px] block">Contenido:</strong>{item.contenido}</p>
+                      <p className="text-slate-800 font-bold text-[10px]"><strong className="text-slate-500 uppercase text-[9px] block">PDA:</strong>{item.pda}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 4. Ética */}
+              <div className="bg-sky-50/40 border border-sky-100 rounded-2xl p-4 space-y-3">
+                <div className="bg-sky-600 text-white font-black text-[10px] uppercase tracking-wider text-center py-2 px-3 rounded-lg">
+                  Ética, naturaleza y sociedades
+                </div>
+                <div className="space-y-3">
+                  {contenido.camposFormativos.etica?.map((item: any, idx: number) => (
+                    <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm space-y-2">
+                      <p className="text-[10px] text-slate-400 font-semibold"><strong className="text-slate-500 uppercase text-[9px] block">Contenido:</strong>{item.contenido}</p>
+                      <p className="text-slate-800 font-bold text-[10px]"><strong className="text-slate-500 uppercase text-[9px] block">PDA:</strong>{item.pda}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 5. Humano */}
+              <div className="bg-emerald-50/40 border border-emerald-100 rounded-2xl p-4 space-y-3">
+                <div className="bg-emerald-600 text-white font-black text-[10px] uppercase tracking-wider text-center py-2 px-3 rounded-lg">
+                  De lo humano y lo comunitario
+                </div>
+                <div className="space-y-3">
+                  {contenido.camposFormativos.humano?.map((item: any, idx: number) => (
+                    <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm space-y-2">
+                      <p className="text-[10px] text-slate-400 font-semibold"><strong className="text-slate-500 uppercase text-[9px] block">Contenido:</strong>{item.contenido}</p>
+                      <p className="text-slate-800 font-bold text-[10px]"><strong className="text-slate-500 uppercase text-[9px] block">PDA:</strong>{item.pda}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 6. Metodología */}
+              <div className="bg-indigo-50/40 border border-indigo-100 rounded-2xl p-4 space-y-3">
+                <div className="bg-indigo-600 text-white font-black text-[10px] uppercase tracking-wider text-center py-2 px-3 rounded-lg">
+                  Metodología NEM
+                </div>
+                <div className="bg-white p-3.5 rounded-xl border border-indigo-200 space-y-3 shadow-sm">
+                  <div>
+                    <strong className="text-slate-500 uppercase text-[9px] block">Tipo de Metodología</strong>
+                    <span className="font-extrabold text-indigo-900">{contenido.metodologia?.tipo}</span>
+                  </div>
+                  <div>
+                    <strong className="text-slate-500 uppercase text-[9px] block">Eje Articulador</strong>
+                    <span className="font-extrabold text-indigo-900">{contenido.metodologia?.ejeArticulador}</span>
+                  </div>
+                  <div>
+                    <strong className="text-slate-500 uppercase text-[9px] block">Orientaciones Didácticas</strong>
+                    <p className="text-slate-700 font-semibold text-[10px] mt-1 italic">{contenido.metodologia?.orientaciones}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 7. Proyecto */}
+              <div className="bg-amber-50/40 border border-amber-100 rounded-2xl p-4 space-y-3">
+                <div className="bg-amber-600 text-white font-black text-[10px] uppercase tracking-wider text-center py-2 px-3 rounded-lg">
+                  Nombre del proyecto sugerido
+                </div>
+                <div className="bg-white p-3.5 rounded-xl border border-amber-200 text-center font-black text-amber-900 text-xs shadow-sm py-5">
+                  "{contenido.nombreProyecto}"
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
     // Soporte completo para Instrumentos de Evaluación sin recortes en el visor
     if (contenido.criteriosRubrica || contenido.itemsListaCotejo || contenido.itemsEscalaEstimativa || contenido.guiaObservacion) {
       return (
