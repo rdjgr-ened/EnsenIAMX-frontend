@@ -429,6 +429,21 @@ export default function BitacoraIncidenciaView({
     setViewMode("form");
   };
 
+  // Efecto "Puente": Revisa si venimos del Organizador Escolar con intención de imprimir
+  useEffect(() => {
+    const printId = localStorage.getItem("nem_print_bitacora_id");
+    
+    // Si traemos un ID y la lista de bitácoras ya cargó
+    if (printId && bitacoras.length > 0) {
+      const itemToPrint = bitacoras.find(b => b.id === printId);
+      if (itemToPrint) {
+        handleEditBitacora(itemToPrint); // Llenamos los datos
+        setViewMode("print");            // Forzamos la vista del documento
+      }
+      localStorage.removeItem("nem_print_bitacora_id"); // Limpiamos el puente
+    }
+  }, [bitacoras]);
+  
   // Edit existing bitácora
   const handleEditBitacora = (item: BitacoraIncidencia) => {
     setSelectedBitacoraId(item.id);

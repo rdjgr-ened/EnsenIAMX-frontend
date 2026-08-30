@@ -1322,13 +1322,17 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
                       </button>
 
                       <button
-                        type="button"
-                        onClick={onGoToBitacora}
-                        className="px-3 py-1 bg-slate-900 text-white font-extrabold text-[10px] uppercase rounded flex items-center gap-1 hover:bg-slate-800"
-                      >
-                        <Printer className="w-3 h-3 text-mex-gold" />
-                        <span>Ver / Imprimir</span>
-                      </button>
+  type="button"
+  onClick={() => {
+    // 1. Guardamos el ID secreto en el puente antes de viajar
+    localStorage.setItem("nem_print_bitacora_id", b.id);
+    onGoToBitacora();
+  }}
+  className="px-3 py-1 bg-slate-900 text-white font-extrabold text-[10px] uppercase rounded flex items-center gap-1 hover:bg-slate-800"
+>
+  <Printer className="w-3 h-3 text-mex-gold" />
+  <span>Ver / Imprimir</span>
+</button>
                     </div>
                   </div>
                 );
