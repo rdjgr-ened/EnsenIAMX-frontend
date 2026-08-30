@@ -181,6 +181,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<"hub" | "diseno" | "sugerir" | "crear" | "programa" | "evaluacion" | "bitacora" | "organizador" | "examen" | "cuenta" | "generar_hoja" | "generar_instrumento">("hub");
   const [organizadorTab, setOrganizadorTab] = useState<"planeaciones" | "grupos" | "bitacora" | "seguimiento" | "evaluacion">("planeaciones");
   const [prefilledData, setPrefilledData] = useState<any | null>(null);
+  const [currentExam, setCurrentExam] = useState<any | null>(null);
 
   // 4. CORRECCIÓN: SINCRONIZACIÓN INICIAL DESDE SUPABASE USANDO UUID
   const syncSubscriptionFromSupabase = async (email: string) => {
@@ -586,19 +587,22 @@ export default function App() {
             escuelaName={userProfile?.escuelaName || ""}
             subscription={subscription}
             onTriggerPaywall={handleTriggerPaywall}
+            onSelectExamen={(exam) => {
+              setCurrentExam(exam);
+              setActiveTab("examen");
+            }}
           />
         );
+        
       case "examen":
         return (
           <CrearExamenView
-            onBack={() => setActiveTab("hub")}
-            escuelaName={userProfile?.escuelaName}
-            cct={userProfile?.cct}
-            docenteName={userProfile?.docenteName}
-            escuelas={userProfile?.escuelas}
-            subscription={subscription}
-            onDeductCredits={handleDeductCredits}
-            onTriggerPaywall={handleTriggerPaywall}
+            initialExam={currentExam} 
+            onBack={() => {
+              setActiveTab("hub");
+              setCurrentExam(null); 
+            }}
+            // ... (tus otras props se quedan igual) ...
           />
         );
       case "cuenta":

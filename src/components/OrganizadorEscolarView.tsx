@@ -44,6 +44,7 @@ interface OrganizadorEscolarViewProps {
   escuelaName: string;
   subscription?: UserSubscription;
   onTriggerPaywall?: (reason: PaywallReason) => void;
+  onSelectExamen: (exam: any) => void;
 }
 
 type TabFolder = "planeaciones" | "grupos" | "bitacora" | "evaluacion" | "hojas" | "instrumentos" | "programas" | "examenes";
@@ -1485,7 +1486,12 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
                   </div>
                   <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
                     <button onClick={() => handleDeleteRecursoLocal(recurso.id)} className="text-slate-400 hover:text-rose-500 transition p-1"><Trash2 className="w-4 h-4"/></button>
-                    <button onClick={() => setRecursoToView(recurso)} className="text-xs font-black uppercase text-purple-600 flex items-center gap-1 hover:underline cursor-pointer"><Printer className="w-3.5 h-3.5"/> Abrir / Imprimir</button>
+<button 
+    onClick={() => props.onSelectExamen(recurso.contenido)} 
+    className="text-xs font-black uppercase text-purple-600 flex items-center gap-1 hover:underline cursor-pointer"
+  >
+    <Printer className="w-3.5 h-3.5"/> Abrir / Imprimir
+  </button>
                   </div>
                 </div>
               ))}

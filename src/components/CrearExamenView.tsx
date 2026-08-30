@@ -11,6 +11,7 @@ import { getOficialContenidos, getOficialPdas } from "../data/nemCurriculumServi
 import AccionesDocumento from "./AccionesDocumento";
 
 interface CrearExamenViewProps {
+  initialExam?: any;
   onBack?: () => void;
   escuelaName?: string;
   cct?: string;
@@ -126,7 +127,13 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
   // Generation & Result State
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [exam, setExam] = useState<GeneratedExam | null>(null);
+  const [exam, setExam] = useState<GeneratedExam | null>(props.initialExam || null);
+  React.useEffect(() => {
+    if (props.initialExam) {
+      setExam(props.initialExam);
+      setActiveTab("alumno");
+    }
+  }, [props.initialExam]);
   const [activeTab, setActiveTab] = useState<"alumno" | "docente" | "especificaciones">("alumno");
 
   // Handle Nivel Change
