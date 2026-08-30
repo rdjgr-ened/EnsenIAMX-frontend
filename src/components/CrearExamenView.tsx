@@ -857,7 +857,7 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
             {/* TAB 1: ALUMNO EXAM */}
             {activeTab === "alumno" && (
               <div className="space-y-6">
-                {exam.reactivos.map((reactivo, idx) => (
+                {exam.reactivos.map((reactivo: any, idx: number) => (
                   <div key={idx} className="space-y-3 pb-5 border-b border-slate-200 last:border-b-0 break-inside-avoid">
                     <div className="flex items-start gap-2">
                       <span className="w-6 h-6 rounded-full bg-slate-900 text-white font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
@@ -873,22 +873,13 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
                     {/* Multiple Choice Options */}
                     {reactivo.tipo === "opcion_multiple" && reactivo.opciones && (
                       <div className="ml-8 grid grid-cols-1 gap-2">
-                        {reactivo.opciones.map(opt => (
+                        {reactivo.opciones.map((opt: any) => (
                           <div key={opt.inciso} className="flex items-center gap-2.5 text-xs text-slate-800">
                             <span className="w-5 h-5 rounded-full border-2 border-slate-600 font-black text-[11px] flex items-center justify-center shrink-0">
                               {opt.inciso}
                             </span>
                             <span className="font-medium">{opt.texto}</span>
                           </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Open Question Answer Lines */}
-                    {reactivo.tipo === "pregunta_abierta" && (
-                      <div className="ml-8 space-y-3 pt-1">
-                        {Array.from({ length: reactivo.lineasRespuesta || 4 }).map((_, lineIdx) => (
-                          <div key={lineIdx} className="border-b border-slate-300 h-6 w-full" />
                         ))}
                       </div>
                     )}
@@ -995,4 +986,4 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
       )}
     </div>
   );
-} 
+}
