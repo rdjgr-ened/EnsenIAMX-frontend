@@ -698,18 +698,11 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
                   <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
                     Formato de Preguntas
                   </label>
-                  <select
-                    value={tipoPreguntas}
-                    onChange={e => setTipoPreguntas(e.target.value as any)}
-                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  >
-                    <option value="opcion_multiple">Opción Múltiple (A, B, C, D)</option>
-                    <option value="pregunta_abierta">Preguntas Abiertas / Respuesta Construida</option>
-                    <option value="ambas">Combinadas (Opción Múltiple y Abiertas)</option>
-                  </select>
+                  <div className="w-full px-3 py-2.5 bg-slate-100 border border-slate-200 rounded-xl font-bold text-xs text-slate-500 cursor-not-allowed flex items-center justify-between">
+                    <span>Opción Múltiple (A, B, C, D)</span>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  </div>
                 </div>
-              </div>
-            </div>
 
             {/* Error Display */}
             {error && (
@@ -935,7 +928,9 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
                         {reactivo.planteamiento}
                       </p>
 
-                      <div className="bg-white border border-emerald-200 rounded-lg p-3 space-y-2 text-xs">
+                      
+
+                        <div className="bg-white border border-emerald-200 rounded-lg p-3 space-y-2 text-xs">
                         <div className="flex items-center gap-2">
                           <span className="font-black text-emerald-800 uppercase text-[11px]">
                             Respuesta Correcta:
@@ -945,36 +940,12 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
                           </span>
                         </div>
 
-                        <div>
-                          <span className="font-bold text-slate-600 block text-[10px] uppercase">
-                            Justificación Pedagógica y Análisis de Distractores:
-                          </span>
-                          <p className="text-slate-700 text-[11px] leading-relaxed mt-0.5">
-                            {reactivo.justificacionPedagogica}
-                          </p>
-                        </div>
-
-                        {reactivo.criterioEvaluacion && (
-                          <div className="pt-2 border-t border-slate-100">
-                            <span className="font-bold text-slate-600 block text-[10px] uppercase">
-                              Criterio de Evaluación / Rúbrica:
-                            </span>
-                            <p className="text-slate-700 text-[11px] mt-0.5">
-                              {reactivo.criterioEvaluacion}
-                            </p>
-                          </div>
-                        )}
-
                         <div className="pt-2 border-t border-slate-100 flex flex-wrap gap-2 text-[10px] text-slate-500">
                           <span><strong>Contenido:</strong> {reactivo.contenidoEvaluado}</span>
                           {reactivo.pdaEvaluado && <span>• <strong>PDA:</strong> {reactivo.pdaEvaluado}</span>}
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                      )} {/* 
 
             {/* TAB 3: TABLA DE ESPECIFICACIONES */}
             {activeTab === "especificaciones" && (
@@ -996,7 +967,6 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
                         <th className="p-2.5">Contenido Sintético</th>
                         <th className="p-2.5">PDA Evaluado</th>
                         <th className="p-2.5">Nivel Cognitivo</th>
-                        <th className="p-2.5">Tipo</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
@@ -1012,7 +982,6 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
                           <td className="p-2.5 font-medium max-w-xs">{spec.contenido}</td>
                           <td className="p-2.5 text-slate-600 max-w-xs">{spec.pda}</td>
                           <td className="p-2.5 font-semibold text-emerald-700">{spec.nivelCognitivo}</td>
-                          <td className="p-2.5 font-medium">{spec.tipoReactivo}</td>
                         </tr>
                       ))}
                     </tbody>

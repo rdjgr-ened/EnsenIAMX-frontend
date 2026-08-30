@@ -59,19 +59,13 @@ export default async function handler(req: any, res: any) {
       descripcionTipo = `TIPO: EVALUACIÓN TRIMESTRAL (${periodoTrimestre || "Trimestre Actual"}).`;
     }
 
-    let descripcionPreguntas = "";
-    if (tipoPreguntas === "opcion_multiple") {
-      descripcionPreguntas = `TIPO DE PREGUNTAS: OPCIÓN MÚLTIPLE (4 incisos: A, B, C, D).`;
-    } else if (tipoPreguntas === "pregunta_abierta") {
-      descripcionPreguntas = `TIPO DE PREGUNTAS: PREGUNTAS ABIERTAS CON RÚBRICA Y RESPUESTA MODELO.`;
-    } else {
-      descripcionPreguntas = `TIPO DE PREGUNTAS: COMBINADAS (OPCIÓN MÚLTIPLE + PREGUNTAS ABIERTAS).`;
-    }
+    let descripcionPreguntas = `TIPO DE PREGUNTAS: EXCLUSIVAMENTE OPCIÓN MÚLTIPLE (4 incisos: A, B, C, D).`;
 
     const listaContenidos = (contenidosSeleccionados && contenidosSeleccionados.length > 0)
       ? contenidosSeleccionados.map((c: any, i: number) => `   Contenido ${i + 1}: ${c.contenido || 'Contenido'}\n   PDA ${i + 1}: ${c.pda || 'PDA'}`).join("\n")
       : "Contenidos y PDAs sintéticos de la NEM para " + disciplina + " en " + grado;
 
+    // EL NUEVO PROMPT REFORZADO CONTRA ALUCINACIONES
     const prompt = `
       Eres un Asesor Técnico Pedagógico (ATP) de la Nueva Escuela Mexicana (NEM).
       Diseña un instrumento tipo EXAMEN ESCOLAR contextualizado y alineado a la NEM para:
@@ -84,10 +78,16 @@ export default async function handler(req: any, res: any) {
       - ${descripcionTipo}
       - ${descripcionPreguntas}
       
+      INSTRUCCIÓN ESTRICTA DE FORMATO:
+      Genera un examen exclusivamente con reactivos de OPCIÓN MÚLTIPLE (A, B, C, D). 
+      NO incluyas justificaciones, NO incluyas criterios de evaluación. 
+      Solo devuelve la pregunta, las 4 opciones, el inciso correcto y los metadatos solicitados.
+      
       CONTENIDOS Y PDAs:
       ${listaContenidos}
     `;
 
+    // EL NUEVO ESQUEMA ULTRALIGERO (Sin justificaciones ni preguntas abiertas)
     const responseSchema = {
       type: Type.OBJECT,
       properties: {
@@ -117,14 +117,10 @@ export default async function handler(req: any, res: any) {
                   required: ["inciso", "texto"],
                 },
               },
-              lineasRespuesta: { type: Type.INTEGER },
-              espacioRespuesta: { type: Type.STRING },
               respuestaCorrecta: { type: Type.STRING },
-              justificacionPedagogica: { type: Type.STRING },
-              criterioEvaluacion: { type: Type.STRING },
               puntos: { type: Type.NUMBER },
             },
-            required: ["numero", "tipo", "contenidoEvaluado", "planteamiento", "respuestaCorrecta", "justificacionPedagogica", "puntos"],
+            required: ["numero", "tipo", "contenidoEvaluado", "planteamiento", "respuestaCorrecta", "puntos"],
           },
         },
         tablaEspecificaciones: {
@@ -136,10 +132,9 @@ export default async function handler(req: any, res: any) {
               contenido: { type: Type.STRING },
               pda: { type: Type.STRING },
               nivelCognitivo: { type: Type.STRING },
-              tipoReactivo: { type: Type.STRING },
               puntos: { type: Type.NUMBER },
             },
-            required: ["numero", "contenido", "pda", "nivelCognitivo", "tipoReactivo", "puntos"],
+            required: ["numero", "contenido", "pda", "nivelCognitivo", "puntos"],
           },
         },
         hojaRespuestasDocente: {
@@ -150,9 +145,8 @@ export default async function handler(req: any, res: any) {
               numero: { type: Type.INTEGER },
               respuesta: { type: Type.STRING },
               contenido: { type: Type.STRING },
-              justificacion: { type: Type.STRING },
             },
-            required: ["numero", "respuesta", "contenido", "justificacion"],
+            required: ["numero", "respuesta", "contenido"],
           },
         },
       },
