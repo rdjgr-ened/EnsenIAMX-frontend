@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { CompletePlan, UserSubscription } from "../types";
 import { ArrowLeft, Save, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { saveEvaluacionContinua, getEvaluacionContinua, isSupabaseConfigured } from "../utils/supabaseClient";
@@ -112,12 +112,19 @@ export default function EvaluacionContinuaView({
     return str;
   };
 
+  // 1. Calculamos selectedGroup (esto quita el error de la línea 119)
+  const selectedGroup = useMemo(() => {
+    return gruposGuardados.find(g => g.id === selectedGroupId) || null;
+  }, [gruposGuardados, selectedGroupId]);
+
   // Current Group's Evaluation State
   const currentGroupEval = useMemo(() => {
     if (!selectedGroupId) return null;
     const existing = evalData[selectedGroupId];
     const activeSyncedPlanId = existing?.syncedPlanId || selectedGroup?.syncedPlanId;
-    const syncedPlan = plans.find(p => p.id === activeSyncedPlanId);
+    
+    // 2. Cambiamos 'plans' por 'planeacionesGuardadas' (esto quita el error de la línea 120)
+    const syncedPlan = planeacionesGuardadas.find(p => p.id === activeSyncedPlanId);
 
     if (existing && existing.columnas && existing.columnas.length > 0) {
       return {
@@ -157,12 +164,12 @@ export default function EvaluacionContinuaView({
       ],
       calificaciones: {}
     };
-  }, [evalData, selectedGroupId, selectedGroup, plans]);
+  }, [evalData, selectedGroupId, selectedGroup, planeacionesGuardadas]);
 
   // Handler to sync a planeación's lessons to evaluation columns
   const handleSyncPlanToEval = (planId: string) => {
     if (!selectedGroupId) return;
-    const targetPlan = plans.find(p => p.id === planId);
+    const targetPlan = planeacionesGuardadas.find(p => p.id === planId);
 
     if (!planId) {
       setEvalData(prev => ({
@@ -332,13 +339,18 @@ export default function EvaluacionContinuaView({
 
   const handleBatchCheckColumn = (columnId: string, maxPoints: number) => {
     if (!selectedGroup) return;
+    
+    // Primero, hacemos una copia de las calificaciones actuales
+    const currentScores = { ...(currentGroupEval?.calificaciones || {}) };
 
-    selectedGroup.estudiantes.forEach(st => {
+    // Recorremos a todos los estudiantes y les ponemos 10 (o el maxPoints)
+    selectedGroup.estudiantes.forEach((st: any) => {
       const key = `${st.id}_${columnId}`;
       currentScores[key] = maxPoints;
     });
 
-    setEvalData(prev => ({
+    // Guardamos todo de vuelta
+    setEvalData((prev: any) => ({
       ...prev,
       [selectedGroupId]: {
         groupId: selectedGroupId,
