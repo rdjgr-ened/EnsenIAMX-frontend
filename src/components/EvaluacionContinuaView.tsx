@@ -63,6 +63,7 @@ export default function EvaluacionContinuaView({
   }, [selectedGroupId, activePlanId, subscription, gruposGuardados]);
 
   // 2. EL CEREBRO DE LA TABLA (Con escudo protector de datos)
+  const selectedGroup = useMemo(() => gruposGuardados.find(g => g.id === selectedGroupId) || null, [gruposGuardados, selectedGroupId]);
   const currentGroupEval = useMemo(() => {
     if (!selectedGroupId) return null;
     
