@@ -820,7 +820,7 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
           }`}
         >
           <BookOpen className="w-4 h-4 text-mex-maroon" />
-          <span>Mis Planeaciones ({plans.length})</span>
+          <span>Mis Planeaciones</span>
         </button>
 
         <button
@@ -833,7 +833,7 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
           }`}
         >
           <Users className="w-4 h-4 text-blue-600" />
-          <span>Mis Grupos ({grupos.length})</span>
+          <span>Mis Grupos</span>
           {userPlan === "gratuito" && <Lock className="w-3 h-3 text-slate-400 ml-1" />}
         </button>
 
@@ -847,7 +847,7 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
           }`}
         >
           <ShieldAlert className="w-4 h-4 text-rose-600" />
-          <span>Bitácora de Incidencias ({bitacoras.length})</span>
+          <span>Bitácora de Incidencias</span>
           {userPlan === "gratuito" && <Lock className="w-3 h-3 text-slate-400 ml-1" />}
         </button>
 
