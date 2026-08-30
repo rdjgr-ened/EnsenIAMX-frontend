@@ -813,6 +813,14 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
             </div>
           </AccionesDocumento>
 
+          {/* TRUCO CSS PARA OCULTAR ENCABEZADOS Y PIES DE PÁGINA DEL NAVEGADOR */}
+          <style>{`
+            @media print {
+              @page { margin: 0; }
+              body { margin: 1.5cm !important; }
+            }
+          `}</style>
+
           {/* Printable Document Canvas */}
           <div
             id="documento-resultado"
@@ -872,9 +880,9 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
                       </div>
                     </div>
 
-                    {/* Multiple Choice Options */}
-                    {reactivo.tipo === "opcion_multiple" && reactivo.opciones && (
-                      <div className="ml-8 grid grid-cols-1 gap-2">
+                    {/* Multiple Choice Options - AHORA GARANTIZADAS */}
+                    {reactivo.opciones && reactivo.opciones.length > 0 && (
+                      <div className="ml-8 grid grid-cols-1 gap-2 mt-3">
                         {reactivo.opciones.map((opt: any) => (
                           <div key={opt.inciso} className="flex items-center gap-2.5 text-xs text-slate-800">
                             <span className="w-5 h-5 rounded-full border-2 border-slate-600 font-black text-[11px] flex items-center justify-center shrink-0">
@@ -890,55 +898,38 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
               </div>
             )}
 
-            {/* TAB 2: DOCENTE ANSWER KEY */}
+            {/* TAB 2: DOCENTE ANSWER KEY (SIMPLIFICADA) */}
             {activeTab === "docente" && (
-              <div className="space-y-6">
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-emerald-950 text-xs">
-                  <h4 className="font-black uppercase tracking-wider mb-1 flex items-center gap-2">
-                    <Award className="w-4 h-4 text-emerald-700" />
-                    Clave de Respuestas y Rúbrica Pedagógica del Docente
-                  </h4>
-                  <p>
-                    Contiene la resolución oficial de cada reactivo, justificación curricular vinculada al PDA y criterios de calificación.
-                  </p>
-                </div>
-
-                <div className="space-y-5">
-                  {exam.reactivos.map((reactivo: any, idx: number) => (
-                    <div key={idx} className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3 break-inside-avoid">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-full bg-emerald-700 text-white font-black text-xs flex items-center justify-center">
-                            {reactivo.numero}
-                          </span>
-                          <span className="font-black text-xs text-slate-800 uppercase">
-                            Reactivo #{reactivo.numero} • Opción Múltiple
-                          </span>
-                        </div>
-                      </div>
-
-                      <p className="text-xs font-bold text-slate-800">
-                        {reactivo.planteamiento}
-                      </p>
-
-                      <div className="bg-white border border-emerald-200 rounded-lg p-3 space-y-2 text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className="font-black text-emerald-800 uppercase text-[11px]">
-                            Respuesta Correcta:
-                          </span>
-                          <span className="font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
-                            {reactivo.respuestaCorrecta}
-                          </span>
-                        </div>
-
-                        <div className="pt-2 border-t border-slate-100 flex flex-wrap gap-2 text-[10px] text-slate-500">
-                          <span><strong>Contenido:</strong> {reactivo.contenidoEvaluado}</span>
-                          {reactivo.pdaEvaluado && <span>• <strong>PDA:</strong> {reactivo.pdaEvaluado}</span>}
-                        </div>
+              <div className="space-y-5">
+                {exam.reactivos.map((reactivo: any, idx: number) => (
+                  <div key={idx} className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3 break-inside-avoid">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-emerald-700 text-white font-black text-xs flex items-center justify-center">
+                          {reactivo.numero}
+                        </span>
+                        <span className="font-black text-xs text-slate-800 uppercase">
+                          Reactivo #{reactivo.numero}
+                        </span>
                       </div>
                     </div>
-                  ))}
-                </div>
+
+                    <p className="text-xs font-bold text-slate-800">
+                      {reactivo.planteamiento}
+                    </p>
+
+                    <div className="bg-white border border-emerald-200 rounded-lg p-3 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-emerald-800 uppercase text-[11px]">
+                          Respuesta Correcta:
+                        </span>
+                        <span className="font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
+                          {reactivo.respuestaCorrecta}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
