@@ -249,14 +249,6 @@ export default function GeneradorHojaTrabajoView({
                 ))}
               </div>
             </div>
-
-            {worksheetData.ticketDeSalida && (
-              <div className="p-5 border-2 border-dashed border-amber-500 bg-amber-50/40 rounded-xl space-y-3 page-break-inside-avoid">
-                <span className="font-black uppercase text-amber-900 text-sm tracking-wider flex items-center gap-1.5">🎟️ Ticket de Salida (Entregar al finalizar la clase)</span>
-                <p className="font-bold text-slate-900 text-sm">{worksheetData.ticketDeSalida}</p>
-                <div className="space-y-3 pt-2"><div className="border-b border-dashed border-slate-400 h-6" /><div className="border-b border-dashed border-slate-400 h-6" /></div>
-              </div>
-            )}
           </div>
         </div>
       )}

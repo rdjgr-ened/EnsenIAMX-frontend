@@ -131,7 +131,6 @@ export default async function handler(req: any, res: any) {
           },
           required: ["titulo", "instrucciones", "ejercicios"],
         },
-        ticketDeSalida: { type: Type.STRING },
       },
       required: ["titulo", "subtitulo", "instruccionesGenerales", "seccionInicio", "seccionDesarrollo", "seccionCierre"],
     };

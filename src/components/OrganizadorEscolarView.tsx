@@ -655,7 +655,7 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
           }
 
           // 🚨 EL TRUCO DEL ORDEN LÓGICO ESTÁ AQUÍ 🚨
-          const ordenLogico = ["seccionInicio", "inicio", "seccionDesarrollo", "desarrollo", "seccionCierre", "cierre"];
+          const ordenLogico = ["instruccionesGenerales", "seccionInicio", "inicio", "seccionDesarrollo", "desarrollo", "seccionCierre", "cierre"];
           const sortedKeys = Object.keys(nodo).sort((a, b) => {
             const indexA = ordenLogico.indexOf(a);
             const indexB = ordenLogico.indexOf(b);
