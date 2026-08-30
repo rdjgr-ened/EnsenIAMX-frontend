@@ -235,9 +235,9 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
 
         if (isSupabaseConfigured) {
           const userProfileStr = localStorage.getItem("nem_secundaria_profile");
-        const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
-        const userId = userProfile?.id;
-        if (!userId) return;
+          const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
+          const userId = userProfile?.id;
+          if (!userId) return;
 
           saveRecursoGenerado({
             id: `exam_${Date.now()}`,
@@ -703,6 +703,8 @@ export default function CrearExamenView(props: CrearExamenViewProps) {
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   </div>
                 </div>
+              </div>
+            </div>
 
             {/* Error Display */}
             {error && (
