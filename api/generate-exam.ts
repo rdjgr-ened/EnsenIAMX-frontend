@@ -28,7 +28,6 @@ export default async function handler(req: any, res: any) {
       contenidosSeleccionados,
       gradoAnterior,
       numReactivos,
-      tipoPreguntas,
       escuelaName,
       cct,
       docenteName,
@@ -59,35 +58,32 @@ export default async function handler(req: any, res: any) {
       descripcionTipo = `TIPO: EVALUACIÓN TRIMESTRAL (${periodoTrimestre || "Trimestre Actual"}).`;
     }
 
-    let descripcionPreguntas = `TIPO DE PREGUNTAS: EXCLUSIVAMENTE OPCIÓN MÚLTIPLE (4 incisos: A, B, C, D).`;
+    // Restringimos forzosamente a opción múltiple
+    const descripcionPreguntas = `TIPO DE PREGUNTAS: EXCLUSIVAMENTE OPCIÓN MÚLTIPLE (4 incisos: A, B, C, D).`;
 
     const listaContenidos = (contenidosSeleccionados && contenidosSeleccionados.length > 0)
       ? contenidosSeleccionados.map((c: any, i: number) => `   Contenido ${i + 1}: ${c.contenido || 'Contenido'}\n   PDA ${i + 1}: ${c.pda || 'PDA'}`).join("\n")
       : "Contenidos y PDAs sintéticos de la NEM para " + disciplina + " en " + grado;
 
-    // EL NUEVO PROMPT REFORZADO CONTRA ALUCINACIONES
+    // PROMPT DIRECTO Y RESTRINGIDO
     const prompt = `
       Eres un Asesor Técnico Pedagógico (ATP) de la Nueva Escuela Mexicana (NEM).
-      Diseña un instrumento tipo EXAMEN ESCOLAR contextualizado y alineado a la NEM para:
+      Diseña un EXAMEN ESCOLAR de ${totalReactivos} reactivos para:
       - Nivel: ${nivelEducativo}
       - Grado: ${grado}
-      - Grupo: ${grupo || "A"}
       - Disciplina: ${disciplina}
-      - Campo Formativo: ${campoFormativo || "NEM"}
-      - Total Reactivos: ${totalReactivos}
       - ${descripcionTipo}
-      - ${descripcionPreguntas}
       
-      INSTRUCCIÓN ESTRICTA DE FORMATO:
-      Genera un examen exclusivamente con reactivos de OPCIÓN MÚLTIPLE (A, B, C, D). 
-      NO incluyas justificaciones, NO incluyas criterios de evaluación. 
-      Solo devuelve la pregunta, las 4 opciones, el inciso correcto y los metadatos solicitados.
+      INSTRUCCIONES ESTRICTAS:
+      1. Genera SOLO preguntas de OPCIÓN MÚLTIPLE (4 incisos: A, B, C, D).
+      2. NADA de justificaciones largas, sé directo y conciso.
+      3. No repitas información en arreglos adicionales. Solo entrega el arreglo de "reactivos".
       
       CONTENIDOS Y PDAs:
       ${listaContenidos}
     `;
 
-    // EL NUEVO ESQUEMA ULTRALIGERO (Sin justificaciones ni preguntas abiertas)
+    // ESQUEMA ULTRA-LIGERO (Sin tablas extras, sin respuestas redundantes, sin preguntas abiertas)
     const responseSchema = {
       type: Type.OBJECT,
       properties: {
@@ -123,44 +119,22 @@ export default async function handler(req: any, res: any) {
             required: ["numero", "tipo", "contenidoEvaluado", "planteamiento", "respuestaCorrecta", "puntos"],
           },
         },
-        tablaEspecificaciones: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              numero: { type: Type.INTEGER },
-              contenido: { type: Type.STRING },
-              pda: { type: Type.STRING },
-              nivelCognitivo: { type: Type.STRING },
-              puntos: { type: Type.NUMBER },
-            },
-            required: ["numero", "contenido", "pda", "nivelCognitivo", "puntos"],
-          },
-        },
-        hojaRespuestasDocente: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              numero: { type: Type.INTEGER },
-              respuesta: { type: Type.STRING },
-              contenido: { type: Type.STRING },
-            },
-            required: ["numero", "respuesta", "contenido"],
-          },
-        },
       },
-      required: ["titulo", "instruccionesGenerales", "reactivos", "hojaRespuestasDocente"],
+      required: ["titulo", "instruccionesGenerales", "reactivos"],
     };
 
+    // Configuramos el objeto config de forma dinámica para incluir el caché
+    const config: any = {
+      responseMimeType: "application/json",
+      responseSchema: responseSchema,
+      temperature: 0.25,
+    };
+
+    // Mantenemos el modelo que tenías configurado
     const result = await ai.models.generateContent({
       model: "gemini-3.6-flash",
       contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: responseSchema,
-        temperature: 0.25,
-      },
+      config: config,
     });
 
     const responseText = result.text;
@@ -186,6 +160,7 @@ export default async function handler(req: any, res: any) {
       },
     });
   } catch (error: any) {
+    console.error(error); // Imprime el error real en tu consola (Vercel Logs) para debugear
     return res.status(500).json({ error: error.message || "Error al generar examen." });
   }
 }
