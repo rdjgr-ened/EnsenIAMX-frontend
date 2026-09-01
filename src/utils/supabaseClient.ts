@@ -560,3 +560,31 @@ export async function deleteEvaluacionContinua(evaluacionId: string, userId: str
     return false;
   }
 }
+// Funciones para el Formato de Evaluación y Calificaciones
+export const getFormatoEvaluacion = async (userId: string, grupoId: string, periodo: string) => {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("formato_evaluacion")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("grupo_id", grupoId)
+    .eq("periodo", periodo);
+  if (error) {
+    console.error("Error fetching formato evaluación:", error);
+    return null;
+  }
+  return data;
+};
+
+export const saveFormatoEvaluacion = async (payload: any) => {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("formato_evaluacion")
+    .upsert(payload, { onConflict: "id" })
+    .select();
+  if (error) {
+    console.error("Error saving formato evaluación:", error);
+    throw error;
+  }
+  return data;
+};
