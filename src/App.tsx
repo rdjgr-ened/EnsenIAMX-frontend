@@ -137,21 +137,22 @@ const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
     return null;
   });
 
-  // 2. CORRECCIÓN: DEDUCCIÓN DE CRÉDITOS USANDO UUID
+  // CORRECCIÓN: DEDUCCIÓN DE CRÉDITOS SEGURA (NUNCA TOCA EL PLAN NI EL EMAIL)
   const handleDeductCredits = (action: CreditActionType): boolean => {
     const result = deductCreditsFromState(subscription, action);
     if (result.success && result.newSubscription) {
       setSubscription(result.newSubscription);
       
-      // Persistir la deducción en Supabase usando el ID Oficial
       if (userProfile?.id && isSupabaseConfigured) {
-        const userId = userProfile.id;
-        saveSupabaseProfile({
-          id: userId,
-          email: userProfile.email,
-          plan: result.newSubscription.plan,
+        // 🔥 ACTUALIZACIÓN QUIRÚRGICA: Solo modificamos los créditos.
+        // Ignoramos la función destructiva saveSupabaseProfile.
+        supabase.from('profiles').update({
           creditos_disponibles: result.newSubscription.credits
-        }).catch(err => console.warn("Error actualizando créditos en Supabase:", err));
+        })
+        .eq('id', userProfile.id)
+        .then(({ error }) => {
+          if (error) console.warn("Error descontando créditos:", error);
+        });
       }
 
       return true;
@@ -166,20 +167,22 @@ const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
     }
   };
 
-  // 3. CORRECCIÓN: ACTUALIZACIÓN DE PLAN USANDO UUID
+  // CORRECCIÓN: ACTUALIZACIÓN PARCIAL SEGURA
   const handleSelectPlanTier = (plan: PlanTier, cycle?: "mensual" | "trimestral" | "anual") => {
     const updated = updateUserPlan(subscription, plan, cycle);
     setSubscription(updated);
     setIsPaywallOpen(false);
 
     if (userProfile?.id && isSupabaseConfigured) {
-      const userId = userProfile.id;
-      saveSupabaseProfile({
-        id: userId,
-        email: userProfile.email,
+      // 🔥 Solo tocamos plan y créditos, el email queda a salvo.
+      supabase.from('profiles').update({
         plan: updated.plan,
         creditos_disponibles: updated.credits
-      }).catch(err => console.warn("Error guardando plan en Supabase:", err));
+      })
+      .eq('id', userProfile.id)
+      .then(({ error }) => {
+        if (error) console.warn("Error actualizando plan:", error);
+      });
     }
   };
 
@@ -230,22 +233,23 @@ const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
         saveSubscriptionToStorage(updatedSub);
         setIsSubSynced(true);
       } else {
-        // Si el usuario es nuevo y no tiene perfil, se lo creamos en Supabase
+        // Si el usuario es nuevo y no tiene perfil, se lo creamos de forma segura
         const defaultSub: UserSubscription = { plan: "gratuito", credits: 20, billingCycle: "mensual" };
         setSubscription(defaultSub);
         saveSubscriptionToStorage(defaultSub);
 
-        await saveSupabaseProfile({
+        // 🔥 INSERT SEGURO: Previene que un objeto se guarde en la columna email
+        const safeEmail = typeof email === "string" ? email : (userProfile?.email || "correo@desconocido.com");
+        
+        supabase.from('profiles').insert({
           id: realUserId,
-          email: email,
+          email: safeEmail,
           plan: "gratuito",
           creditos_disponibles: 20
-        }).catch(err => console.warn("Error registrando perfil inicial en Supabase:", err));
+        }).then(({ error }) => {
+          if (error) console.warn("Error registrando perfil inicial:", error);
+        });
       }
-    } catch (err) {
-      console.warn("Error al sincronizar con Supabase:", err);
-    }
-  };
 
   useEffect(() => {
     if (userProfile?.email) {
