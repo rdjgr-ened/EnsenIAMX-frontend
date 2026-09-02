@@ -250,6 +250,10 @@ const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
           if (error) console.warn("Error registrando perfil inicial:", error);
         });
       }
+    } catch (err) {
+      console.warn("Error al sincronizar con Supabase:", err);
+    }
+  };
 
   useEffect(() => {
     if (userProfile?.email) {
