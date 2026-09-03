@@ -143,7 +143,7 @@ export default function DashboardHub(props: DashboardHubProps) {
                     Organizador Escolar
                   </h4>
                   <p className="text-slate-500 text-xs mt-2 leading-relaxed font-semibold">
-                    Acceso a tus carpetas digitales: Mis Planeaciones, Mis Grupos, Bitácora de Incidencias, Seguimiento y Evaluación Continua.
+                    Acceso a tus carpetas digitales.
                   </p>
                 </div>
               </div>
@@ -538,7 +538,7 @@ export default function DashboardHub(props: DashboardHubProps) {
                       Crear Contenido y PDA
                     </h4>
                     <p className="text-slate-500 text-xs font-semibold">
-                      Efectúa procesos de codiseño curricular. Describe una situación local única y Gemini diseñará un Contenido y un PDA a la medida.
+                      Efectúa procesos de codiseño curricular. Describe una situación local única y la IA diseñará un Contenido y un PDA a la medida.
                     </p>
                   </div>
                   

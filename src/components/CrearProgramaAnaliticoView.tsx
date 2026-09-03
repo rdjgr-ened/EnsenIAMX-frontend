@@ -214,7 +214,7 @@ export default function CrearProgramaAnaliticoView(props: CrearProgramaAnalitico
             <span>Crear Programa Analítico con Codiseño</span>
           </h3>
           <p className="text-slate-500 text-xs leading-relaxed">
-            Estructura el Programa Analítico integrado de tu fase. Selecciona nivel, grado y describe tu situación-problema. Gemini redactará de forma integrada los contenidos, codiseños (PDAs modificados y nuevos), metodología y sugerirá el proyecto didáctico asociable.
+            Estructura el Programa Analítico integrado de tu fase. Selecciona nivel, grado y describe tu situación-problema. La IA redactará de forma integrada los contenidos, codiseños (PDAs modificados y nuevos), metodología y sugerirá el proyecto didáctico asociable.
           </p>
         </div>
         <button
