@@ -1881,7 +1881,7 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
                 onClick={() => setIsBatchMode(true)}
                 className={`flex-1 py-1.5 rounded-lg transition ${isBatchMode ? "bg-white shadow-xs text-blue-900" : "text-slate-600"}`}
               >
-                Pegar Lista Completa (Lote)
+                Pegar Lista Completa
               </button>
             </div>
 
