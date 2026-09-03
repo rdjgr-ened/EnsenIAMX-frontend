@@ -439,7 +439,7 @@ export default function DashboardHub(props: DashboardHubProps) {
                       Diseñar Hoja de Trabajo
                     </h4>
                     <p className="text-slate-500 text-xs font-semibold">
-                      Genera una hoja de trabajo lista para imprimir. Selecciona cualquier sesión de tus planeaciones y Gemini diseñará ejercicios para el alumno.
+                      Genera una hoja de trabajo lista para imprimir. Selecciona cualquier sesión de tus planeaciones y diseña ejercicios para el alumno.
                     </p>
                   </div>
                   
@@ -466,7 +466,7 @@ export default function DashboardHub(props: DashboardHubProps) {
                       Instrumento de Evaluación
                     </h4>
                     <p className="text-slate-500 text-xs font-semibold">
-                      Diseña rúbricas, listas de cotejo o guías de observación evaluativas alineadas automáticamente al PDA y producto de tu planeación.
+                      Diseña rúbricas, listas de cotejo o guías de observación alineadas automáticamente al PDA y producto de tu planeación.
                     </p>
                   </div>
                   

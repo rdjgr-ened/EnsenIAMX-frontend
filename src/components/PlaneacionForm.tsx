@@ -1320,7 +1320,7 @@ export default function PlaneacionForm(props: PlaneacionFormProps) {
           </h2>
         </div>
         <p className="text-xs text-slate-500 mb-6">
-          Selecciona las condiciones o barreras que enfrentan los alumnos de tu grupo para que Gemini diseñe los ajustes razonables pertinentes y aplique el enfoque del Diseño Universal para el Aprendizaje (DUA).
+          Selecciona las condiciones o barreras que enfrentan los alumnos de tu grupo para que la IA diseñe los ajustes razonables pertinentes y aplique el enfoque del Diseño Universal para el Aprendizaje (DUA).
         </p>
 
         <div className="space-y-6">
@@ -1435,7 +1435,7 @@ export default function PlaneacionForm(props: PlaneacionFormProps) {
           ) : (
             <>
               <Sparkles className="w-4 h-4 text-mex-gold fill-mex-gold" />
-              <span>Diseñar Secuencia con Gemini</span>
+              <span>Diseñar Secuencia</span>
               <span className="text-[11px] font-black bg-white/20 px-2 py-0.5 rounded-full text-mex-gold flex items-center gap-1">
                 <Coins className="w-3 h-3" />
                 10 créditos

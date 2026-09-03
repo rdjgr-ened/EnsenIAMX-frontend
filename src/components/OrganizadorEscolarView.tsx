@@ -1129,7 +1129,7 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
                 <span>Mis Planeaciones Didácticas Guardadas</span>
               </h3>
               <p className="text-slate-500 text-xs mt-1">
-                Consulta, imprime o edita en el visor cualquier proyecto didáctico generado con Gemini.
+                Consulta, imprime o edita en el visor cualquier proyecto didáctico.
               </p>
             </div>
 

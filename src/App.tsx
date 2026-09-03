@@ -503,7 +503,7 @@ const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
                   <span>Diseñar Nuevo Proyecto Didáctico</span>
                 </h3>
                 <p className="text-slate-500 text-xs leading-relaxed">
-                  Completa los datos de tu planeación. Gemini diseñará la secuencia didáctica detallada alineada con tu problemática del contexto y los ejes transversales de la NEM.
+                  Completa los datos de tu planeación. La IA diseñará la secuencia didáctica detallada alineada con tu problemática del contexto y los ejes transversales de la NEM.
                 </p>
               </div>
               <button
