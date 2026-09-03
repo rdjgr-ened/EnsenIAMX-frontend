@@ -344,7 +344,7 @@ const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
         }
       }).catch(err => console.warn("Supabase planeaciones load error:", err));
     }
-  }, [userProfile?.email]);
+  }, [userProfile?.id, userProfile?.email]); // 
 
   // 6. CORRECCIÓN: GUARDADO DEL HISTORIAL MAESTRO USANDO UUID
   const savePlansToStorage = (updatedPlans: CompletePlan[]) => {
