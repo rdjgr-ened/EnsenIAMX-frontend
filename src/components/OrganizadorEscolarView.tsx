@@ -1241,7 +1241,7 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
                 <span>Mis Grupos</span>
               </h3>
               <p className="text-slate-500 text-xs mt-1">
-                Registra tus grupos escolares de secundaria e ingresa la lista de tus estudiantes.
+                Registra tus grupos escolares e ingresa la lista de tus estudiantes.
               </p>
             </div>
 
