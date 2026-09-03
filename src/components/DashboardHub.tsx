@@ -221,7 +221,7 @@ export default function DashboardHub(props: DashboardHubProps) {
                     Evaluación
                   </h4>
                   <p className="text-slate-500 text-xs mt-2 leading-relaxed font-semibold">
-                    Generación de formatos en Excel/Google Sheets, exámenes y suma automática de evaluación continua por grupo.
+                    Generación de formatos de evaluación trimestrales, exámenes y suma automática de evaluación continua por grupo.
                   </p>
                 </div>
               </div>
