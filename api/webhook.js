@@ -26,30 +26,45 @@ export default async function handler(req, res) {
         const userId = paymentData.external_reference || paymentData.metadata?.user_id;
 
         if (userId) {
-          // Lectura directa desde metadatos con respaldo de parsing
-          const planNombre = paymentData.metadata?.plan_id || 'platino';
-          const creditosAAsignar = Number(paymentData.metadata?.credits || 300);
-          const cycle = paymentData.metadata?.billing_cycle || 'mensual';
+          // Lectura directa desde metadatos
+const planNombre = paymentData.metadata?.plan_id || 'platino';
+const creditosAAsignar = Number(paymentData.metadata?.credits || 300);
+const cycle = paymentData.metadata?.billing_cycle || 'mensual';
 
-          // Actualización directa en la base de datos de Supabase
-          const { error } = await supabaseAdmin
-            .from('profiles')
-            .update({
-              plan: planNombre,
-              creditos_disponibles: creditosAAsignar,
-              billing_cycle: cycle,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', userId);
+// Calcular fechas de expiración y próxima recarga
+const now = new Date();
+let planEndDate = new Date();
+let nextRechargeDate = new Date();
 
-          if (error) {
-            console.error('Error al actualizar Supabase desde Webhook:', error);
-          } else {
-            console.log(`✅ Plan ${planNombre} (${creditosAAsignar} créditos) activado para usuario ${userId}`);
-          }
-        }
-      }
-    }
+if (cycle === 'anual') {
+  planEndDate.setFullYear(now.getFullYear() + 1); // Vence en 1 año
+  nextRechargeDate.setMonth(now.getMonth() + 1);  // Recarga en 1 mes
+} else if (cycle === 'trimestral') {
+  planEndDate.setMonth(now.getMonth() + 3);       // Vence en 3 meses
+  nextRechargeDate.setMonth(now.getMonth() + 1);  // Recarga en 1 mes
+} else {
+  planEndDate.setMonth(now.getMonth() + 1);       // Mensual vence en 1 mes
+  nextRechargeDate = planEndDate;
+}
+
+// Actualización segura en la base de datos de Supabase
+const { error } = await supabaseAdmin
+  .from('profiles')
+  .update({
+    plan: planNombre,
+    creditos_disponibles: creditosAAsignar,
+    billing_cycle: cycle,
+    plan_end_date: planEndDate.toISOString(),
+    next_recharge_date: nextRechargeDate.toISOString(),
+    updated_at: now.toISOString()
+  })
+  .eq('id', userId);
+
+if (error) {
+  console.error('Error FATAL actualizando Supabase desde Webhook:', error);
+} else {
+  console.log(`✅ Plan ${planNombre} (${cycle}) activado para usuario ${userId}. Expira: ${planEndDate.toISOString()}`);
+}
 
     return res.status(200).send('OK');
   } catch (error) {
