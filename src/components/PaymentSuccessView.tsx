@@ -43,7 +43,6 @@ export default function PaymentSuccessView({
     billingCycle?: BillingCycle;
     creditsAdded: number;
     price: number;
-    userEmail?: string;
     processed: boolean;
     isDemo?: boolean;
   }>({
@@ -61,52 +60,70 @@ export default function PaymentSuccessView({
   useEffect(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
+      // Las suscripciones a veces regresan como 'authorized' o 'pending' inicialmente
       const status = urlParams.get("collection_status") || urlParams.get("status") || "approved";
-      const paymentId = urlParams.get("payment_id") || urlParams.get("collection_id") || `MP_${Date.now().toString().slice(-6)}`;
+      
+      // En Suscripciones (PreApproval) MP envía preapproval_id. En pagos únicos envía payment_id
+      const paymentId = urlParams.get("preapproval_id") || urlParams.get("payment_id") || urlParams.get("collection_id") || `MP_${Date.now().toString().slice(-6)}`;
       const preferenceId = urlParams.get("preference_id") || "";
       const isDemo = urlParams.get("is_demo") === "true";
       const externalRefRaw = urlParams.get("external_reference");
 
-      let refData: any = {};
+      let itemType: "plan" | "credits" = urlParams.get("type") === "credits" ? "credits" : "plan";
+      let planId: PlanTier = (urlParams.get("plan") as PlanTier) || "platino";
+      let billingCycle: BillingCycle = (urlParams.get("cycle") as BillingCycle) || "mensual";
+      let creditsAdded = 0;
+
+      // 1. DESEMPAQUETAR LOS DATOS SEGUROS
       if (externalRefRaw) {
-        try {
-          refData = JSON.parse(decodeURIComponent(externalRefRaw));
-        } catch (e) {
-          console.warn("Could not parse external_reference JSON:", e);
+        if (externalRefRaw.includes('|')) {
+          // A) NUEVO SISTEMA (Suscripciones PreApproval): "userId|planId|cycle|credits"
+          const parts = externalRefRaw.split('|');
+          planId = (parts[1] as PlanTier) || planId;
+          billingCycle = (parts[2] as BillingCycle) || billingCycle;
+          creditsAdded = Number(parts[3]) || 0;
+        } else {
+          // B) SISTEMA VIEJO (Respaldo por si entra un JSON)
+          try {
+            const refData = JSON.parse(decodeURIComponent(externalRefRaw));
+            itemType = refData.itemType || itemType;
+            planId = refData.planId || planId;
+            billingCycle = refData.billingCycle || billingCycle;
+            creditsAdded = Number(refData.creditsAdded) || 0;
+          } catch (e) {
+            console.warn("No es un JSON, asumiendo formato plano");
+          }
         }
       }
 
-      const itemType = refData.itemType || (urlParams.get("type") === "credits" ? "credits" : "plan");
-      
-      const rawPrice = Number(refData.price) || Number(urlParams.get("price")) || 149;
-      let planId = refData.planId || (urlParams.get("plan") as PlanTier);
-      if (!planId && itemType === "plan") {
-        planId = rawPrice > 100 ? "platino" : "oro";
+      // 2. OBTENER CRÉDITOS SI FALTAN
+      if (!creditsAdded) {
+        creditsAdded = itemType === "credits" ? 80 : (PLAN_CONFIGS[planId]?.credits || 300);
       }
-      planId = planId || "platino";
 
-      const billingCycle = refData.billingCycle || (urlParams.get("cycle") as BillingCycle) || "mensual";
-      const creditsAdded = Number(refData.creditsAdded) || (itemType === "credits" ? 80 : PLAN_CONFIGS[planId as PlanTier]?.creditsPerMonth || 100);
-      const price = rawPrice;
-      const userEmail = refData.userEmail;
+      // 3. CALCULAR EL PRECIO MOSTRADO EN PANTALLA
+      const PRICING: any = {
+        basico: { mensual: 49, trimestral: 147, anual: 588 },
+        oro: { mensual: 99, trimestral: 249, anual: 799 },
+        platino: { mensual: 149, trimestral: 399, anual: 999 }
+      };
+      const price = PRICING[planId]?.[billingCycle] || 149;
 
       // CANDADO DE SEGURIDAD ESTRICTO: Evita el exploit de F5 (recargar página)
       const processedKey = `mp_processed_${paymentId}`;
       const alreadyProcessed = sessionStorage.getItem(processedKey) === "true";
 
-      if (!alreadyProcessed && (status === "approved" || status === "authorized" || isDemo)) {
-        // Bloqueamos inmediatamente para que no se ejecute dos veces
+      if (!alreadyProcessed && (status === "approved" || status === "authorized" || status === "pending" || isDemo)) {
         sessionStorage.setItem(processedKey, "true");
         
         let updatedSub = { ...currentSubscription };
 
-        if (itemType === "plan" && planId && PLAN_CONFIGS[planId as PlanTier]) {
-          // CORRECCIÓN 1: Extraer los créditos exactos desde la configuración local
+        if (itemType === "plan" && planId && PLAN_CONFIGS[planId]) {
           updatedSub = {
             ...currentSubscription,
-            plan: planId as PlanTier,
+            plan: planId,
             billingCycle: billingCycle,
-            credits: PLAN_CONFIGS[planId as PlanTier].credits
+            credits: creditsAdded
           };
         } else if (itemType === "credits") {
           updatedSub = addExtraCredits(currentSubscription, creditsAdded);
@@ -114,9 +131,6 @@ export default function PaymentSuccessView({
 
         onSubscriptionUpdate(updatedSub);
         saveUserSubscription(updatedSub);
-
-        // CORRECCIÓN 2: Eliminamos la llamada a 'upsertProfile' aquí. 
-        // El Frontend ya NO DEBE sobrescribir Supabase. El Webhook hizo el trabajo.
       }
 
       setPaymentDetails({
@@ -128,7 +142,6 @@ export default function PaymentSuccessView({
         billingCycle,
         creditsAdded,
         price,
-        userEmail,
         processed: true,
         isDemo,
       });
@@ -161,12 +174,12 @@ export default function PaymentSuccessView({
 
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
               {paymentDetails.itemType === "plan" 
-                ? `¡Bienvenido al ${planConfig?.name || "Plan Platino"}!` 
+                ? `¡Suscripción al ${planConfig?.name || "Plan Platino"} Activa!` 
                 : `¡Recarga de ${paymentDetails.creditsAdded} Créditos Exitosa!`}
             </h1>
 
             <p className="text-emerald-100/90 text-xs sm:text-sm mt-1.5 max-w-lg">
-              Tu transacción ha sido procesada de manera segura. Tu cuenta ha sido actualizada con los nuevos créditos y beneficios.
+              Tu suscripción recurrente ha sido procesada de manera segura. Tu cuenta ha sido actualizada con los nuevos créditos y beneficios.
             </p>
           </div>
         </div>
@@ -180,7 +193,7 @@ export default function PaymentSuccessView({
               <div className="flex items-center gap-2">
                 <Receipt className="w-4 h-4 text-slate-500" />
                 <span className="font-extrabold text-xs text-slate-700 uppercase tracking-wider">
-                  Detalles del Comprobante
+                  Detalles de tu Suscripción
                 </span>
               </div>
               <span className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
@@ -200,21 +213,21 @@ export default function PaymentSuccessView({
               </div>
 
               <div>
-                <span className="text-slate-400 font-bold block">Total Pagado:</span>
+                <span className="text-slate-400 font-bold block">Primer Pago:</span>
                 <span className="font-black text-slate-900 text-sm">
                   ${paymentDetails.price} MXN
                 </span>
               </div>
 
               <div>
-                <span className="text-slate-400 font-bold block">ID de Transacción:</span>
+                <span className="text-slate-400 font-bold block">ID de Autorización:</span>
                 <span className="font-mono text-slate-700 font-semibold break-all">
                   {paymentDetails.paymentId || "MP-TX-ONLINE"}
                 </span>
               </div>
 
               <div>
-                <span className="text-slate-400 font-bold block">Fecha:</span>
+                <span className="text-slate-400 font-bold block">Fecha de Activación:</span>
                 <span className="text-slate-700 font-semibold">
                   {new Date().toLocaleDateString("es-MX", { 
                     year: "numeric", 
@@ -262,7 +275,7 @@ export default function PaymentSuccessView({
               className="w-full py-3.5 px-5 bg-gradient-to-r from-mex-maroon to-red-900 hover:from-red-900 hover:to-red-950 text-white font-black rounded-xl text-xs uppercase tracking-wider transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
             >
               <Sparkles className="w-4 h-4 text-mex-gold" />
-              <span>Crear Nueva Planeación Didáctica</span>
+              <span>Diseñar un Proyecto NEM</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
