@@ -23,15 +23,17 @@ export default async function handler(req, res) {
 
         let userId, planNombre, cycle, creditosAAsignar;
 
-        // 1. Leer el nuevo separador "_"
+        // 1. NUEVO SISTEMA (Suscripciones): Desempaquetar "userId_planId_cycle"
         if (externalRef.includes('_')) {
           const parts = externalRef.split('_');
           userId = parts[0];
           planNombre = parts[1];
-          cycle = parts[2];
-          creditosAAsignar = Number(parts[3]);
-        } else {
-          // Respaldo para cobros viejos
+          cycle = parts[2] || 'mensual';
+          // Asignar créditos de forma segura desde el Backend
+          creditosAAsignar = planNombre === 'platino' ? 300 : planNombre === 'oro' ? 100 : 50;
+        } 
+        // 2. SISTEMA VIEJO (Preference): Respaldo
+        else {
           userId = externalRef || metadata.user_id;
           planNombre = metadata.plan_id || 'platino';
           cycle = metadata.billing_cycle || 'mensual';
