@@ -70,14 +70,14 @@ if (!userId) {
 }
 
     try {
-const response = await fetch("/api/create-preference", {
-      method: "POST",
+      const response = await fetch("/api/create-preference", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           planId: plan,
           billingCycle: billingCycle,
-          userId: userId,
-          userEmail: profile.email || "docente@enseniamx.app",
+          userId: userId
+          // ELIMINAMOS el envío del email. El backend ahora lo busca por su cuenta.
         }),
       });
 
