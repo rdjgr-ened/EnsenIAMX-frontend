@@ -610,12 +610,14 @@ export default function PlaneacionForm(props: PlaneacionFormProps) {
     }
   }, [initialData]);
 
-  // Sync dates to duracionSemanas
+ // Sync dates to duracionSemanas
   useEffect(() => {
     if (startDate && endDate) {
       try {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
+        // CORRECCIÓN: Se agrega 'T12:00:00' para evitar que la zona horaria retrase un día
+        const start = new Date(startDate + 'T12:00:00');
+        const end = new Date(endDate + 'T12:00:00');
+        
         const diffTime = Math.abs(end.getTime() - start.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         const weeks = Math.round(diffDays / 7);
