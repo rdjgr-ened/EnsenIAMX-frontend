@@ -74,25 +74,16 @@ export default function PaymentSuccessView({
       let billingCycle: BillingCycle = (urlParams.get("cycle") as BillingCycle) || "mensual";
       let creditsAdded = 0;
 
-      // 1. DESEMPAQUETAR LOS DATOS SEGUROS
+      // 1. DESEMPAQUETAR (Modelo Prepago)
       if (externalRefRaw) {
-        if (externalRefRaw.includes('_')) {
-          // A) NUEVO SISTEMA (Suscripciones PreApproval): "userId_planId_cycle_credits"
-          const parts = externalRefRaw.split('_');
-          planId = (parts[1] as PlanTier) || planId;
-          billingCycle = (parts[2] as BillingCycle) || billingCycle;
-          creditsAdded = Number(parts[3]) || 0;
-        } else {
-          // B) SISTEMA VIEJO (Respaldo)
-          try {
-            const refData = JSON.parse(decodeURIComponent(externalRefRaw));
-            itemType = refData.itemType || itemType;
-            planId = refData.planId || planId;
-            billingCycle = refData.billingCycle || billingCycle;
-            creditsAdded = Number(refData.creditsAdded) || 0;
-          } catch (e) {
-            console.warn("No es un JSON, asumiendo formato plano");
-          }
+        try {
+          const refData = JSON.parse(decodeURIComponent(externalRefRaw));
+          itemType = refData.itemType || itemType;
+          planId = refData.planId || planId;
+          billingCycle = refData.billingCycle || billingCycle;
+          creditsAdded = Number(refData.creditsAdded) || 0;
+        } catch (e) {
+          console.warn("No es un JSON, asumiendo formato plano");
         }
       }
 

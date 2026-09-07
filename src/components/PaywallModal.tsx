@@ -70,22 +70,13 @@ if (!userId) {
 }
 
     try {
-      const userEmail = profile.email;
-
-      if (!userEmail) {
-        setCheckoutError("Error: No se encontró un correo asociado a tu cuenta.");
-        setLoadingItem(null);
-        return;
-      }
-
       const response = await fetch("/api/create-preference", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           planId: plan,
           billingCycle: billingCycle,
-          userId: userId,
-          userEmail: userEmail
+          userId: userId
         }),
       });
 
