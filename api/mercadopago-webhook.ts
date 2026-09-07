@@ -1,7 +1,6 @@
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { createClient } from '@supabase/supabase-js';
 
-// Cliente de Supabase con Service Role Key (salta RLS)
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAdmin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -14,7 +13,6 @@ export default async function handler(req, res) {
     const paymentId = req.query['data.id'] || req.query.id || req.body?.data?.id;
     const type = req.query.type || req.query.topic || req.body?.type;
 
-    // Mercado Pago dispara un evento 'payment' cuando el cobro de la suscripción es exitoso
     if (type === 'payment' && paymentId) {
       const payment = new Payment(mpClient);
       const paymentData = await payment.get({ id: paymentId });
@@ -25,16 +23,15 @@ export default async function handler(req, res) {
 
         let userId, planNombre, cycle, creditosAAsignar;
 
-        // 1. NUEVO SISTEMA (PreApproval): Desempaquetar los datos de la Suscripción
-        if (externalRef.includes('|')) {
-          const parts = externalRef.split('|');
+        // 1. Leer el nuevo separador "_"
+        if (externalRef.includes('_')) {
+          const parts = externalRef.split('_');
           userId = parts[0];
           planNombre = parts[1];
           cycle = parts[2];
           creditosAAsignar = Number(parts[3]);
-        } 
-        // 2. SISTEMA VIEJO (Preference): Respaldo para pagos que se quedaron pendientes
-        else {
+        } else {
+          // Respaldo para cobros viejos
           userId = externalRef || metadata.user_id;
           planNombre = metadata.plan_id || 'platino';
           cycle = metadata.billing_cycle || 'mensual';
@@ -42,7 +39,6 @@ export default async function handler(req, res) {
         }
 
         if (userId) {
-          // Calcular fechas exactas para el Robot (Cron Job) en Supabase
           const now = new Date();
           let planEndDate = new Date();
           let nextRechargeDate = new Date();
@@ -58,7 +54,6 @@ export default async function handler(req, res) {
             nextRechargeDate = planEndDate;
           }
 
-          // Inyectar en Supabase
           const { error } = await supabaseAdmin
             .from('profiles')
             .update({
@@ -72,17 +67,16 @@ export default async function handler(req, res) {
             .eq('id', userId);
 
           if (error) {
-            console.error('Error FATAL actualizando Supabase desde Webhook:', error);
+            console.error('Error FATAL actualizando Supabase:', error);
           } else {
-            console.log(`✅ Suscripción / Pago ${planNombre} (${cycle}) procesado para ${userId}`);
+            console.log(`✅ Suscripción ${planNombre} (${cycle}) procesada para ${userId}`);
           }
         }
       }
     }
-
     return res.status(200).send('OK');
   } catch (error) {
-    console.error('Error interno procesando Webhook:', error);
+    console.error('Error procesando Webhook:', error);
     return res.status(200).send('OK');
   }
 }

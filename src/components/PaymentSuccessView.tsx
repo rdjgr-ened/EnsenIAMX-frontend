@@ -76,14 +76,14 @@ export default function PaymentSuccessView({
 
       // 1. DESEMPAQUETAR LOS DATOS SEGUROS
       if (externalRefRaw) {
-        if (externalRefRaw.includes('|')) {
-          // A) NUEVO SISTEMA (Suscripciones PreApproval): "userId|planId|cycle|credits"
-          const parts = externalRefRaw.split('|');
+        if (externalRefRaw.includes('_')) {
+          // A) NUEVO SISTEMA (Suscripciones PreApproval): "userId_planId_cycle_credits"
+          const parts = externalRefRaw.split('_');
           planId = (parts[1] as PlanTier) || planId;
           billingCycle = (parts[2] as BillingCycle) || billingCycle;
           creditsAdded = Number(parts[3]) || 0;
         } else {
-          // B) SISTEMA VIEJO (Respaldo por si entra un JSON)
+          // B) SISTEMA VIEJO (Respaldo)
           try {
             const refData = JSON.parse(decodeURIComponent(externalRefRaw));
             itemType = refData.itemType || itemType;
