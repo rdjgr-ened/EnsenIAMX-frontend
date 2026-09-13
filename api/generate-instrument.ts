@@ -141,10 +141,11 @@ export default async function handler(req: any, res: any) {
       model: "gemini-3.6-flash",
       contents: prompt,
       config: {
-        responseMimeType: "application/json",
-        responseSchema: responseSchema,
-        temperature: 0.3,
-      },
+          responseMimeType: "application/json",
+          responseSchema: responseSchema,
+          temperature: 0.3,
+          maxOutputTokens: 8192,
+        },
     });
 
     const responseText = result.text;
