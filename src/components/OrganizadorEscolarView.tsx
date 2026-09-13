@@ -202,17 +202,24 @@ const [newGroupData, setNewGroupData] = useState({ grado: "1º Secundaria", grup
       fetchSupabaseGrupos(userId).then(async (dbGrupos) => {
         if (dbGrupos && dbGrupos.length > 0) {
           const dbAlumnos = await fetchSupabaseAlumnos(userId);
-          const fullGroups: EscolarGroup[] = dbGrupos.map(g => ({
-            id: g.id,
-            grado: g.grado_grupo.split(" ")[0] || "1º",
-            grupo: g.grado_grupo.split(" ")[1] || "A",
-            nombreCompleto: `${g.grado_grupo} - ${g.materia}`,
-            disciplina: g.materia,
-            turno: "Matutino",
-            estudiantes: dbAlumnos
-              .filter(a => a.grupo_id === g.id)
-              .map(a => ({ id: a.id, nombre: a.nombre_completo, bap: a.bap_diagnostico || undefined }))
-          }));
+          const fullGroups: EscolarGroup[] = dbGrupos.map(g => {
+            // Separamos el texto, tomamos la última letra como Grupo y el resto como Grado
+            const partes = g.grado_grupo.split(" ");
+            const grupoLetra = partes.pop() || "A"; 
+            const gradoTexto = partes.join(" ") || "1º Secundaria";
+            
+            return {
+              id: g.id,
+              grado: gradoTexto,
+              grupo: grupoLetra,
+              nombreCompleto: `${g.grado_grupo} - ${g.materia}`,
+              disciplina: g.materia,
+              turno: "Matutino",
+              estudiantes: dbAlumnos
+                .filter(a => a.grupo_id === g.id)
+                .map(a => ({ id: a.id, nombre: a.nombre_completo, bap: a.bap_diagnostico || undefined }))
+            };
+          });
           setGrupos(fullGroups);
           if (fullGroups.length > 0) {
             setSelectedGroupId(fullGroups[0].id);
