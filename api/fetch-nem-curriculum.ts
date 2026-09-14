@@ -1,124 +1,67 @@
-import { GoogleGenAI, Type } from "@google/genai";
-import {
-  getOrCreateNemPromptCache,
-  NEM_STATIC_CURRICULUM_SYSTEM_INSTRUCTION,
-} from "../src/utils/nemContextCache.js";
-import { getOficialContenidos } from "../src/data/nemCurriculumService.js";
+import { createClient } from '@supabase/supabase-js';
+
+// Inicializa el cliente de Supabase utilizando tus variables de entorno
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req: any, res: any) {
-  res.setHeader?.("Access-Control-Allow-Credentials", "true");
-  res.setHeader?.("Access-Control-Allow-Origin", "*");
-  res.setHeader?.("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT");
-  res.setHeader?.(
-    "Access-Control-Allow-Headers",
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
-  );
+  // Manejo de CORS (si tu frontend y backend están en distintos dominios)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
-  if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "Método no permitido. Utilice POST." });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ success: false, error: 'Método no permitido. Usa POST.' });
+  }
+
+  // Recibimos la petición del frontend (ahora incluye minId y maxId)
+  const { nivel, grado, campoFormativo, disciplina, minId, maxId } = req.body;
 
   try {
-    let body = req.body;
-    if (typeof body === "string") {
-      try { body = JSON.parse(body); } catch (e) { /* ignore */ }
-    }
+    // Iniciamos la consulta base
+    let query = supabase.from('contenidos').select('id, contenido, pdas');
 
-    const { nivel, grado, campoFormativo, disciplina } = body || {};
-
-    if (!nivel || !grado || !campoFormativo) {
-      return res.status(400).json({ 
-        error: "Nivel, grado y campo formativo son requeridos para la consulta curricular." 
-      });
-    }
-
-    // 1. Try local verified comprehensive catalogue first (<1ms response time, 100% fidelity)
-    try {
-      const officialList = getOficialContenidos(nivel, grado, campoFormativo, disciplina);
-      if (officialList && officialList.length > 0) {
-        return res.status(200).json({
-          success: true,
-          source: "official_nem_catalogue",
-          contenidos: officialList,
-          cached: true,
-        });
+    // EL ESCUDO INFALIBLE: Si el frontend envió los rangos numéricos, ignoramos el texto y los acentos.
+    if (minId !== undefined && maxId !== undefined) {
+      query = query.gte('id', minId).lte('id', maxId);
+    } 
+    // PLAN DE RESPALDO: Si no hay IDs, buscamos de la forma tradicional
+    else {
+      if (campoFormativo) {
+        query = query.eq('campo_formativo', campoFormativo);
       }
-    } catch (catErr) {
-      console.warn("Could not query local official catalogue in serverless:", catErr);
+      if (disciplina && disciplina !== "General") {
+        query = query.eq('disciplina', disciplina);
+      }
     }
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
-    if (!apiKey) {
-      return res.status(500).json({ error: "GEMINI_API_KEY no está configurada." });
+    // Ejecutamos la consulta y la ordenamos cronológicamente
+    const { data, error } = await query.order('id', { ascending: true });
+
+    if (error) {
+      throw error;
     }
 
-    const ai = new GoogleGenAI({
-      apiKey,
-      httpOptions: { headers: { "User-Agent": "aistudio-build" } },
-    });
+    // Formateamos los datos para evitar errores si la columna pdas es string en vez de jsonb
+    const contenidosFormateados = data.map((item: any) => ({
+      id: item.id,
+      contenido: item.contenido,
+      pdas: typeof item.pdas === 'string' ? JSON.parse(item.pdas) : (item.pdas || [])
+    }));
 
-    const selectedModel = "gemini-3.7-flash";
-    const prompt = `
-      Eres el Catálogo Curricular Oficial de la Nueva Escuela Mexicana (NEM) y el Plan de Estudio 2022-2026 de la SEP.
-      Extrae y devuelve la lista oficial completa de TODOS los Contenidos Sintéticos Curriculares de la NEM y sus respectivos PDAs para:
-      - Nivel Educativo: ${nivel}
-      - Grado Escolar: ${grado}
-      - Campo Formativo: ${campoFormativo}
-      - Disciplina / Asignatura: ${disciplina || "General"}
-    `;
-
-    const responseSchema = {
-      type: Type.OBJECT,
-      properties: {
-        contenidos: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              id: { type: Type.STRING },
-              contenido: { type: Type.STRING },
-              pdas: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-              },
-            },
-            required: ["id", "contenido", "pdas"],
-          },
-        },
-      },
-      required: ["contenidos"],
-    };
-
-    const generationConfig: any = {
-      responseMimeType: "application/json",
-      responseSchema: responseSchema,
-      temperature: 0.1,
-    };
-
-    try {
-      const cacheResourceName = await getOrCreateNemPromptCache(ai, selectedModel);
-      if (cacheResourceName) generationConfig.cachedContent = cacheResourceName;
-      else generationConfig.systemInstruction = NEM_STATIC_CURRICULUM_SYSTEM_INSTRUCTION;
-    } catch {
-      generationConfig.systemInstruction = NEM_STATIC_CURRICULUM_SYSTEM_INSTRUCTION;
-    }
-
-    const result = await ai.models.generateContent({
-      model: selectedModel,
-      contents: prompt,
-      config: generationConfig,
-    });
-
-    const responseText = result.text;
-    if (!responseText) throw new Error("No se recibió respuesta de Gemini.");
-
-    const parsed = JSON.parse(responseText.trim());
+    // Retornamos el éxito al frontend
     return res.status(200).json({
       success: true,
-      contenidos: parsed.contenidos || [],
-      cached: !!generationConfig.cachedContent,
+      contenidos: contenidosFormateados
     });
+
   } catch (error: any) {
-    console.error("Error in fetch-nem-curriculum serverless handler:", error);
-    return res.status(500).json({ error: error.message || "Error curricular." });
+    console.error('Error en la API fetch-nem-curriculum:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Error interno al consultar la base de datos.'
+    });
   }
 }
