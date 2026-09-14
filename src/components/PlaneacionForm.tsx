@@ -222,36 +222,36 @@ export default function PlaneacionForm(props: PlaneacionFormProps) {
   }, [nivel, grado, selectedCampo, selectedDisciplina]);
 
   const availableContenidos = useMemo(() => {
-  // 1. Máxima prioridad: Los datos correctos de tu BD / API
-  const cached = dynamicContenidosMap[cacheKey];
-  if (cached && Array.isArray(cached) && cached.length > 0) {
-    return cached;
-  }
-  // 2. Respaldo: Archivo estático
-  const officialList = getContenidosPorFiltro(nivel, grado, selectedCampo, selectedDisciplina);
-  if (officialList && officialList.length > 0) {
-    return officialList;
-  }
-  return [];
-}, [dynamicContenidosMap, cacheKey, nivel, grado, selectedCampo, selectedDisciplina]);
+    // 1. Máxima prioridad: Los datos correctos de tu BD / API
+    const cached = dynamicContenidosMap[cacheKey];
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      return cached;
+    }
+    // 2. Respaldo: Archivo estático
+    const officialList = getContenidosPorFiltro(nivel, grado, selectedCampo, selectedDisciplina);
+    if (officialList && officialList.length > 0) {
+      return officialList;
+    }
+    return [];
+  }, [dynamicContenidosMap, cacheKey, nivel, grado, selectedCampo, selectedDisciplina]);
 
   // Combined PDAs for the currently selected Contenido
   const availablePdas = useMemo(() => {
-  // 1. Máxima prioridad: Los datos de tu BD / API
-  const cached = dynamicContenidosMap[cacheKey];
-  if (cached && Array.isArray(cached) && cached.length > 0) {
-    const match = cached.find((item) => item.contenido === selectedContenido);
-    if (match && Array.isArray(match.pdas) && match.pdas.length > 0) {
-      return match.pdas;
+    // 1. Máxima prioridad: Los datos de tu BD / API
+    const cached = dynamicContenidosMap[cacheKey];
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      const match = cached.find((item) => item.contenido === selectedContenido);
+      if (match && Array.isArray(match.pdas) && match.pdas.length > 0) {
+        return match.pdas;
+      }
     }
-  }
-  // 2. Respaldo: Archivo estático
-  const officialPdas = getPdasPorContenido(nivel, grado, selectedCampo, selectedDisciplina, selectedContenido);
-  if (officialPdas && officialPdas.length > 0) {
-    return officialPdas;
-  }
-  return [];
-}, [dynamicContenidosMap, cacheKey, nivel, grado, selectedCampo, selectedDisciplina, selectedContenido]);
+    // 2. Respaldo: Archivo estático
+    const officialPdas = getPdasPorContenido(nivel, grado, selectedCampo, selectedDisciplina, selectedContenido);
+    if (officialPdas && officialPdas.length > 0) {
+      return officialPdas;
+    }
+    return [];
+  }, [dynamicContenidosMap, cacheKey, nivel, grado, selectedCampo, selectedDisciplina, selectedContenido]);
 
   // Function to fetch official contents and PDAs: checks React state & localStorage first ($0 cost, 0 latency)
   const fetchCurriculumFromGemini = async (
@@ -406,13 +406,7 @@ export default function PlaneacionForm(props: PlaneacionFormProps) {
     const firstAsig = asigs[0]?.id || "";
     setSelectedDisciplina(firstAsig);
 
-    const conts = getContenidosPorFiltro(newNivel, newGrado, firstCampo, firstAsig);
-    const firstCont = conts[0]?.contenido || "";
-    setSelectedContenido(firstCont);
-
-    const pdasForCont = getPdasPorContenido(newNivel, newGrado, firstCampo, firstAsig, firstCont);
-    setSelectedPda(pdasForCont[0] || "");
-    setSelectedPdas(pdasForCont.length > 0 ? [pdasForCont[0]] : []);
+    resetContenidoYPda(newNivel, newGrado, firstCampo, firstAsig);
   };
 
   const handleGradoChange = (newGrado: string) => {
@@ -430,14 +424,7 @@ export default function PlaneacionForm(props: PlaneacionFormProps) {
     const validAsig = isAsigValid ? selectedDisciplina : (asigs[0]?.id || "");
     setSelectedDisciplina(validAsig);
 
-    // Reset contenido & pda for new grade to guarantee consistency
-    const conts = getContenidosPorFiltro(nivel, newGrado, validCampo, validAsig);
-    const firstCont = conts[0]?.contenido || "";
-    setSelectedContenido(firstCont);
-
-    const pdasForCont = getPdasPorContenido(nivel, newGrado, validCampo, validAsig, firstCont);
-    setSelectedPda(pdasForCont[0] || "");
-    setSelectedPdas(pdasForCont.length > 0 ? [pdasForCont[0]] : []);
+    resetContenidoYPda(nivel, newGrado, validCampo, validAsig);
   };
 
   const handleCampoChange = (newCampo: string) => {
@@ -463,26 +450,32 @@ export default function PlaneacionForm(props: PlaneacionFormProps) {
     const firstAsig = asigs[0]?.id || "";
     setSelectedDisciplina(firstAsig);
 
-    const conts = getContenidosPorFiltro(nivel, grado, newCampo, firstAsig);
-    const firstCont = conts[0]?.contenido || "";
-    setSelectedContenido(firstCont);
-
-    const pdasForCont = getPdasPorContenido(nivel, grado, newCampo, firstAsig, firstCont);
-    setSelectedPda(pdasForCont[0] || "");
-    setSelectedPdas(pdasForCont.length > 0 ? [pdasForCont[0]] : []);
+    resetContenidoYPda(nivel, grado, newCampo, firstAsig);
   };
 
   const handleDisciplinaChange = (newDisciplina: string) => {
     setSelectedDisciplina(newDisciplina);
+    resetContenidoYPda(nivel, grado, selectedCampo, newDisciplina);
+  };
 
-    // Cascading reset downstream: contenido -> pda
-    const conts = getContenidosPorFiltro(nivel, grado, selectedCampo, newDisciplina);
-    const firstCont = conts[0]?.contenido || "";
-    setSelectedContenido(firstCont);
-
-    const pdasForCont = getPdasPorContenido(nivel, grado, selectedCampo, newDisciplina, firstCont);
-    setSelectedPda(pdasForCont[0] || "");
-    setSelectedPdas(pdasForCont.length > 0 ? [pdasForCont[0]] : []);
+  // Función auxiliar para resetear Contenidos respetando el caché de Supabase
+  const resetContenidoYPda = (n: string, g: string, c: string, d: string) => {
+    const key = `${n}__${g}__${c}__${d}`;
+    const cached = dynamicContenidosMap[key];
+    
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      setSelectedContenido(cached[0].contenido);
+      const firstPdas = cached[0].pdas || [];
+      setSelectedPda(firstPdas[0] || "");
+      setSelectedPdas(firstPdas.length > 0 ? [firstPdas[0]] : []);
+    } else {
+      const conts = getContenidosPorFiltro(n, g, c, d);
+      const firstCont = conts[0]?.contenido || "";
+      setSelectedContenido(firstCont);
+      const pdasForCont = getPdasPorContenido(n, g, c, d, firstCont);
+      setSelectedPda(pdasForCont[0] || "");
+      setSelectedPdas(pdasForCont.length > 0 ? [pdasForCont[0]] : []);
+    }
   };
 
   const handleContenidoChange = (newContenido: string) => {
