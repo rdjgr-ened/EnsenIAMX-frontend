@@ -222,32 +222,36 @@ export default function PlaneacionForm(props: PlaneacionFormProps) {
   }, [nivel, grado, selectedCampo, selectedDisciplina]);
 
   const availableContenidos = useMemo(() => {
-    const officialList = getContenidosPorFiltro(nivel, grado, selectedCampo, selectedDisciplina);
-    if (officialList && officialList.length > 0) {
-      return officialList;
-    }
-    const cached = dynamicContenidosMap[cacheKey];
-    if (cached && Array.isArray(cached) && cached.length > 0) {
-      return cached;
-    }
-    return [];
-  }, [dynamicContenidosMap, cacheKey, nivel, grado, selectedCampo, selectedDisciplina]);
+  // 1. Máxima prioridad: Los datos correctos de tu BD / API
+  const cached = dynamicContenidosMap[cacheKey];
+  if (cached && Array.isArray(cached) && cached.length > 0) {
+    return cached;
+  }
+  // 2. Respaldo: Archivo estático
+  const officialList = getContenidosPorFiltro(nivel, grado, selectedCampo, selectedDisciplina);
+  if (officialList && officialList.length > 0) {
+    return officialList;
+  }
+  return [];
+}, [dynamicContenidosMap, cacheKey, nivel, grado, selectedCampo, selectedDisciplina]);
 
   // Combined PDAs for the currently selected Contenido
   const availablePdas = useMemo(() => {
-    const officialPdas = getPdasPorContenido(nivel, grado, selectedCampo, selectedDisciplina, selectedContenido);
-    if (officialPdas && officialPdas.length > 0) {
-      return officialPdas;
+  // 1. Máxima prioridad: Los datos de tu BD / API
+  const cached = dynamicContenidosMap[cacheKey];
+  if (cached && Array.isArray(cached) && cached.length > 0) {
+    const match = cached.find((item) => item.contenido === selectedContenido);
+    if (match && Array.isArray(match.pdas) && match.pdas.length > 0) {
+      return match.pdas;
     }
-    const cached = dynamicContenidosMap[cacheKey];
-    if (cached && Array.isArray(cached) && cached.length > 0) {
-      const match = cached.find((item) => item.contenido === selectedContenido);
-      if (match && Array.isArray(match.pdas) && match.pdas.length > 0) {
-        return match.pdas;
-      }
-    }
-    return [];
-  }, [dynamicContenidosMap, cacheKey, nivel, grado, selectedCampo, selectedDisciplina, selectedContenido]);
+  }
+  // 2. Respaldo: Archivo estático
+  const officialPdas = getPdasPorContenido(nivel, grado, selectedCampo, selectedDisciplina, selectedContenido);
+  if (officialPdas && officialPdas.length > 0) {
+    return officialPdas;
+  }
+  return [];
+}, [dynamicContenidosMap, cacheKey, nivel, grado, selectedCampo, selectedDisciplina, selectedContenido]);
 
   // Function to fetch official contents and PDAs: checks React state & localStorage first ($0 cost, 0 latency)
   const fetchCurriculumFromGemini = async (
@@ -287,6 +291,7 @@ export default function PlaneacionForm(props: PlaneacionFormProps) {
               const firstPdas = list[0]?.pdas || [];
               if (firstPdas.length > 0) {
                 setSelectedPda(firstPdas[0]);
+                setSelectedPdas([firstPdas[0]]);
               }
               return firstCont;
             });
@@ -357,6 +362,7 @@ export default function PlaneacionForm(props: PlaneacionFormProps) {
           const firstPdas = fetchedList[0]?.pdas || [];
           if (firstPdas.length > 0) {
             setSelectedPda(firstPdas[0]);
+            setSelectedPdas([firstPdas[0]]);
           }
           return firstCont;
         });
