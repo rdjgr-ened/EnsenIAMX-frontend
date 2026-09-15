@@ -1,6 +1,16 @@
-import React, { useState, useEffect } from "react";
-import { BookOpen, Sparkles, RefreshCw, AlertCircle, Layers, ArrowLeft, Coins } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { 
+  getGradosPorNivel, 
+  getCamposFormativos, 
+  getFaseByNivelGrado,
+} from "../data/nemData";
+import { Sparkles, BookOpen, User, School, Calendar, RefreshCw, Layers, FileText, Accessibility, Users, Coins, ArrowLeft } from "lucide-react";
 import { supabase } from "../utils/supabaseClient";
+
+interface ProyectosDeAulaProps {
+  onVolver: () => void;
+  onPlanGenerated: (planData: any) => void;
+}
 
 export interface ProyectoLibro {
   id: number;
@@ -11,100 +21,266 @@ export interface ProyectoLibro {
   paginas: string;
 }
 
-interface ProyectosDeAulaProps {
-  onVolver: () => void;
-  onPlanGenerated: (planData: any) => void;
-}
+const EJES_ARTICULADORES = [
+  { id: "Inclusión", label: "Inclusión", desc: "Equidad en oportunidades y reconocimiento de la diversidad." },
+  { id: "Pensamiento crítico", label: "Pensamiento Crítico", desc: "Cuestionamiento, análisis y argumentación de la realidad." },
+  { id: "Interculturalidad crítica", label: "Interculturalidad Crítica", desc: "Diálogo horizontal y valoración de culturas y saberes." },
+  { id: "Igualdad de género", label: "Igualdad de Género", desc: "Prevención de brechas de género y fomento de derechos mutuos." },
+  { id: "Vida saludable", label: "Vida Saludable", desc: "Alimentación sana, higiene, deporte y bienestar integral." },
+  { id: "Apropiación de las culturas a través de la lectura y la escritura", label: "Apropiación de las Culturas", desc: "La lectura y escritura como ventanas al mundo y autoconocimiento." },
+  { id: "Artes y experiencias estéticas", label: "Artes y Exp. Estéticas", desc: "Sensibilidad, creatividad y expresión lúdico-estética." },
+];
+
+const METODOLOGIAS = [
+  { id: "Aprendizaje Basado en Proyectos Comunitarios (ABPC)", label: "Proyectos Comunitarios (ABPC)", desc: "Ideal para el Campo Formativo de Lenguajes. 3 fases y 11 momentos." },
+  { id: "Aprendizaje Basado en Indagación (STEAM)", label: "Indagación (STEAM)", desc: "Ideal para Saberes y Pensamiento Científico. Enfoque científico e investigación." },
+  { id: "Aprendizaje Basado en Problemas (ABP)", label: "Basado en Problemas (ABP)", desc: "Ideal para Ética, Naturaleza y Sociedades. 6 momentos para analizar la realidad." },
+  { id: "Aprendizaje Servicio (AS)", label: "Aprendizaje Servicio (AS)", desc: "Ideal para De lo Humano y lo Comunitario. 5 etapas vinculando escuela y comunidad." },
+];
+
+const BAP_CATEGORIES = [
+  {
+    category: "Alumnos con discapacidad y dificultades severas",
+    subcategories: [
+      {
+        name: "Con Discapacidad",
+        items: [
+          { id: "DI", label: "Intelectual", code: "DI" },
+          { id: "DMO", label: "Motriz", code: "DMO" },
+          { id: "SO", label: "Auditiva - Sordera", code: "SO" },
+          { id: "HP", label: "Auditiva - Hipoacusia", code: "HP" },
+          { id: "CEG", label: "Visual - Ceguera", code: "CEG" },
+          { id: "BV", label: "Visual - Baja Visión", code: "BV" },
+          { id: "DM", label: "Múltiple", code: "DM" },
+          { id: "SCG", label: "Sordoceguera", code: "SCG" },
+          { id: "DME", label: "Mental o Psicosocial", code: "DME" }
+        ]
+      },
+      {
+        name: "Dificultades Severas",
+        items: [
+          { id: "DSC", label: "De Conducta", code: "DSC" },
+          { id: "DSCO", label: "De Comunicación", code: "DSCO" },
+          { id: "DSA", label: "De Aprendizaje", code: "DSA" }
+        ]
+      },
+      {
+        name: "Trastornos",
+        items: [
+          { id: "TEA", label: "Trastorno (condición) del Espectro Autista", code: "TEA" },
+          { id: "TDAH", label: "Trastorno por Déficit de Atención e Hiperactividad", code: "TDAH" }
+        ]
+      }
+    ]
+  },
+  {
+    category: "Aptitudes Sobresalientes",
+    subcategories: [
+      {
+        name: "Aptitudes Sobresalientes",
+        items: [
+          { id: "ASI", label: "Intelectual", code: "ASI" },
+          { id: "ASC", label: "Creativa", code: "ASC" },
+          { id: "ASS", label: "Socioafectiva", code: "ASS" },
+          { id: "ASA", label: "Artística", code: "ASA" },
+          { id: "ASP", label: "Psicomotriz", code: "ASP" }
+        ]
+      }
+    ]
+  }
+];
 
 export default function ProyectosDeAula({ onVolver, onPlanGenerated }: ProyectosDeAulaProps) {
+  // Estados Generales
+  const [docenteName, setDocenteName] = useState<string>("Docente");
+  const [escuelaName, setEscuelaName] = useState<string>("Escuela");
+  const [cct, setCct] = useState<string>("CCT");
+  const [grupo, setGrupo] = useState<string>("A");
+  const [nivel, setNivel] = useState<string>("Primaria");
+  const [grado, setGrado] = useState<string>("Primer Grado");
+  const [duracionSemanas, setDuracionSemanas] = useState<string>("2 semanas");
+  const [numSesiones, setNumSesiones] = useState<number>(8);
+  const [duracionSesion, setDuracionSesion] = useState<string>("50 minutos");
+  const [escuelasList, setEscuelasList] = useState<Array<{ escuelaName: string; cct: string }>>([]);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Estados de Fechas
+  const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
+  const [endDate, setEndDate] = useState<string>(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + 14);
+    return date.toISOString().split("T")[0];
+  });
+
+  // Estados Curriculares y de Proyecto
+  const [selectedCampo, setSelectedCampo] = useState<string>("lenguajes");
   const [proyectos, setProyectos] = useState<ProyectoLibro[]>([]);
-  const [isLoadingDatos, setIsLoadingDatos] = useState(true);
-  
-  // Filtros
-  const [filtroNivel, setFiltroNivel] = useState("Primaria");
-  const [filtroGrado, setFiltroGrado] = useState<number>(1);
-  const [filtroCampo, setFiltroCampo] = useState<string>("Todos");
+  const [selectedProyectoId, setSelectedProyectoId] = useState<number | "">("");
+  const [isLoadingProyectos, setIsLoadingProyectos] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  // Estado para guardar los campos formativos únicos que existan en la BD para el grado seleccionado
-  const [camposDisponibles, setCamposDisponibles] = useState<string[]>([]);
+  // Estados NEM adicionales
+  const [selectedEjes, setSelectedEjes] = useState<string[]>(["Inclusión"]);
+  const [selectedMetodologia, setSelectedMetodologia] = useState<string>("Aprendizaje Basado en Proyectos Comunitarios (ABPC)");
+  const [situacionProblema, setSituacionProblema] = useState<string>("");
+  const [selectedBap, setSelectedBap] = useState<string[]>([]);
 
-  // Estados de generación
-  const [generatingId, setGeneratingId] = useState<number | null>(null);
-  const [errorGlobal, setErrorGlobal] = useState<string | null>(null);
+  // Opciones calculadas
+  const currentFaseObj = useMemo(() => getFaseByNivelGrado(nivel, grado), [nivel, grado]);
+  const availableGrados = useMemo(() => getGradosPorNivel(nivel), [nivel]);
+  const availableCampos = useMemo(() => getCamposFormativos(nivel, grado), [nivel, grado]);
 
-  // Cargar proyectos de la base de datos
+  // Cargar perfil
+  useEffect(() => {
+    try {
+      const savedProfile = localStorage.getItem("nem_secundaria_profile");
+      if (savedProfile) {
+        const profile = JSON.parse(savedProfile);
+        if (profile?.docenteName) setDocenteName(profile.docenteName);
+        if (profile?.escuelaName) setEscuelaName(profile.escuelaName);
+        if (profile?.cct) setCct(profile.cct);
+        if (profile?.escuelas && Array.isArray(profile.escuelas) && profile.escuelas.length > 0) {
+          setEscuelasList(profile.escuelas);
+          const matched = profile.escuelas.find((e: any) => e?.escuelaName === profile.escuelaName && e?.cct === profile.cct);
+          if (!matched) {
+            setEscuelaName(profile.escuelas[0]?.escuelaName || "");
+            setCct(profile.escuelas[0]?.cct || "");
+          }
+        } else if (profile?.escuelaName && profile?.cct) {
+          setEscuelasList([{ escuelaName: profile.escuelaName, cct: profile.cct }]);
+        }
+      }
+    } catch (e) {
+      console.error("Error loading profile:", e);
+    }
+  }, []);
+
+  // Calcular duración en semanas
+  useEffect(() => {
+    if (startDate && endDate) {
+      try {
+        const start = new Date(startDate + 'T12:00:00');
+        const end = new Date(endDate + 'T12:00:00');
+        const diffTime = Math.abs(end.getTime() - start.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const weeks = Math.round(diffDays / 7);
+        const options: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
+        const startStr = start.toLocaleDateString("es-MX", options);
+        const endStr = end.toLocaleDateString("es-MX", options);
+
+        if (weeks <= 1) setDuracionSemanas(`${diffDays} días (del ${startStr} al ${endStr})`);
+        else setDuracionSemanas(`${weeks} semanas (del ${startStr} al ${endStr})`);
+      } catch (e) {
+        setDuracionSemanas("2 semanas");
+      }
+    }
+  }, [startDate, endDate]);
+
+  // Cargar Proyectos desde Supabase
   useEffect(() => {
     const fetchProyectos = async () => {
-      setIsLoadingDatos(true);
+      setIsLoadingProyectos(true);
+      setProyectos([]);
+      setSelectedProyectoId("");
+
+      const gradoToNumMap: Record<string, number> = {
+        "Primer Grado": 1, "Segundo Grado": 2, "Tercer Grado": 3,
+        "Cuarto Grado": 4, "Quinto Grado": 5, "Sexto Grado": 6
+      };
+      const gradoNum = gradoToNumMap[grado] || 1;
+
+      const campoObj = availableCampos.find((c) => c.id === selectedCampo);
+      const nombreCampoBusqueda = campoObj?.nombre || "Lenguajes";
+
       try {
-        let query = supabase
+        const { data, error } = await supabase
           .from('proyectos_libros')
           .select('*')
-          .eq('nivel', filtroNivel)
-          .eq('grado', filtroGrado)
+          .eq('nivel', nivel)
+          .eq('grado', gradoNum)
+          .ilike('campo_formativo', `%${nombreCampoBusqueda}%`)
           .order('id', { ascending: true });
-
-        // Si hay un campo seleccionado (y no es "Todos"), aplicamos el filtro
-        if (filtroCampo !== "Todos") {
-          query = query.eq('campo_formativo', filtroCampo);
-        }
-
-        const { data, error } = await query;
 
         if (error) throw error;
         
-        const proyectosObtenidos = data || [];
-        setProyectos(proyectosObtenidos);
-
-        // Si estamos buscando "Todos", actualizamos la lista de campos disponibles
-        if (filtroCampo === "Todos") {
-           const camposUnicos = Array.from(new Set(proyectosObtenidos.map(p => p.campo_formativo)));
-           setCamposDisponibles(camposUnicos);
+        const proyectosData = data || [];
+        setProyectos(proyectosData);
+        if (proyectosData.length > 0) {
+          setSelectedProyectoId(proyectosData[0].id);
         }
-
       } catch (error) {
         console.error("Error al cargar proyectos:", error);
       } finally {
-        setIsLoadingDatos(false);
+        setIsLoadingProyectos(false);
       }
     };
 
     fetchProyectos();
-  }, [filtroNivel, filtroGrado, filtroCampo]);
+  }, [nivel, grado, selectedCampo, availableCampos]);
 
-  // Si cambia el nivel o el grado, reseteamos el filtro de campo a "Todos"
-  const handleNivelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setFiltroNivel(e.target.value);
-    setFiltroGrado(1);
-    setFiltroCampo("Todos");
+  // Handlers en cascada
+  const handleNivelChange = (newNivel: string) => {
+    setNivel(newNivel);
+    const newGrados = getGradosPorNivel(newNivel);
+    const newGrado = newGrados[0] || "Primer Grado";
+    setGrado(newGrado);
+    setDuracionSesion(newNivel === "Secundaria" ? "50 minutos" : "60 minutos");
+
+    const campos = getCamposFormativos(newNivel, newGrado);
+    setSelectedCampo(campos[0]?.id || "lenguajes");
+    setSelectedMetodologia("Aprendizaje Basado en Proyectos Comunitarios (ABPC)");
   };
 
-  const handleGradoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setFiltroGrado(Number(e.target.value));
-    setFiltroCampo("Todos");
+  const handleGradoChange = (newGrado: string) => {
+    setGrado(newGrado);
+    const campos = getCamposFormativos(nivel, newGrado);
+    const isCampoValid = campos.some((c) => c.id === selectedCampo);
+    if (!isCampoValid) setSelectedCampo(campos[0]?.id || "lenguajes");
   };
 
-  // Manejador para conectar con la API
-  const handleGenerarPlan = async (proyecto: ProyectoLibro) => {
-    setGeneratingId(proyecto.id);
-    setErrorGlobal(null);
+  const handleCampoChange = (newCampo: string) => {
+    setSelectedCampo(newCampo);
+    if (newCampo === "lenguajes") setSelectedMetodologia("Aprendizaje Basado en Proyectos Comunitarios (ABPC)");
+    else if (newCampo === "SABERES") setSelectedMetodologia("Aprendizaje Basado en Indagación (STEAM)");
+    else if (newCampo === "ETICA" || newCampo === "ETICA NyS") setSelectedMetodologia("Aprendizaje Basado en Problemas (ABP)");
+    else if (newCampo === "HUMANO" || newCampo === "HUMANO Y C") setSelectedMetodologia("Aprendizaje Servicio (AS)");
+  };
 
-    const gradoMap: Record<number, string> = { 1: "Primer Grado", 2: "Segundo Grado", 3: "Tercer Grado", 4: "Cuarto Grado", 5: "Quinto Grado", 6: "Sexto Grado" };
-    const gradoTexto = gradoMap[proyecto.grado] || `${proyecto.grado} Grado`;
-    
-    // Armamos el libroId (ej: primaria_1_proyectos)
-    const libroIdCalculado = `${proyecto.nivel.toLowerCase()}_${proyecto.grado}_proyectos`;
+  const handleToggleEje = (ejeId: string) => {
+    setSelectedEjes(prev => prev.includes(ejeId) ? prev.filter(id => id !== ejeId) : [...prev, ejeId]);
+  };
+
+  const handleToggleBap = (formattedValue: string) => {
+    setSelectedBap(prev => prev.includes(formattedValue) ? prev.filter(val => val !== formattedValue) : [...prev, formattedValue]);
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+
+    const proyectoSeleccionado = proyectos.find(p => p.id === selectedProyectoId);
+
+    if (!proyectoSeleccionado) {
+      setFormError("Por favor selecciona un Proyecto de Aula válido del catálogo.");
+      return;
+    }
+
+    setIsGenerating(true);
 
     try {
       const payload = {
-        libroId: libroIdCalculado,
-        proyectoNombre: proyecto.nombre_proyecto,
-        paginas: proyecto.paginas,
-        grado: gradoTexto,
-        campoFormativo: proyecto.campo_formativo,
-        numSesiones: 8,
-        duracionSesion: "50 minutos",
-        metodologia: "Aprendizaje Basado en Proyectos Comunitarios (ABPC)" 
+        proyectoNombre: proyectoSeleccionado.nombre_proyecto,
+        paginas: proyectoSeleccionado.paginas,
+        grado: grado,
+        campoFormativo: proyectoSeleccionado.campo_formativo,
+        numSesiones,
+        duracionSesion,
+        metodologia: selectedMetodologia,
+        ejesArticuladores: selectedEjes,
+        situacionProblema,
+        bapSelected: selectedBap,
+        nivel,
+        grupo,
       };
 
       const response = await fetch('/api/generate-plan-libro', {
@@ -116,178 +292,353 @@ export default function ProyectosDeAula({ onVolver, onPlanGenerated }: Proyectos
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || "Error al procesar el libro con Gemini.");
+        throw new Error(data.error || "Error al generar la planeación desde el libro.");
       }
 
-      // Estructuramos el resultado para PlaneacionPreview.tsx
+      // Estructuramos el resultado para el componente PlaneacionPreview
       const completePlan = {
-        nivel: proyecto.nivel,
-        grado: gradoTexto,
-        campoFormativo: proyecto.campo_formativo,
-        disciplina: "Integrada", 
-        contenido: `Proyecto del Libro SEP: ${proyecto.nombre_proyecto}`,
+        nivel,
+        grado,
+        grupo,
+        docenteName,
+        escuelaName,
+        cct,
+        duracionSemanas,
+        duracionSesion,
+        campoFormativo: proyectoSeleccionado.campo_formativo,
+        disciplina: nivel === "Secundaria" ? "Integrada" : "",
+        contenido: `Proyecto del Libro SEP: ${proyectoSeleccionado.nombre_proyecto}`,
         pda: data.plan?.proposito || "Cumplir con el propósito del proyecto.",
-        metodologia: payload.metodologia,
-        ejesArticuladores: ["Inclusión", "Pensamiento crítico"], 
-        situacionProblema: `Desarrollo del proyecto: ${proyecto.nombre_proyecto} (Págs. ${proyecto.paginas})`,
+        metodologia: selectedMetodologia,
+        ejesArticuladores: selectedEjes,
+        situacionProblema: situacionProblema || `Desarrollo del proyecto: ${proyectoSeleccionado.nombre_proyecto} (Págs. ${proyectoSeleccionado.paginas})`,
+        bapSelected: selectedBap,
         plan: data.plan,
-        duracionSemanas: "2 semanas",
-        duracionSesion: payload.duracionSesion
       };
 
       onPlanGenerated(completePlan);
 
     } catch (error: any) {
       console.error("Error en la generación:", error);
-      setErrorGlobal(error.message);
+      setFormError(error.message);
     } finally {
-      setGeneratingId(null);
+      setIsGenerating(false);
     }
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Barra de retroceso */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+    <form onSubmit={handleFormSubmit} className="space-y-8 bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-sm animate-fade-in">
+      {/* Botón de retroceso integrado en el encabezado */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100">
+            <BookOpen className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <h2 className="font-black text-slate-800 text-base uppercase tracking-wider">Proyectos de Aula</h2>
+            <p className="text-slate-500 text-xs font-semibold">Generador de secuencias para Libros SEP</p>
+          </div>
+        </div>
         <button
           type="button"
           onClick={onVolver}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs uppercase tracking-wider transition cursor-pointer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs uppercase tracking-wider transition cursor-pointer self-start sm:self-auto"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Volver al Panel</span>
         </button>
       </div>
 
-      {/* Encabezado y Filtros */}
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-mex-maroon/10 rounded-xl flex items-center justify-center">
-            <BookOpen className="w-6 h-6 text-mex-maroon" />
-          </div>
-          <div>
-            <h2 className="font-black text-slate-800 text-lg uppercase tracking-wider">Proyectos de Aula</h2>
-            <p className="text-slate-500 text-xs font-medium">Libros de Texto Gratuitos (SEP)</p>
-          </div>
+      {/* Sección 1: Datos Generales */}
+      <div>
+        <div className="flex items-center gap-2 pb-4 mb-5 border-b border-slate-100">
+          <School className="w-5 h-5 text-mex-maroon" />
+          <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wider">Datos de la Planeación</h2>
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-3 w-full lg:w-auto">
-          <select 
-            value={filtroNivel} 
-            onChange={handleNivelChange}
-            className="px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon rounded-lg text-slate-700 text-xs font-bold outline-none cursor-pointer"
-          >
-            <option value="Primaria">Primaria</option>
-            <option value="Secundaria">Secundaria</option>
-          </select>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5 flex items-center justify-between">
+              <span>Nombre del Docente</span>
+              <span className="text-[8px] text-mex-maroon font-extrabold uppercase tracking-wide">Uso Personal Exclusivo</span>
+            </label>
+            <div className="relative">
+              <User className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
+              <input type="text" value={docenteName} readOnly disabled className="w-full pl-9 pr-4 py-2.5 bg-slate-100 border border-slate-200 rounded text-slate-500 text-sm font-medium cursor-not-allowed outline-none" required />
+            </div>
+          </div>
 
-          <select 
-            value={filtroGrado} 
-            onChange={handleGradoChange}
-            className="px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon rounded-lg text-slate-700 text-xs font-bold outline-none cursor-pointer"
-          >
-            <option value={1}>1° Grado</option>
-            <option value={2}>2° Grado</option>
-            <option value={3}>3° Grado</option>
-            {filtroNivel === "Primaria" && (
-              <>
-                <option value={4}>4° Grado</option>
-                <option value={5}>5° Grado</option>
-                <option value={6}>6° Grado</option>
-              </>
-            )}
-          </select>
+          <div>
+            <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">Nivel Educativo</label>
+            <select value={nivel} onChange={(e) => handleNivelChange(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon focus:ring-2 focus:ring-mex-maroon/20 focus:bg-white rounded text-slate-800 text-sm font-medium transition outline-none">
+              <option value="Primaria">Primaria</option>
+              <option value="Secundaria">Secundaria</option>
+            </select>
+          </div>
 
-          <select 
-            value={filtroCampo} 
-            onChange={(e) => setFiltroCampo(e.target.value)}
-            className="px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon rounded-lg text-slate-700 text-xs font-bold outline-none cursor-pointer max-w-[200px] truncate"
-          >
-            <option value="Todos">Todos los Campos</option>
-            {camposDisponibles.map(campo => (
-               <option key={campo} value={campo}>{campo}</option>
-            ))}
-          </select>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:col-span-2">
+            <div>
+              <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">Grupo</label>
+              <input type="text" value={grupo} onChange={(e) => setGrupo(e.target.value)} placeholder="Ej. A" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon focus:ring-2 focus:ring-mex-maroon/20 focus:bg-white rounded text-slate-800 text-sm font-medium transition text-center outline-none" required />
+            </div>
+            <div>
+              <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">Fecha de Inicio</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon rounded text-slate-800 text-xs font-semibold outline-none" required />
+              </div>
+            </div>
+            <div>
+              <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">Fecha de Fin</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon rounded text-slate-800 text-xs font-semibold outline-none" required />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 sm:col-span-2">
+            <div>
+              <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">Número de Sesiones</label>
+              <div className="flex items-center gap-3">
+                <button type="button" onClick={() => setNumSesiones(Math.max(1, numSesiones - 1))} className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 font-extrabold rounded">-</button>
+                <input type="text" readOnly value={numSesiones} className="w-full py-2 bg-slate-50 border border-slate-200 rounded text-slate-800 text-sm font-bold text-center outline-none select-none" />
+                <button type="button" onClick={() => setNumSesiones(Math.min(40, numSesiones + 1))} className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 font-extrabold rounded">+</button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">Duración por Sesión</label>
+              {nivel === "Secundaria" ? (
+                <div className="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded text-slate-500 text-sm font-semibold select-none cursor-not-allowed">
+                  50 minutos (1 módulo)
+                </div>
+              ) : (
+                <select value={duracionSesion} onChange={(e) => setDuracionSesion(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon rounded text-slate-800 text-sm font-medium outline-none">
+                  <option value="30 minutos">30 minutos</option>
+                  <option value="45 minutos">45 minutos</option>
+                  <option value="50 minutos">50 minutos</option>
+                  <option value="60 minutos">60 minutos (1 hora)</option>
+                  <option value="90 minutos">90 minutos</option>
+                  <option value="120 minutos">120 minutos (2 horas)</option>
+                </select>
+              )}
+            </div>
+
+            <div className="flex flex-col justify-end bg-slate-50 p-3 rounded border border-slate-200">
+              <span className="text-[9px] font-black text-mex-maroon uppercase tracking-wider block">Duración total calculada:</span>
+              <span className="text-xs font-bold text-slate-700 mt-1">{duracionSemanas}</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {errorGlobal && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs font-bold flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 shrink-0" />
-          <p>{errorGlobal}</p>
+      {/* Sección 2: Selección Curricular - Libros SEP */}
+      <div>
+        <div className="flex items-center justify-between pb-4 mb-5 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-blue-600" />
+            <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wider">
+              Catálogo de Libros SEP
+            </h2>
+            {currentFaseObj && (
+              <span className="ml-2 px-2.5 py-0.5 bg-blue-50 text-blue-700 text-[11px] font-extrabold rounded-full border border-blue-200">
+                {currentFaseObj.fase}
+              </span>
+            )}
+          </div>
         </div>
-      )}
 
-      {/* Grid de Proyectos */}
-      {isLoadingDatos ? (
-        <div className="flex flex-col items-center justify-center p-12 text-slate-400">
-          <RefreshCw className="w-8 h-8 animate-spin text-mex-maroon mb-4" />
-          <span className="text-sm font-bold uppercase tracking-wider">Cargando catálogo SEP...</span>
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">
+                1. Grado Escolar
+              </label>
+              <select value={grado} onChange={(e) => handleGradoChange(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-blue-600 rounded text-slate-800 text-sm font-semibold outline-none">
+                {availableGrados.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1.5">
+                2. Campo Formativo
+              </label>
+              <select value={selectedCampo} onChange={(e) => handleCampoChange(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-blue-600 rounded text-slate-800 text-sm font-semibold outline-none">
+                {availableCampos.map((campo) => (
+                  <option key={campo.id} value={campo.id}>{campo.nombre}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-slate-500 font-bold text-[10px] uppercase">
+                3. Proyecto de Aula (Libro de Texto)
+              </label>
+            </div>
+
+            {isLoadingProyectos ? (
+              <div className="p-3.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-medium border border-slate-200 flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+                <span>Buscando proyectos oficiales en la base de datos...</span>
+              </div>
+            ) : proyectos.length > 0 ? (
+              <select
+                value={selectedProyectoId}
+                onChange={(e) => setSelectedProyectoId(Number(e.target.value))}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 rounded text-slate-800 text-sm font-bold transition outline-none leading-relaxed shadow-sm"
+              >
+                {proyectos.map((proyecto) => (
+                  <option key={proyecto.id} value={proyecto.id}>
+                    {proyecto.nombre_proyecto} (Págs. {proyecto.paginas})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="p-3.5 bg-amber-50 text-amber-800 rounded-lg text-xs font-medium border border-amber-200">
+                No se encontraron proyectos registrados para esta combinación de nivel, grado y campo formativo.
+              </div>
+            )}
+          </div>
         </div>
-      ) : proyectos.length === 0 ? (
-        <div className="bg-white p-12 rounded-xl border border-slate-200 text-center shadow-sm">
-          <Layers className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="font-bold text-slate-700">No se encontraron proyectos</h3>
-          <p className="text-xs text-slate-500 mt-1">Intenta con otro grado o nivel educativo.</p>
+      </div>
+
+      {/* Sección 3: Ejes Articuladores */}
+      <div>
+        <div className="flex items-center gap-2 pb-4 mb-5 border-b border-slate-100">
+          <Layers className="w-5 h-5 text-mex-maroon" />
+          <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wider">Ejes Articuladores (NEM)</h2>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {proyectos.map((proyecto) => {
-            const isGenerating = generatingId === proyecto.id;
-            
+        <p className="text-xs text-slate-500 mb-4">Selecciona uno o más ejes rectores que integrarán de forma transversal las actividades del proyecto.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {EJES_ARTICULADORES.map((eje) => {
+            const isChecked = selectedEjes.includes(eje.id);
             return (
-              <div key={proyecto.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition flex flex-col">
-                <div className="p-5 flex-1">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[9px] bg-slate-100 text-slate-600 font-black uppercase tracking-wider px-2 py-1 rounded">
-                      Pág. {proyecto.paginas}
-                    </span>
-                  </div>
-                  <h3 className="font-black text-slate-800 text-sm mb-2 leading-tight">
-                    {proyecto.nombre_proyecto}
-                  </h3>
-                  <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
-                    {proyecto.campo_formativo}
-                  </p>
+              <label key={eje.id} className={`flex items-start gap-3 p-3.5 rounded border cursor-pointer transition select-none ${isChecked ? "bg-mex-maroon/5 border-mex-maroon/20 text-mex-maroon" : "bg-slate-50/50 border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+                <input type="checkbox" checked={isChecked} onChange={() => handleToggleEje(eje.id)} className="mt-1 h-4 w-4 rounded border-slate-300 text-mex-maroon focus:ring-mex-maroon" />
+                <div>
+                  <span className="font-bold text-xs block mb-0.5 text-slate-800">{eje.label}</span>
+                  <span className="text-[11px] text-slate-500 block leading-tight">{eje.desc}</span>
                 </div>
-                
-                <div className="p-4 bg-slate-50 border-t border-slate-100 relative">
-                  <button
-                    onClick={() => handleGenerarPlan(proyecto)}
-                    disabled={generatingId !== null}
-                    className={`w-full py-3 rounded-lg font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition ${
-                      isGenerating 
-                        ? "bg-slate-800 text-white cursor-wait" 
-                        : generatingId !== null
-                        ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-                        : "bg-slate-900 hover:bg-black text-white shadow-md active:scale-[0.98]"
-                    }`}
-                  >
-                    {isGenerating ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin text-mex-gold" />
-                        <span>Analizando Libro...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4 text-mex-gold" />
-                        <span>Diseñar Secuencia</span>
-                      </>
-                    )}
-                  </button>
-                  
-                  {/* Etiqueta de costo */}
-                  {!isGenerating && generatingId === null && (
-                    <div className="absolute -top-3 right-4 flex items-center gap-1 text-[9px] font-black bg-amber-100 border border-amber-200 text-amber-900 px-2 py-0.5 rounded-full shadow-sm">
-                      <Coins className="w-3 h-3" /> 10 créditos
-                    </div>
-                  )}
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Sección 4: Metodología */}
+      <div>
+        <div className="flex items-center gap-2 pb-4 mb-5 border-b border-slate-100">
+          <Sparkles className="w-5 h-5 text-mex-maroon" />
+          <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wider">Metodología Sociocrítica Sugerida</h2>
+        </div>
+        <p className="text-xs text-slate-500 mb-4">La metodología recomendada varía según el Campo Formativo. Se ha pre-seleccionado la sugerida automáticamente.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {METODOLOGIAS.map((meto) => {
+            const isSelected = selectedMetodologia === meto.id;
+            return (
+              <div key={meto.id} onClick={() => setSelectedMetodologia(meto.id)} className={`p-4 rounded border cursor-pointer transition relative overflow-hidden flex flex-col justify-between select-none ${isSelected ? "bg-mex-maroon/5 border-mex-maroon/25 ring-1 ring-mex-maroon/10 text-mex-maroon" : "bg-slate-50/50 border-slate-200 hover:bg-slate-50 text-slate-600"}`}>
+                {isSelected && <div className="absolute right-0 top-0 bg-mex-maroon text-white px-2 py-0.5 rounded-bl text-[10px] font-bold tracking-wider uppercase">Activa</div>}
+                <div>
+                  <h4 className="font-extrabold text-xs text-slate-800 mb-1">{meto.label}</h4>
+                  <p className="text-xs text-slate-500 leading-normal">{meto.desc}</p>
                 </div>
               </div>
             );
           })}
         </div>
+      </div>
+
+      {/* Sección 5: Situación Problema */}
+      <div>
+        <div className="flex items-center justify-between pb-4 mb-5 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <FileText className="w-5 h-5 text-mex-maroon" />
+            <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wider">Situación-Problema a Abordar</h2>
+          </div>
+        </div>
+        <p className="text-xs text-slate-500 mb-4">Describe el problema escolar o comunitario que guiará el desarrollo de este proyecto del libro.</p>
+        <textarea rows={4} value={situacionProblema} onChange={(e) => setSituacionProblema(e.target.value)} placeholder="Ej. El consumo excesivo de comida chatarra en los recreos..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-mex-maroon focus:ring-2 focus:ring-mex-maroon/20 rounded text-slate-800 text-sm font-normal leading-relaxed outline-none" />
+      </div>
+
+      {/* Sección 6: BAP / DUA */}
+      <div>
+        <div className="flex items-center gap-2 pb-4 mb-5 border-b border-slate-100">
+          <Accessibility className="w-5 h-5 text-mex-maroon" />
+          <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wider">Barreras para el Aprendizaje y la Participación (BAP)</h2>
+        </div>
+        <p className="text-xs text-slate-500 mb-6">Selecciona las condiciones para que la IA diseñe los ajustes razonables (DUA).</p>
+        <div className="space-y-6">
+          {BAP_CATEGORIES.map((cat, catIdx) => (
+            <div key={catIdx} className="border border-slate-100 rounded-xl overflow-hidden bg-slate-50/30 p-5">
+              <h3 className="font-extrabold text-xs text-slate-900 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
+                <Users className="w-4 h-4 text-mex-maroon" />
+                <span>{cat.category}</span>
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {cat.subcategories.map((subcat, subIdx) => (
+                  <div key={subIdx} className="space-y-3 bg-white p-4 rounded-lg border border-slate-200/60 shadow-sm">
+                    <h4 className="font-black text-[10px] text-mex-maroon uppercase tracking-wider flex items-center justify-between">
+                      <span>{subcat.name}</span>
+                      <span className="text-[8px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold">{subcat.items.length} opciones</span>
+                    </h4>
+                    <div className="space-y-2.5">
+                      {subcat.items.map((item) => {
+                        const formattedValue = `${subcat.name}: ${item.label} (${item.code})`;
+                        const isChecked = selectedBap.includes(formattedValue);
+                        return (
+                          <label key={item.id} className={`flex items-start gap-2.5 p-2 rounded border cursor-pointer transition select-none text-xs ${isChecked ? "bg-mex-maroon/5 border-mex-maroon/20 text-mex-maroon font-semibold" : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100/60"}`}>
+                            <input type="checkbox" checked={isChecked} onChange={() => handleToggleBap(formattedValue)} className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 text-mex-maroon focus:ring-mex-maroon" />
+                            <div className="flex-1 min-w-0 flex items-center justify-between gap-1.5">
+                              <span className="truncate">{item.label}</span>
+                              <span className={`text-[9px] px-1 py-0.2 rounded font-extrabold font-mono ${isChecked ? "bg-mex-maroon/10 text-mex-maroon" : "bg-slate-200/80 text-slate-500"}`}>{item.code}</span>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {formError && (
+        <div className="p-4 bg-slate-50 border-l-4 border-mex-maroon rounded text-slate-800 text-xs font-semibold">
+          {formError}
+        </div>
       )}
-    </div>
+
+      {/* Botón de Enviar */}
+      <div className="pt-4 flex flex-col sm:flex-row items-center justify-end gap-3 border-t border-slate-100">
+        <button
+          type="submit"
+          disabled={isGenerating || proyectos.length === 0 || !selectedProyectoId}
+          className="w-full sm:w-auto py-3.5 px-8 rounded-lg bg-slate-900 hover:bg-black text-white font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-3 shadow-md hover:shadow-lg transition active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isGenerating ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span>Diseñando Secuencia Didáctica...</span>
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-4 h-4 text-mex-gold fill-mex-gold" />
+              <span>Diseñar Secuencia</span>
+              <span className="text-[11px] font-black bg-white/20 px-2 py-0.5 rounded-full text-mex-gold flex items-center gap-1">
+                <Coins className="w-3 h-3" />
+                10 créditos
+              </span>
+            </>
+          )}
+        </button>
+      </div>
+    </form>
   );
 }

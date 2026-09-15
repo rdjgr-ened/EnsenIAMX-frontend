@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from '@google/genai';
 
 export default async function handler(req: any, res: any) {
-  // 1. Cabeceras de seguridad y CORS (Igual que en tu función principal)
+  // 1. Cabeceras de seguridad y CORS
   res.setHeader?.("Access-Control-Allow-Credentials", "true");
   res.setHeader?.("Access-Control-Allow-Origin", "*");
   res.setHeader?.("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT");
@@ -19,15 +19,20 @@ export default async function handler(req: any, res: any) {
       try { body = JSON.parse(body); } catch (e) { /* ignore */ }
     }
 
-    // 2. Extraemos los datos que nos manda ProyectosDeAula.tsx
+    // 2. Extraemos todos los nuevos datos del formulario completo
     const { 
-      proyectoNombre, // Ej: "Conozcamos las maravillas de la lectura"
-      grado,          // Ej: "1° Grado"
-      campoFormativo, // Ej: "Lenguajes"
-      paginas,        // Ej: "12-19"
+      proyectoNombre, 
+      grado,          
+      campoFormativo, 
+      paginas,        
       numSesiones,
       duracionSesion,
-      metodologia
+      metodologia,
+      ejesArticuladores,
+      situacionProblema,
+      bapSelected,
+      nivel,
+      grupo
     } = body || {};
 
     if (!proyectoNombre || !grado || !campoFormativo) {
@@ -37,13 +42,17 @@ export default async function handler(req: any, res: any) {
     const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
     if (!apiKey) return res.status(500).json({ error: "La variable GEMINI_API_KEY no está configurada." });
 
-    // 3. Inicializamos Gemini con el modelo oficial que estás usando
     const ai = new GoogleGenAI({ apiKey });
-    const selectedModel = 'gemini-3.6-flash'; 
+    const selectedModel = 'gemini-1.5-flash'; 
 
-    console.log(`[Libros SEP] Diseñando secuencia para: ${proyectoNombre} (${grado} - ${campoFormativo})`);
+    console.log(`[Libros SEP] Diseñando secuencia: ${proyectoNombre} (${grado} - ${campoFormativo})`);
 
-    // 4. El Prompt Mágico (Igual que en tu función principal, enfocado en NEM)
+    // Formatear las BAP para el prompt
+    const bapFormat = bapSelected && bapSelected.length > 0 
+      ? bapSelected.map((b: string) => `- ${b}`).join("\n") 
+      : "- Ninguna barrera específica registrada. El diseño debe enfocarse en la inclusión general.";
+
+    // 3. El Prompt Actualizado con el contexto completo
     const prompt = `
       Eres un experto docente de la Nueva Escuela Mexicana (NEM). 
       
@@ -51,23 +60,33 @@ export default async function handler(req: any, res: any) {
       Diseña una secuencia didáctica completa, formal y detallada para el "Proyecto de Aula" de los libros de texto gratuitos de la SEP titulado: "${proyectoNombre}".
       Este proyecto se encuentra aproximadamente en las páginas ${paginas} del libro de proyectos.
       
-      DATOS DEL PROYECTO:
-      - Grado: ${grado}
-      - Campo Formativo: ${campoFormativo}
-      - Metodología Sugerida: ${metodologia || 'Acorde al campo formativo'}
-      - Duración por sesión: ${duracionSesion || "50 minutos"}
+      DATOS GENERALES DE REFERENCIA:
+      - Nivel Educativo: ${nivel}
+      - Grado y Grupo: ${grado} - Grupo ${grupo || "A"}
+      - Duración por sesión de clase: ${duracionSesion || "50 minutos"}
       - Total de sesiones a planear: ${numSesiones || 8}
+
+      ELEMENTOS CURRICULARES OFICIALES:
+      - Campo Formativo: ${campoFormativo}
+      - Metodología NEM sugerida: ${metodologia || 'Acorde al campo formativo'}
+      - Ejes Articuladores seleccionados: ${ejesArticuladores?.join(", ") || "No especificados"}
+      
+      SITUACIÓN-PROBLEMA DEL CONTEXTO:
+      "${situacionProblema || "Desarrollo del proyecto conforme a las páginas del libro."}"
+      
+      BARRERAS PARA EL APRENDIZAJE Y LA PARTICIPACIÓN (BAP) / DUA:
+      ${bapFormat}
       
       INSTRUCCIONES ESTRICTAS:
-      1. Define un "propósito" pedagógico claro y un "producto" final realista para este proyecto.
-      2. Divide el proyecto en ${numSesiones || 8} sesiones, respetando las fases/momentos de la metodología NEM correspondiente al campo formativo.
-      3. Desarrolla las actividades de "inicio", "desarrollo" y "cierre" de cada sesión de manera práctica, asumiendo el uso del libro de texto y el trabajo comunitario.
+      1. Define un "propósito" pedagógico claro y un "producto" final realista basado en el libro.
+      2. Divide el proyecto en exactamente ${numSesiones || 8} sesiones, respetando las fases/momentos de la metodología. Cada sesión DEBE durar exactamente ${duracionSesion}.
+      3. Desarrolla las actividades de "inicio", "desarrollo" y "cierre" de cada sesión asumiendo el uso del libro de texto.
       4. Llena el campo "evaluacionSesion" detallando qué criterios formativos se evaluarán ese día.
-      5. Genera sugerencias de adecuación DUA (Diseño Universal para el Aprendizaje).
+      5. En 'sugerenciasAdecuacion', detalla los ajustes razonables y aplicaciones DUA específicamente diseñadas para atender las BAP mencionadas arriba.
       6. La respuesta debe estar en Español de México, con ortografía impecable.
     `;
 
-    // 5. Esquema JSON (Idéntico a tu función original para que el Frontend lo dibuje perfecto)
+    // 4. Esquema JSON Intacto
     const responseSchema = {
       type: Type.OBJECT,
       properties: {
@@ -114,14 +133,14 @@ export default async function handler(req: any, res: any) {
       required: ["proposito", "producto", "fases", "evaluacionFormativa", "sugerenciasAdecuacion"],
     };
 
-    // 6. Ejecutamos la petición directa a Gemini (Sin descargas de PDF, super rápido)
+    // 5. Generación ultrarrápida
     const result = await ai.models.generateContent({
       model: selectedModel,
       contents: prompt,
       config: {
         responseMimeType: "application/json",
         responseSchema: responseSchema,
-        temperature: 0.3, // Temperatura baja para respuestas coherentes y estructuradas
+        temperature: 0.3, 
       },
     });
 
@@ -129,8 +148,6 @@ export default async function handler(req: any, res: any) {
     if (!responseText) throw new Error("La IA no devolvió ningún texto.");
 
     const planData = JSON.parse(responseText.trim());
-    
-    // Retornamos el éxito al Frontend
     return res.status(200).json({ success: true, plan: planData });
 
   } catch (error: any) {
