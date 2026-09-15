@@ -120,13 +120,16 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ user }) => {
 
         {/* --- NUEVA RUTA: PROYECTOS DE AULA (Libros SEP) --- */}
         {vistaActual === 'proyectos_aula' && (
-          <ProyectosDeAula 
-            onVolver={() => setVistaActual('hub')}
-            onPlanGenerated={(planData) => {
-              setPlaneacionGenerada(planData);
-              setVistaActual('planeacion-preview'); // Salta directamente a la vista previa del documento
-            }}
-          />
+          <div className="w-full">
+            {console.log("Renderizando Proyectos de Aula...")}
+            <ProyectosDeAula 
+              onVolver={() => setVistaActual('hub')}
+              onPlanGenerated={(planData) => {
+                setPlaneacionGenerada(planData);
+                setVistaActual('planeacion-preview'); 
+              }}
+            />
+          </div>
         )}
 
         {/* --- NUEVA RUTA: RENDERIZADOR DEL DOCUMENTO FINAL --- */}
