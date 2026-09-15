@@ -4,13 +4,12 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-// 1. Inicializar Supabase con SERVICE ROLE para lectura y escritura en la tabla gemini_pdf_cache
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export default async function handler(req: any, res: any) {
-  // CORS Headers (Misma configuración que el archivo generate-plan original)
+  // CORS Headers
   res.setHeader?.("Access-Control-Allow-Credentials", "true");
   res.setHeader?.("Access-Control-Allow-Origin", "*");
   res.setHeader?.("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT");
@@ -28,11 +27,10 @@ export default async function handler(req: any, res: any) {
       try { body = JSON.parse(body); } catch (e) { /* ignore */ }
     }
 
-    // Datos que enviará el Frontend (Ej. desde ProyectosGrid.tsx)
     const { 
-      libroId, // Ej. "primaria_1_proyectos" (Debe coincidir con el nombre del PDF sin el .pdf)
-      proyectoNombre, // Ej. "El rincón de la lectura"
-      paginas, // Ej. "12-18"
+      libroId, 
+      proyectoNombre, 
+      paginas, 
       grado, 
       campoFormativo,
       numSesiones,
@@ -41,48 +39,70 @@ export default async function handler(req: any, res: any) {
     } = body || {};
 
     if (!libroId || !proyectoNombre || !paginas) {
-      return res.status(400).json({ error: "Faltan datos clave del libro SEP para generar el proyecto (libroId, proyectoNombre o paginas)." });
+      return res.status(400).json({ error: "Faltan datos clave del libro SEP para generar el proyecto." });
     }
 
     const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
     if (!apiKey) return res.status(500).json({ error: "La variable GEMINI_API_KEY no está configurada." });
 
     const ai = new GoogleGenAI({ apiKey });
+    
+    // 🔥 AQUÍ DEFINIMOS TU MODELO OFICIAL 🔥
+    const selectedModel = 'gemini-3.6-flash';
 
     console.log(`[Libros SEP] Procesando Libro: ${libroId} - Proyecto: ${proyectoNombre}`);
 
-    // PASO 1: Buscar Caché en la tabla gemini_pdf_cache de Supabase
+    // PASO 1: Buscar Caché en la base de datos
     const { data: cacheData } = await supabase
       .from('gemini_pdf_cache')
       .select('*')
       .eq('libro_id', libroId)
-      .gt('expira_en', new Date().toISOString()) // Solo recuperar si no ha expirado
+      .gt('expira_en', new Date().toISOString())
       .single();
 
     let geminiCacheName = cacheData?.cache_name;
 
-    // PASO 2: Si no hay caché válido, descargar PDF, subir a Gemini y crear Caché
+    // PASO 2: Si no hay caché válido, crear uno nuevo
     if (!geminiCacheName) {
-      console.log(`No hay caché activo. Descargando ${libroId}.pdf del bucket libros_sep...`);
+      console.log(`Descargando ${libroId}.pdf de Supabase...`);
       
       const { data: fileData, error: downloadError } = await supabase
         .storage
         .from('libros_sep')
-        .download(`${libroId}.pdf`); // El nombre del archivo en Supabase debe ser exactamente {libroId}.pdf
+        .download(`${libroId}.pdf`); 
         
       if (downloadError) throw new Error(`No se pudo descargar el libro ${libroId}.pdf del bucket: ${downloadError.message}`);
       
       const buffer = Buffer.from(await fileData.arrayBuffer());
+      
+      // Verificación de seguridad
+      if (buffer.length === 0) {
+        throw new Error("El PDF descargado de Supabase está vacío (0 bytes). Revisa el archivo en el bucket.");
+      }
+
       const tempFilePath = path.join(os.tmpdir(), `${libroId}.pdf`);
       fs.writeFileSync(tempFilePath, buffer);
 
       console.log(`Subiendo PDF a Gemini...`);
-      const uploadResult = await ai.files.upload({ file: tempFilePath, mimeType: 'application/pdf' });
+      let uploadResult = await ai.files.upload({ file: tempFilePath, mimeType: 'application/pdf' });
 
-      console.log(`Creando Context Cache en Gemini para el archivo subido...`);
-      const ttlSeconds = 3600; // El caché vivirá por 1 hora
+      // 🔥 LA SOLUCIÓN AL ERROR: ESPERAR A QUE GEMINI PROCESE EL TEXTO 🔥
+      console.log(`Esperando a que Gemini extraiga el texto del PDF...`);
+      while (uploadResult.state === 'PROCESSING') {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Pausa de 2 segundos
+        uploadResult = await ai.files.get({ name: uploadResult.name });
+        console.log(`Estado del archivo en Google: ${uploadResult.state}`);
+      }
+
+      if (uploadResult.state === 'FAILED') {
+        fs.unlinkSync(tempFilePath);
+        throw new Error("Google Gemini falló al procesar el contenido del documento PDF.");
+      }
+
+      console.log(`Creando Context Cache en Gemini...`);
+      const ttlSeconds = 3600; // 1 hora
       const cachedContent = await ai.caches.create({
-        model: 'gemini-3.6-flash', // El modelo debe coincidir con el que se usará para generar el contenido
+        model: selectedModel, 
         contents: [
           { role: 'user', parts: [{ fileData: { fileUri: uploadResult.uri, mimeType: uploadResult.mimeType } }] }
         ],
@@ -91,22 +111,20 @@ export default async function handler(req: any, res: any) {
 
       geminiCacheName = cachedContent.name;
 
-      // Guardar el nombre del caché y la fecha de expiración en Supabase
       const expirationDate = new Date(Date.now() + ttlSeconds * 1000).toISOString();
       await supabase.from('gemini_pdf_cache').upsert({ 
         libro_id: libroId, 
         cache_name: geminiCacheName, 
         expira_en: expirationDate 
-      }, { onConflict: 'libro_id' }); // Actualiza la fila si el libro_id ya existía
+      }, { onConflict: 'libro_id' }); 
         
-      // Eliminar el PDF de la memoria temporal del servidor
       fs.unlinkSync(tempFilePath);
       console.log(`Caché creado exitosamente: ${geminiCacheName}`);
     } else {
       console.log(`Utilizando caché activo desde Supabase: ${geminiCacheName}`);
     }
 
-    // PASO 3: Construcción del Prompt especializado para Libros SEP
+    // PASO 3: Construcción del Prompt
     const prompt = `
       Eres un experto docente de la Nueva Escuela Mexicana (NEM). 
       Tienes en tu memoria (Context Cache) el libro de texto oficial de la SEP completo.
@@ -130,7 +148,7 @@ export default async function handler(req: any, res: any) {
       5. La respuesta debe estar en Español de México, con ortografía y acentuación perfectas.
     `;
 
-    // PASO 4: Definición del Esquema JSON (Mismo formato que espera PlaneacionPreview.tsx)
+    // PASO 4: Esquema JSON
     const responseSchema = {
       type: Type.OBJECT,
       properties: {
@@ -177,15 +195,15 @@ export default async function handler(req: any, res: any) {
       required: ["proposito", "producto", "fases", "evaluacionFormativa", "sugerenciasAdecuacion"],
     };
 
-    // PASO 5: Llamada final a Gemini usando el Context Cache
+    // PASO 5: Generar Contenido
     const result = await ai.models.generateContent({
-      model: 'gemini-3.6-flash', // El modelo debe coincidir con el utilizado al crear el caché
+      model: selectedModel, // 🔥 Usando el modelo de la app
       contents: prompt,
       config: {
-        cachedContent: geminiCacheName, // Inyección del ID del caché
+        cachedContent: geminiCacheName,
         responseMimeType: "application/json",
         responseSchema: responseSchema,
-        temperature: 0.2, // Temperatura baja para que se apegue firmemente al texto del libro
+        temperature: 0.2, 
       },
     });
 
@@ -193,8 +211,6 @@ export default async function handler(req: any, res: any) {
     if (!responseText) throw new Error("La IA no devolvió ningún texto.");
 
     const planData = JSON.parse(responseText.trim());
-    
-    // Devolver el JSON estructurado al Frontend
     return res.status(200).json({ success: true, plan: planData, fromCache: true });
 
   } catch (error: any) {
