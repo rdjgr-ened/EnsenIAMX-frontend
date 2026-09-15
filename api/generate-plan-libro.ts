@@ -43,7 +43,7 @@ export default async function handler(req: any, res: any) {
     if (!apiKey) return res.status(500).json({ error: "La variable GEMINI_API_KEY no está configurada." });
 
     const ai = new GoogleGenAI({ apiKey });
-    const selectedModel = 'gemini-1.5-flash'; 
+    const selectedModel = 'gemini-3.6-flash'; 
 
     console.log(`[Libros SEP] Diseñando secuencia: ${proyectoNombre} (${grado} - ${campoFormativo})`);
 
