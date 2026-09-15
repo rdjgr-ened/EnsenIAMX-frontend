@@ -20,9 +20,13 @@ export default function ProyectosDeAula({ onVolver, onPlanGenerated }: Proyectos
   const [proyectos, setProyectos] = useState<ProyectoLibro[]>([]);
   const [isLoadingDatos, setIsLoadingDatos] = useState(true);
   
-  // Filtros iniciales
+  // Filtros
   const [filtroNivel, setFiltroNivel] = useState("Primaria");
   const [filtroGrado, setFiltroGrado] = useState<number>(1);
+  const [filtroCampo, setFiltroCampo] = useState<string>("Todos");
+
+  // Estado para guardar los campos formativos únicos que existan en la BD para el grado seleccionado
+  const [camposDisponibles, setCamposDisponibles] = useState<string[]>([]);
 
   // Estados de generación
   const [generatingId, setGeneratingId] = useState<number | null>(null);
@@ -33,15 +37,31 @@ export default function ProyectosDeAula({ onVolver, onPlanGenerated }: Proyectos
     const fetchProyectos = async () => {
       setIsLoadingDatos(true);
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('proyectos_libros')
           .select('*')
           .eq('nivel', filtroNivel)
           .eq('grado', filtroGrado)
           .order('id', { ascending: true });
 
+        // Si hay un campo seleccionado (y no es "Todos"), aplicamos el filtro
+        if (filtroCampo !== "Todos") {
+          query = query.eq('campo_formativo', filtroCampo);
+        }
+
+        const { data, error } = await query;
+
         if (error) throw error;
-        setProyectos(data || []);
+        
+        const proyectosObtenidos = data || [];
+        setProyectos(proyectosObtenidos);
+
+        // Si estamos buscando "Todos", actualizamos la lista de campos disponibles
+        if (filtroCampo === "Todos") {
+           const camposUnicos = Array.from(new Set(proyectosObtenidos.map(p => p.campo_formativo)));
+           setCamposDisponibles(camposUnicos);
+        }
+
       } catch (error) {
         console.error("Error al cargar proyectos:", error);
       } finally {
@@ -50,14 +70,25 @@ export default function ProyectosDeAula({ onVolver, onPlanGenerated }: Proyectos
     };
 
     fetchProyectos();
-  }, [filtroNivel, filtroGrado]);
+  }, [filtroNivel, filtroGrado, filtroCampo]);
+
+  // Si cambia el nivel o el grado, reseteamos el filtro de campo a "Todos"
+  const handleNivelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setFiltroNivel(e.target.value);
+    setFiltroGrado(1);
+    setFiltroCampo("Todos");
+  };
+
+  const handleGradoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setFiltroGrado(Number(e.target.value));
+    setFiltroCampo("Todos");
+  };
 
   // Manejador para conectar con la API
   const handleGenerarPlan = async (proyecto: ProyectoLibro) => {
     setGeneratingId(proyecto.id);
     setErrorGlobal(null);
 
-    // Mapeos para el backend y el formato del Preview
     const gradoMap: Record<number, string> = { 1: "Primer Grado", 2: "Segundo Grado", 3: "Tercer Grado", 4: "Cuarto Grado", 5: "Quinto Grado", 6: "Sexto Grado" };
     const gradoTexto = gradoMap[proyecto.grado] || `${proyecto.grado} Grado`;
     
@@ -129,7 +160,7 @@ export default function ProyectosDeAula({ onVolver, onPlanGenerated }: Proyectos
       </div>
 
       {/* Encabezado y Filtros */}
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-mex-maroon/10 rounded-xl flex items-center justify-center">
             <BookOpen className="w-6 h-6 text-mex-maroon" />
@@ -140,13 +171,10 @@ export default function ProyectosDeAula({ onVolver, onPlanGenerated }: Proyectos
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center justify-center gap-3 w-full lg:w-auto">
           <select 
             value={filtroNivel} 
-            onChange={(e) => {
-              setFiltroNivel(e.target.value);
-              setFiltroGrado(1); // Reset al cambiar nivel
-            }}
+            onChange={handleNivelChange}
             className="px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon rounded-lg text-slate-700 text-xs font-bold outline-none cursor-pointer"
           >
             <option value="Primaria">Primaria</option>
@@ -155,7 +183,7 @@ export default function ProyectosDeAula({ onVolver, onPlanGenerated }: Proyectos
 
           <select 
             value={filtroGrado} 
-            onChange={(e) => setFiltroGrado(Number(e.target.value))}
+            onChange={handleGradoChange}
             className="px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon rounded-lg text-slate-700 text-xs font-bold outline-none cursor-pointer"
           >
             <option value={1}>1° Grado</option>
@@ -168,6 +196,17 @@ export default function ProyectosDeAula({ onVolver, onPlanGenerated }: Proyectos
                 <option value={6}>6° Grado</option>
               </>
             )}
+          </select>
+
+          <select 
+            value={filtroCampo} 
+            onChange={(e) => setFiltroCampo(e.target.value)}
+            className="px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-mex-maroon rounded-lg text-slate-700 text-xs font-bold outline-none cursor-pointer max-w-[200px] truncate"
+          >
+            <option value="Todos">Todos los Campos</option>
+            {camposDisponibles.map(campo => (
+               <option key={campo} value={campo}>{campo}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -189,7 +228,7 @@ export default function ProyectosDeAula({ onVolver, onPlanGenerated }: Proyectos
         <div className="bg-white p-12 rounded-xl border border-slate-200 text-center shadow-sm">
           <Layers className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <h3 className="font-bold text-slate-700">No se encontraron proyectos</h3>
-          <p className="text-xs text-slate-500 mt-1">Intenta con otro grado o campo formativo.</p>
+          <p className="text-xs text-slate-500 mt-1">Intenta con otro grado o nivel educativo.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
