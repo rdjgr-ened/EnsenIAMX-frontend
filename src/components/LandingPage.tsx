@@ -33,7 +33,7 @@ export default function LandingPage({
 
   const getPriceDisplay = (planKey: PlanTier) => {
     const config = PLAN_CONFIGS[planKey];
-    if (config.priceMonthly === 0) return { main: "$0", period: "Gratis para siempre" };
+    if (config.priceMonthly === 0) return { main: "$0", period: "Gratis" };
     
     if (billingCycle === "mensual") {
       return { main: `$${config.priceMonthly} MXN`, period: "/ mes" };
@@ -528,7 +528,7 @@ export default function LandingPage({
                 </div>
                 <div className="pt-2">
                   <span className="text-3xl font-black text-slate-900">$0</span>
-                  <span className="text-slate-500 text-xs font-bold block">Gratis para siempre</span>
+                  <span className="text-slate-500 text-xs font-bold block">Gratis</span>
                 </div>
 
                 {/* Features list */}
