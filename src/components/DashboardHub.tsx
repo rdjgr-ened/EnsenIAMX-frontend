@@ -409,7 +409,7 @@ export default function DashboardHub(props: DashboardHubProps) {
                       <FileText className="w-5 h-5" />
                     </div>
                     <h4 className="font-black text-slate-800 text-sm uppercase tracking-wide">
-                      Planeación Base NEM
+                      Planeación Didáctica
                     </h4>
                     <p className="text-slate-500 text-xs font-semibold">
                       Crea una planeación paso a paso desde el currículo general oficial de la SEP. Metodologías, fases y adecuaciones.
@@ -435,7 +435,7 @@ export default function DashboardHub(props: DashboardHubProps) {
                       <BookOpen className="w-5 h-5" />
                     </div>
                     <h4 className="font-black text-slate-800 text-sm uppercase tracking-wide">
-                      Libros SEP (Proyectos)
+                      Proyectos de Aula
                     </h4>
                     <p className="text-slate-500 text-xs font-semibold">
                       Genera planeaciones exactas basándote directamente en el contenido de los libros de texto gratuitos de la SEP.
@@ -488,7 +488,7 @@ export default function DashboardHub(props: DashboardHubProps) {
                       <BookCheck className="w-5 h-5" />
                     </div>
                     <h4 className="font-black text-slate-800 text-sm uppercase tracking-wide">
-                      Instrumento Evaluador
+                      Instrumento de Evaluación
                     </h4>
                     <p className="text-slate-500 text-xs font-semibold">
                       Diseña rúbricas, listas de cotejo o guías de observación alineadas automáticamente al PDA de tu planeación.
