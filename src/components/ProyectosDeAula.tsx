@@ -7,9 +7,17 @@ import {
 import { Sparkles, BookOpen, User, School, Calendar, RefreshCw, Layers, FileText, Accessibility, Users, Coins, ArrowLeft } from "lucide-react";
 import { supabase } from "../utils/supabaseClient";
 
+// --- NUEVAS IMPORTACIONES PARA LOS CRÉDITOS ---
+import { CREDIT_COSTS } from "../utils/planManager";
+import { UserSubscription, PaywallReason, CreditActionType } from "../types";
+
 interface ProyectosDeAulaProps {
   onVolver: () => void;
   onPlanGenerated: (planData: any) => void;
+  // --- NUEVAS PROPIEDADES RECIBIDAS ---
+  subscription?: UserSubscription;
+  onDeductCredits?: (action: CreditActionType) => boolean;
+  onTriggerPaywall?: (reason: PaywallReason) => void;
 }
 
 export interface ProyectoLibro {
@@ -90,7 +98,8 @@ const BAP_CATEGORIES = [
   }
 ];
 
-export default function ProyectosDeAula({ onVolver, onPlanGenerated }: ProyectosDeAulaProps) {
+// Actualizamos los props de entrada para recibir la suscripción
+export default function ProyectosDeAula({ onVolver, onPlanGenerated, subscription, onDeductCredits, onTriggerPaywall }: ProyectosDeAulaProps) {
   // Estados Generales
   const [docenteName, setDocenteName] = useState<string>("Docente");
   const [escuelaName, setEscuelaName] = useState<string>("Escuela");
@@ -265,6 +274,27 @@ export default function ProyectosDeAula({ onVolver, onPlanGenerated }: Proyectos
       return;
     }
 
+    // === INICIO DE LA LÓGICA DE COBRO DE CRÉDITOS ===
+    const requiredCredits = CREDIT_COSTS["disenar_planeacion"] || 10;
+    const userCredits = subscription?.credits ?? 0;
+
+    if (userCredits < requiredCredits) {
+      if (onTriggerPaywall) {
+        onTriggerPaywall({
+          type: "credits",
+          action: "disenar_planeacion",
+          required: requiredCredits,
+          current: userCredits
+        });
+      }
+      return; // Detenemos la función si no hay créditos
+    }
+
+    if (onDeductCredits && !onDeductCredits("disenar_planeacion")) {
+      return; // Detenemos la función si la deducción falla
+    }
+    // === FIN DE LA LÓGICA DE COBRO DE CRÉDITOS ===
+
     setIsGenerating(true);
 
     try {
@@ -295,7 +325,6 @@ export default function ProyectosDeAula({ onVolver, onPlanGenerated }: Proyectos
         throw new Error(data.error || "Error al generar la planeación desde el libro.");
       }
 
-      // Estructuramos el resultado para el componente PlaneacionPreview
       const completePlan = {
         nivel,
         grado,

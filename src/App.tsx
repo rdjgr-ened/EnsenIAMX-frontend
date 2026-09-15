@@ -482,6 +482,10 @@ export default function App() {
               savePlansToStorage(updatedPlans);
               setCurrentPlan(newCompletePlan);
             }}
+            // --- NUEVAS PROPS DE CRÉDITOS ---
+            subscription={subscription}
+            onDeductCredits={handleDeductCredits}
+            onTriggerPaywall={handleTriggerPaywall}
           />
         );
 
