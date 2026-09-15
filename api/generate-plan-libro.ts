@@ -27,16 +27,7 @@ export default async function handler(req: any, res: any) {
       try { body = JSON.parse(body); } catch (e) { /* ignore */ }
     }
 
-    const { 
-      libroId, 
-      proyectoNombre, 
-      paginas, 
-      grado, 
-      campoFormativo,
-      numSesiones,
-      duracionSesion,
-      metodologia
-    } = body || {};
+    const { libroId, proyectoNombre, paginas, grado, campoFormativo, numSesiones, duracionSesion, metodologia } = body || {};
 
     if (!libroId || !proyectoNombre || !paginas) {
       return res.status(400).json({ error: "Faltan datos clave del libro SEP para generar el proyecto." });
@@ -47,8 +38,8 @@ export default async function handler(req: any, res: any) {
 
     const ai = new GoogleGenAI({ apiKey });
     
-    // 🔥 AQUÍ DEFINIMOS TU MODELO OFICIAL 🔥
-    const selectedModel = 'gemini-3.6-flash';
+    // MODELO ESTRICTO REQUERIDO POR GOOGLE PARA CACHING
+    const MODELO_CACHE = 'gemini-3.6-flash';
 
     console.log(`[Libros SEP] Procesando Libro: ${libroId} - Proyecto: ${proyectoNombre}`);
 
@@ -62,47 +53,54 @@ export default async function handler(req: any, res: any) {
 
     let geminiCacheName = cacheData?.cache_name;
 
-    // PASO 2: Si no hay caché válido, crear uno nuevo
+    // PASO 2: Si no hay caché válido, descargamos de forma robusta
     if (!geminiCacheName) {
-      console.log(`Descargando ${libroId}.pdf de Supabase...`);
+      console.log(`Obteniendo URL segura para ${libroId}.pdf...`);
       
-      const { data: fileData, error: downloadError } = await supabase
+      // SOLUCIÓN A LOS 0 TOKENS: Descarga mediante Signed URL y Fetch nativo
+      const { data: signedData, error: signError } = await supabase
         .storage
         .from('libros_sep')
-        .download(`${libroId}.pdf`); 
-        
-      if (downloadError) throw new Error(`No se pudo descargar el libro ${libroId}.pdf del bucket: ${downloadError.message}`);
-      
-      const buffer = Buffer.from(await fileData.arrayBuffer());
-      
-      // Verificación de seguridad
-      if (buffer.length === 0) {
-        throw new Error("El PDF descargado de Supabase está vacío (0 bytes). Revisa el archivo en el bucket.");
+        .createSignedUrl(`${libroId}.pdf`, 60); // URL válida por 60 segundos
+
+      if (signError || !signedData?.signedUrl) {
+        throw new Error(`No se pudo acceder al libro ${libroId}.pdf en Supabase.`);
+      }
+
+      console.log(`Descargando PDF desde la URL segura...`);
+      const fileResponse = await fetch(signedData.signedUrl);
+      if (!fileResponse.ok) throw new Error("Falló la descarga del PDF.");
+
+      const arrayBuffer = await fileResponse.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      // Verificación de seguridad (Si pesa menos de 10KB, está corrupto)
+      if (buffer.length < 10000) {
+        throw new Error(`El PDF descargado está corrupto o vacío (Tamaño: ${buffer.length} bytes). Revisa el archivo en Supabase.`);
       }
 
       const tempFilePath = path.join(os.tmpdir(), `${libroId}.pdf`);
       fs.writeFileSync(tempFilePath, buffer);
 
-      console.log(`Subiendo PDF a Gemini...`);
+      console.log(`Subiendo PDF de ${buffer.length} bytes a Gemini...`);
       let uploadResult = await ai.files.upload({ file: tempFilePath, mimeType: 'application/pdf' });
 
-      // 🔥 LA SOLUCIÓN AL ERROR: ESPERAR A QUE GEMINI PROCESE EL TEXTO 🔥
+      // ESPERAR A QUE GEMINI EXTRAIGA EL TEXTO DEL PDF
       console.log(`Esperando a que Gemini extraiga el texto del PDF...`);
       while (uploadResult.state === 'PROCESSING') {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Pausa de 2 segundos
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Esperar 2 segundos
         uploadResult = await ai.files.get({ name: uploadResult.name });
-        console.log(`Estado del archivo en Google: ${uploadResult.state}`);
       }
 
       if (uploadResult.state === 'FAILED') {
         fs.unlinkSync(tempFilePath);
-        throw new Error("Google Gemini falló al procesar el contenido del documento PDF.");
+        throw new Error("Google Gemini falló al procesar el texto del PDF.");
       }
 
       console.log(`Creando Context Cache en Gemini...`);
-      const ttlSeconds = 3600; // 1 hora
+      const ttlSeconds = 3600; 
       const cachedContent = await ai.caches.create({
-        model: selectedModel, 
+        model: MODELO_CACHE, 
         contents: [
           { role: 'user', parts: [{ fileData: { fileUri: uploadResult.uri, mimeType: uploadResult.mimeType } }] }
         ],
@@ -141,14 +139,14 @@ export default async function handler(req: any, res: any) {
       - Total de sesiones a planear: ${numSesiones || 8}
       
       INSTRUCCIONES ESTRICTAS:
-      1. Extrae el "propósito" y el "producto" final tal cual lo marca el libro en esas páginas.
-      2. Divide las actividades del proyecto en ${numSesiones || 8} sesiones, respetando las fases/momentos de la metodología.
-      3. Basa las actividades ("inicio", "desarrollo", "cierre") estrictamente en lo que dicen las páginas del libro. Menciona cuándo deben leer, qué ejercicios deben resolver y qué materiales necesitan según el texto oficial.
-      4. Para cada sesión, llena el campo "evaluacionSesion" detallando qué criterios formativos se evaluarán ese día.
-      5. La respuesta debe estar en Español de México, con ortografía y acentuación perfectas.
+      1. Extrae el "propósito" y el "producto" final tal cual lo marca el libro.
+      2. Divide las actividades del proyecto en ${numSesiones || 8} sesiones.
+      3. Basa las actividades ("inicio", "desarrollo", "cierre") en lo que dicen las páginas del libro.
+      4. Para cada sesión, llena el campo "evaluacionSesion" detallando qué evaluar.
+      5. La respuesta debe estar en Español de México, con ortografía impecable.
     `;
 
-    // PASO 4: Esquema JSON
+    // PASO 4: Esquema JSON (Intacto)
     const responseSchema = {
       type: Type.OBJECT,
       properties: {
@@ -197,7 +195,7 @@ export default async function handler(req: any, res: any) {
 
     // PASO 5: Generar Contenido
     const result = await ai.models.generateContent({
-      model: selectedModel, // 🔥 Usando el modelo de la app
+      model: MODELO_CACHE,
       contents: prompt,
       config: {
         cachedContent: geminiCacheName,
@@ -214,7 +212,7 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json({ success: true, plan: planData, fromCache: true });
 
   } catch (error: any) {
-    console.error("Error en generate-plan-libro:", error);
+    console.error("Error crítico en generate-plan-libro:", error);
     return res.status(500).json({ error: error.message || "Error interno al procesar el libro de la SEP." });
   }
 }
