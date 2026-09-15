@@ -19,6 +19,7 @@ import PaywallModal from "./components/PaywallModal";
 import PaymentSuccessView from "./components/PaymentSuccessView";
 import GeneradorHojaTrabajoView from "./components/GeneradorHojaTrabajoView";
 import GeneradorInstrumentoView from "./components/GeneradorInstrumentoView";
+import ProyectosDeAula from "./components/ProyectosDeAula"; // <-- IMPORTACIÓN NUEVA
 
 import { CompletePlan, UserSubscription, PaywallReason, CreditActionType, PlanTier } from "./types";
 import { 
@@ -65,7 +66,6 @@ export default function App() {
   const [currentPlan, setCurrentPlan] = useState<CompletePlan | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   
-  // URL & Independent Page Routing State
   const [currentPath, setCurrentPath] = useState<string>(() => {
     if (typeof window !== "undefined") {
       return normalizePath(window.location.pathname);
@@ -104,11 +104,11 @@ export default function App() {
   const [loginInitialMode, setLoginInitialMode] = useState<"login" | "register">("login");
 
   const [subscription, setSubscription] = useState<UserSubscription>({
-  plan: "gratuito",
-  credits: 0,
-  billingCycle: "mensual"
-});
-const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
+    plan: "gratuito",
+    credits: 0,
+    billingCycle: "mensual"
+  });
+  const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
   const [isPaywallOpen, setIsPaywallOpen] = useState<boolean>(false);
   const [paywallReason, setPaywallReason] = useState<PaywallReason | null>(null);
 
@@ -117,9 +117,8 @@ const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
     setIsPaywallOpen(true);
   };
 
-  // 1. OBTENEMOS EL PERFIL DESDE EL ESTADO GLOBAL
   const [userProfile, setUserProfile] = useState<{
-    id?: string; // UUID AÑADIDO
+    id?: string;
     docenteName: string;
     escuelaName: string;
     cct: string;
@@ -137,17 +136,13 @@ const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
     return null;
   });
 
-  // 2. CORRECCIÓN FINAL: DEDUCCIÓN DE CRÉDITOS USANDO TU FUNCIÓN OFICIAL
   const handleDeductCredits = (action: CreditActionType): boolean => {
     const result = deductCreditsFromState(subscription, action);
     
     if (result.success && result.newSubscription) {
       setSubscription(result.newSubscription);
-      // 🔥 FUNDAMENTAL: Guardar en local para que la UI se actualice al instante y no muestre 300 al recargar
       saveSubscriptionToStorage(result.newSubscription); 
 
-      // Usamos tu función original (que tiene los permisos correctos de Supabase)
-      // Como el estado inicial ya está reparado, es seguro enviarle el plan y el email actuales.
       if (userProfile?.id && isSupabaseConfigured) {
         const userId = userProfile.id;
         saveSupabaseProfile({
@@ -170,7 +165,6 @@ const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
     }
   };
 
-  // 3. CORRECCIÓN FINAL: ACTUALIZACIÓN DE PLAN USANDO TU FUNCIÓN OFICIAL
   const handleSelectPlanTier = (plan: PlanTier, cycle?: "mensual" | "trimestral" | "anual") => {
     const updated = updateUserPlan(subscription, plan, cycle);
     setSubscription(updated);
@@ -188,39 +182,34 @@ const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
     }
   };
 
-  const [activeTab, setActiveTab] = useState<"hub" | "diseno" | "sugerir" | "crear" | "programa" | "evaluacion" | "bitacora" | "organizador" | "examen" | "cuenta" | "generar_hoja" | "generar_instrumento">("hub");
+  // 🔥 AQUÍ SE AÑADE "proyectos_aula" AL TIPO DE ESTADO
+  const [activeTab, setActiveTab] = useState<"hub" | "diseno" | "sugerir" | "crear" | "programa" | "evaluacion" | "bitacora" | "organizador" | "examen" | "cuenta" | "generar_hoja" | "generar_instrumento" | "proyectos_aula">("hub");
+  
   const [organizadorTab, setOrganizadorTab] = useState<"planeaciones" | "grupos" | "bitacora" | "seguimiento" | "evaluacion">("planeaciones");
   const [prefilledData, setPrefilledData] = useState<any | null>(null);
   const [currentExam, setCurrentExam] = useState<any | null>(null);
 
-  // 4. CORRECCIÓN: SINCRONIZACIÓN INICIAL DESDE SUPABASE USANDO UUID
   const syncSubscriptionFromSupabase = async (email: string) => {
     if (!isSupabaseConfigured) return;
 
     try {
-      // 1. Rescatar el UUID real directamente de la sesión activa de Supabase
       const { data: { session } } = await supabase.auth.getSession();
       const realUserId = session?.user?.id;
 
-      if (!realUserId) return; // Si no hay sesión válida, abortamos
+      if (!realUserId) return;
 
-      // 2. AUTO-REPARACIÓN: Inyectar el UUID en el perfil de React y LocalStorage
       if (userProfile && userProfile.id !== realUserId) {
         const updatedProfile = { ...userProfile, id: realUserId };
         setUserProfile(updatedProfile);
         localStorage.setItem("nem_secundaria_profile", JSON.stringify(updatedProfile));
       }
 
-      // 3. Sincronizar los créditos usando el UUID real asegurado
       const profileData = await fetchSupabaseProfile(realUserId);
       
       if (profileData) {
         const plan = (profileData.plan || "gratuito").toLowerCase();
-        
-        // Toma exactamente lo que dice Supabase sin sobreescribirlo a la fuerza
         let credits = profileData.creditos_disponibles;
         
-        // Solo ponemos un valor por defecto si Supabase devuelve null/undefined
         if (credits === null || credits === undefined) {
            credits = plan === "platino" ? 300 : (plan === "oro" ? 100 : (plan === "basico" ? 50 : 20));
         }
@@ -235,12 +224,10 @@ const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
         saveSubscriptionToStorage(updatedSub);
         setIsSubSynced(true);
       } else {
-        // Si el usuario es nuevo y no tiene perfil, se lo creamos de forma segura
         const defaultSub: UserSubscription = { plan: "gratuito", credits: 20, billingCycle: "mensual" };
         setSubscription(defaultSub);
         saveSubscriptionToStorage(defaultSub);
 
-        // 🔥 INSERT SEGURO: Previene que un objeto se guarde en la columna email
         const safeEmail = typeof email === "string" ? email : (userProfile?.email || "correo@desconocido.com");
         
         supabase.from('profiles').insert({
@@ -299,7 +286,6 @@ const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
     setSubscription({ plan: "gratuito", credits: 20, billingCycle: "mensual" });
   };
 
-  // 5. CORRECCIÓN: DESCARGA DEL HISTORIAL USANDO UUID
   useEffect(() => {
     const savedPlans = localStorage.getItem("nem_secundaria_plans");
     if (savedPlans) {
@@ -344,9 +330,8 @@ const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
         }
       }).catch(err => console.warn("Supabase planeaciones load error:", err));
     }
-  }, [userProfile?.id, userProfile?.email]); // 
+  }, [userProfile?.id, userProfile?.email]); 
 
-  // 6. CORRECCIÓN: GUARDADO DEL HISTORIAL MAESTRO USANDO UUID
   const savePlansToStorage = (updatedPlans: CompletePlan[]) => {
     setPlans(updatedPlans);
     localStorage.setItem("nem_secundaria_plans", JSON.stringify(updatedPlans));
@@ -473,6 +458,33 @@ const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
             onTriggerPaywall={handleTriggerPaywall}
           />
         );
+      
+      // 🔥 AQUÍ RENDERIZAMOS LA NUEVA VISTA
+      case "proyectos_aula":
+        return (
+          <ProyectosDeAula 
+            onVolver={() => setActiveTab('hub')}
+            onPlanGenerated={(planData) => {
+              // Completamos el plan con los datos del usuario actual
+              const newCompletePlan: CompletePlan = {
+                ...planData,
+                id: Math.random().toString(36).substr(2, 9),
+                createdAt: new Date().toISOString(),
+                docenteName: userProfile?.docenteName || "Docente",
+                escuelaName: userProfile?.escuelaName || "Escuela",
+                cct: userProfile?.cct || "CCT",
+                grupo: "A",
+                bapSelected: []
+              };
+              
+              // Lo guardamos en el historial y lo mostramos
+              const updatedPlans = [newCompletePlan, ...plans];
+              savePlansToStorage(updatedPlans);
+              setCurrentPlan(newCompletePlan);
+            }}
+          />
+        );
+
       case "generar_hoja":
         return (
           <GeneradorHojaTrabajoView
@@ -618,7 +630,6 @@ const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
               setActiveTab("hub");
               setCurrentExam(null); 
             }}
-            // ... (tus otras props se quedan igual) ...
           />
         );
       case "cuenta":
@@ -638,7 +649,6 @@ const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
     }
   };
 
-  // 7. CORRECCIÓN: PROCESAMIENTO SEGURO DEL PAGO EXITOSO
   useEffect(() => {
     if (currentPath === "/payment-success") {
       const urlParams = new URLSearchParams(window.location.search);
@@ -647,10 +657,7 @@ const [isSubSynced, setIsSubSynced] = useState<boolean>(false);
       if (status === "approved" || status === "authorized") {
         console.log("Pago aprobado detectado. Descargando plan real desde el servidor...");
         
-        // NO guardamos nada en Supabase desde aquí. El Webhook ya lo hizo en el backend.
-        // Solo forzamos una recarga segura de los datos oficiales desde la base de datos:
         if (userProfile?.email) {
-          // Damos un pequeño margen de 2 segundos para asegurar que el Webhook haya terminado de procesar
           setTimeout(() => {
             syncSubscriptionFromSupabase(userProfile.email);
           }, 2000);
