@@ -12,6 +12,10 @@ import CrearProgramaAnaliticoView from './CrearProgramaAnaliticoView';
 import SugerirContenidosView from './SugerirContenidosView';
 import CrearContenidoView from './CrearContenidoView';
 
+// IMPORTACIONES NUEVAS
+import ProyectosDeAula from './ProyectosDeAula';
+import PlaneacionPreview from './PlaneacionPreview';
+
 interface MainLayoutProps {
   user: User;
 }
@@ -19,6 +23,9 @@ interface MainLayoutProps {
 export const MainLayout: React.FC<MainLayoutProps> = ({ user }) => {
   const [vistaActual, setVistaActual] = useState<string>('hub');
   const [verificando, setVerificando] = useState<boolean>(true);
+  
+  // ESTADO PARA GUARDAR LA PLANEACIÓN DE LOS LIBROS
+  const [planeacionGenerada, setPlaneacionGenerada] = useState<any>(null);
 
   const nombreDocente = 
     user.user_metadata?.nombreDocente || 
@@ -33,7 +40,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ user }) => {
     window.location.reload();
   };
 
-  // Validar en tiempo real con el servidor de Supabase si la cuenta del usuario aún existe
   useEffect(() => {
     const validarUsuarioActivo = async () => {
       const { data: { user: currentUser }, error } = await supabase.auth.getUser();
@@ -43,7 +49,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ user }) => {
         await handleCerrarSesion();
         return;
       }
-
       setVerificando(false);
     };
 
@@ -69,11 +74,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ user }) => {
           className="flex items-center gap-3 cursor-pointer"
           onClick={() => setVistaActual('hub')}
         >
-          <img 
-            src="https://i.imgur.com/tv95RC0.png" 
-            alt="EnseñIA MX Logo" 
-            className="w-10 h-10 object-contain" 
-          />
+          <img src="https://i.imgur.com/tv95RC0.png" alt="EnseñIA MX Logo" className="w-10 h-10 object-contain" />
           <div>
             <h1 className="text-lg font-bold tracking-wide leading-none">EnseñIA MX</h1>
             <p className="text-[10px] text-slate-300 uppercase tracking-wider">Asistente Integral Docente</p>
@@ -100,37 +101,40 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ user }) => {
       <main className="flex-1 p-6 max-w-7xl w-full mx-auto">
         {vistaActual === 'hub' && (
           <DashboardHub 
-            user={user} 
-            onNavigate={(vista: string) => setVistaActual(vista)} 
+            docenteName={nombreDocente}
+            onSelectFunction={(fn, folder) => {
+              if (folder) setVistaActual(folder);
+              else setVistaActual(fn);
+            }} 
           />
         )}
 
-        {vistaActual === 'organizador' && (
-          <OrganizadorEscolarView onVolver={() => setVistaActual('hub')} />
+        {/* --- RUTAS TRADICIONALES --- */}
+        {vistaActual === 'organizador' && <OrganizadorEscolarView onVolver={() => setVistaActual('hub')} />}
+        {vistaActual === 'diseno' && <PlaneacionForm onVolver={() => setVistaActual('hub')} />}
+        {vistaActual === 'bitacora' && <BitacoraIncidenciaView onVolver={() => setVistaActual('hub')} />}
+        {vistaActual === 'evaluacion' && <FormatoEvaluacionView onVolver={() => setVistaActual('hub')} />}
+        {vistaActual === 'programa' && <CrearProgramaAnaliticoView onVolver={() => setVistaActual('hub')} />}
+        {vistaActual === 'sugerir' && <SugerirContenidosView onVolver={() => setVistaActual('hub')} />}
+        {vistaActual === 'crear' && <CrearContenidoView onVolver={() => setVistaActual('hub')} />}
+
+        {/* --- NUEVA RUTA: PROYECTOS DE AULA (Libros SEP) --- */}
+        {vistaActual === 'proyectos_aula' && (
+          <ProyectosDeAula 
+            onVolver={() => setVistaActual('hub')}
+            onPlanGenerated={(planData) => {
+              setPlaneacionGenerada(planData);
+              setVistaActual('planeacion-preview'); // Salta directamente a la vista previa del documento
+            }}
+          />
         )}
 
-        {vistaActual === 'plano-didactico' && (
-          <PlaneacionForm onVolver={() => setVistaActual('hub')} />
-        )}
-
-        {vistaActual === 'bitacora' && (
-          <BitacoraIncidenciaView onVolver={() => setVistaActual('hub')} />
-        )}
-
-        {vistaActual === 'evaluacion' && (
-          <FormatoEvaluacionView onVolver={() => setVistaActual('hub')} />
-        )}
-
-        {vistaActual === 'programa-analitico' && (
-          <CrearProgramaAnaliticoView onVolver={() => setVistaActual('hub')} />
-        )}
-
-        {vistaActual === 'sugerir-contenidos' && (
-          <SugerirContenidosView onVolver={() => setVistaActual('hub')} />
-        )}
-
-        {vistaActual === 'crear-contenido' && (
-          <CrearContenidoView onVolver={() => setVistaActual('hub')} />
+        {/* --- NUEVA RUTA: RENDERIZADOR DEL DOCUMENTO FINAL --- */}
+        {vistaActual === 'planeacion-preview' && planeacionGenerada && (
+          <PlaneacionPreview 
+            planData={planeacionGenerada}
+            onBack={() => setVistaActual('proyectos_aula')} // Regresa al catálogo de libros
+          />
         )}
       </main>
     </div>
