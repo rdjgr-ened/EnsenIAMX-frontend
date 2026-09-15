@@ -7,14 +7,13 @@ import {
 import { Sparkles, BookOpen, User, School, Calendar, RefreshCw, Layers, FileText, Accessibility, Users, Coins, ArrowLeft } from "lucide-react";
 import { supabase } from "../utils/supabaseClient";
 
-// --- NUEVAS IMPORTACIONES PARA LOS CRÉDITOS ---
+// --- IMPORTACIONES PARA LOS CRÉDITOS ---
 import { CREDIT_COSTS } from "../utils/planManager";
 import { UserSubscription, PaywallReason, CreditActionType } from "../types";
 
 interface ProyectosDeAulaProps {
   onVolver: () => void;
   onPlanGenerated: (planData: any) => void;
-  // --- NUEVAS PROPIEDADES RECIBIDAS ---
   subscription?: UserSubscription;
   onDeductCredits?: (action: CreditActionType) => boolean;
   onTriggerPaywall?: (reason: PaywallReason) => void;
@@ -28,6 +27,46 @@ export interface ProyectoLibro {
   nombre_proyecto: string;
   paginas: string;
 }
+
+// === DICCIONARIO INFALIBLE DE IDs DE PROYECTOS SEP ===
+const PROYECTOS_ID_RANGES: Record<string, {min: number, max: number}> = {
+  "Primaria_1_De lo Humano y lo Comunitario": { min: 20, max: 23 },
+  "Primaria_1_Lenguajes": { min: 1, max: 8 },
+  "Primaria_1_Saberes y Pensamiento Científico": { min: 9, max: 12 },
+  "Primaria_1_Ética, Naturaleza y Sociedades": { min: 13, max: 19 },
+  "Primaria_2_De lo Humano y lo Comunitario": { min: 41, max: 44 },
+  "Primaria_2_Lenguajes": { min: 24, max: 30 },
+  "Primaria_2_Saberes y Pensamiento Científico": { min: 31, max: 33 },
+  "Primaria_2_Ética, Naturaleza y Sociedades": { min: 34, max: 40 },
+  "Primaria_3_De lo Humano y lo Comunitario": { min: 61, max: 66 },
+  "Primaria_3_Lenguajes": { min: 45, max: 50 },
+  "Primaria_3_Saberes y Pensamiento Científico": { min: 51, max: 54 },
+  "Primaria_3_Ética, Naturaleza y Sociedades": { min: 55, max: 60 },
+  "Primaria_4_De lo Humano y lo Comunitario": { min: 85, max: 90 },
+  "Primaria_4_Lenguajes": { min: 67, max: 74 },
+  "Primaria_4_Saberes y Pensamiento Científico": { min: 75, max: 78 },
+  "Primaria_4_Ética, Naturaleza y Sociedades": { min: 79, max: 84 },
+  "Primaria_5_De lo Humano y lo Comunitario": { min: 109, max: 115 },
+  "Primaria_5_Lenguajes": { min: 91, max: 98 },
+  "Primaria_5_Saberes y Pensamiento Científico": { min: 99, max: 102 },
+  "Primaria_5_Ética, Naturaleza y Sociedades": { min: 103, max: 108 },
+  "Primaria_6_De lo Humano y lo Comunitario": { min: 134, max: 140 },
+  "Primaria_6_Lenguajes": { min: 116, max: 123 },
+  "Primaria_6_Saberes y Pensamiento Científico": { min: 124, max: 127 },
+  "Primaria_6_Ética, Naturaleza y Sociedades": { min: 128, max: 133 },
+  "Secundaria_1_De lo Humano y lo Comunitario": { min: 166, max: 173 },
+  "Secundaria_1_Lenguajes": { min: 141, max: 151 },
+  "Secundaria_1_Saberes y Pensamiento Científico": { min: 152, max: 159 },
+  "Secundaria_1_Ética, Naturaleza y Sociedades": { min: 160, max: 165 },
+  "Secundaria_2_De lo Humano y lo Comunitario": { min: 196, max: 201 },
+  "Secundaria_2_Lenguajes": { min: 174, max: 183 },
+  "Secundaria_2_Saberes y Pensamiento Científico": { min: 184, max: 189 },
+  "Secundaria_2_Ética, Naturaleza y Sociedades": { min: 190, max: 195 },
+  "Secundaria_3_De lo Humano y lo Comunitario": { min: 224, max: 229 },
+  "Secundaria_3_Lenguajes": { min: 202, max: 211 },
+  "Secundaria_3_Saberes y Pensamiento Científico": { min: 212, max: 217 },
+  "Secundaria_3_Ética, Naturaleza y Sociedades": { min: 218, max: 223 }
+};
 
 const EJES_ARTICULADORES = [
   { id: "Inclusión", label: "Inclusión", desc: "Equidad en oportunidades y reconocimiento de la diversidad." },
@@ -98,7 +137,6 @@ const BAP_CATEGORIES = [
   }
 ];
 
-// Actualizamos los props de entrada para recibir la suscripción
 export default function ProyectosDeAula({ onVolver, onPlanGenerated, subscription, onDeductCredits, onTriggerPaywall }: ProyectosDeAulaProps) {
   // Estados Generales
   const [docenteName, setDocenteName] = useState<string>("Docente");
@@ -185,7 +223,7 @@ export default function ProyectosDeAula({ onVolver, onPlanGenerated, subscriptio
     }
   }, [startDate, endDate]);
 
-  // Cargar Proyectos desde Supabase
+  // Cargar Proyectos desde Supabase usando el Diccionario Infalible
   useEffect(() => {
     const fetchProyectos = async () => {
       setIsLoadingProyectos(true);
@@ -201,14 +239,25 @@ export default function ProyectosDeAula({ onVolver, onPlanGenerated, subscriptio
       const campoObj = availableCampos.find((c) => c.id === selectedCampo);
       const nombreCampoBusqueda = campoObj?.nombre || "Lenguajes";
 
+      // MAGIA: Construimos la llave y buscamos los rangos exactos de la BD
+      const rangeKey = `${nivel}_${gradoNum}_${nombreCampoBusqueda}`;
+      const ids = PROYECTOS_ID_RANGES[rangeKey];
+
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('proyectos_libros')
           .select('*')
-          .eq('nivel', nivel)
-          .eq('grado', gradoNum)
-          .ilike('campo_formativo', `%${nombreCampoBusqueda}%`)
           .order('id', { ascending: true });
+
+        if (ids) {
+          // Si encontramos el rango, filtramos estrictamente por ID (A prueba de errores de texto)
+          query = query.gte('id', ids.min).lte('id', ids.max);
+        } else {
+          // Respaldo de seguridad
+          query = query.eq('nivel', nivel).eq('grado', gradoNum).ilike('campo_formativo', `%${nombreCampoBusqueda}%`);
+        }
+
+        const { data, error } = await query;
 
         if (error) throw error;
         
@@ -274,7 +323,7 @@ export default function ProyectosDeAula({ onVolver, onPlanGenerated, subscriptio
       return;
     }
 
-    // === INICIO DE LA LÓGICA DE COBRO DE CRÉDITOS ===
+    // LÓGICA DE COBRO DE CRÉDITOS
     const requiredCredits = CREDIT_COSTS["disenar_planeacion"] || 10;
     const userCredits = subscription?.credits ?? 0;
 
@@ -287,13 +336,12 @@ export default function ProyectosDeAula({ onVolver, onPlanGenerated, subscriptio
           current: userCredits
         });
       }
-      return; // Detenemos la función si no hay créditos
+      return; 
     }
 
     if (onDeductCredits && !onDeductCredits("disenar_planeacion")) {
-      return; // Detenemos la función si la deducción falla
+      return; 
     }
-    // === FIN DE LA LÓGICA DE COBRO DE CRÉDITOS ===
 
     setIsGenerating(true);
 
@@ -325,6 +373,7 @@ export default function ProyectosDeAula({ onVolver, onPlanGenerated, subscriptio
         throw new Error(data.error || "Error al generar la planeación desde el libro.");
       }
 
+      // Estructuramos el resultado para el componente PlaneacionPreview
       const completePlan = {
         nivel,
         grado,
