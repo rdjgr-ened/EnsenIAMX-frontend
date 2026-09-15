@@ -82,7 +82,7 @@ export default async function handler(req: any, res: any) {
       console.log(`Creando Context Cache en Gemini para el archivo subido...`);
       const ttlSeconds = 3600; // El caché vivirá por 1 hora
       const cachedContent = await ai.caches.create({
-        model: 'gemini-1.5-flash', // El modelo debe coincidir con el que se usará para generar el contenido
+        model: 'gemini-3.6-flash', // El modelo debe coincidir con el que se usará para generar el contenido
         contents: [
           { role: 'user', parts: [{ fileData: { fileUri: uploadResult.uri, mimeType: uploadResult.mimeType } }] }
         ],
@@ -179,7 +179,7 @@ export default async function handler(req: any, res: any) {
 
     // PASO 5: Llamada final a Gemini usando el Context Cache
     const result = await ai.models.generateContent({
-      model: 'gemini-1.5-flash', // El modelo debe coincidir con el utilizado al crear el caché
+      model: 'gemini-3.6-flash', // El modelo debe coincidir con el utilizado al crear el caché
       contents: prompt,
       config: {
         cachedContent: geminiCacheName, // Inyección del ID del caché
