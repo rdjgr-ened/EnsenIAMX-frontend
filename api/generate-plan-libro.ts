@@ -1,15 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI, Type } from '@google/genai';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export default async function handler(req: any, res: any) {
-  // CORS Headers
+  // 1. Cabeceras de seguridad y CORS (Igual que en tu función principal)
   res.setHeader?.("Access-Control-Allow-Credentials", "true");
   res.setHeader?.("Access-Control-Allow-Origin", "*");
   res.setHeader?.("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT");
@@ -27,109 +19,37 @@ export default async function handler(req: any, res: any) {
       try { body = JSON.parse(body); } catch (e) { /* ignore */ }
     }
 
-    const { libroId, proyectoNombre, paginas, grado, campoFormativo, numSesiones, duracionSesion, metodologia } = body || {};
+    // 2. Extraemos los datos que nos manda ProyectosDeAula.tsx
+    const { 
+      proyectoNombre, // Ej: "Conozcamos las maravillas de la lectura"
+      grado,          // Ej: "1° Grado"
+      campoFormativo, // Ej: "Lenguajes"
+      paginas,        // Ej: "12-19"
+      numSesiones,
+      duracionSesion,
+      metodologia
+    } = body || {};
 
-    if (!libroId || !proyectoNombre || !paginas) {
-      return res.status(400).json({ error: "Faltan datos clave del libro SEP para generar el proyecto." });
+    if (!proyectoNombre || !grado || !campoFormativo) {
+      return res.status(400).json({ error: "Faltan datos del proyecto para generar la planeación." });
     }
 
     const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
     if (!apiKey) return res.status(500).json({ error: "La variable GEMINI_API_KEY no está configurada." });
 
+    // 3. Inicializamos Gemini con el modelo oficial que estás usando
     const ai = new GoogleGenAI({ apiKey });
-    
-    // MODELO ESTRICTO REQUERIDO POR GOOGLE PARA CACHING
-    const MODELO_CACHE = 'gemini-3.6-flash';
+    const selectedModel = 'gemini-3.6-flash'; 
 
-    console.log(`[Libros SEP] Procesando Libro: ${libroId} - Proyecto: ${proyectoNombre}`);
+    console.log(`[Libros SEP] Diseñando secuencia para: ${proyectoNombre} (${grado} - ${campoFormativo})`);
 
-    // PASO 1: Buscar Caché en la base de datos
-    const { data: cacheData } = await supabase
-      .from('gemini_pdf_cache')
-      .select('*')
-      .eq('libro_id', libroId)
-      .gt('expira_en', new Date().toISOString())
-      .single();
-
-    let geminiCacheName = cacheData?.cache_name;
-
-    // PASO 2: Si no hay caché válido, descargamos de forma robusta
-    if (!geminiCacheName) {
-      console.log(`Obteniendo URL segura para ${libroId}.pdf...`);
-      
-      // SOLUCIÓN A LOS 0 TOKENS: Descarga mediante Signed URL y Fetch nativo
-      const { data: signedData, error: signError } = await supabase
-        .storage
-        .from('libros_sep')
-        .createSignedUrl(`${libroId}.pdf`, 60); // URL válida por 60 segundos
-
-      if (signError || !signedData?.signedUrl) {
-        throw new Error(`No se pudo acceder al libro ${libroId}.pdf en Supabase.`);
-      }
-
-      console.log(`Descargando PDF desde la URL segura...`);
-      const fileResponse = await fetch(signedData.signedUrl);
-      if (!fileResponse.ok) throw new Error("Falló la descarga del PDF.");
-
-      const arrayBuffer = await fileResponse.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-
-      // Verificación de seguridad (Si pesa menos de 10KB, está corrupto)
-      if (buffer.length < 10000) {
-        throw new Error(`El PDF descargado está corrupto o vacío (Tamaño: ${buffer.length} bytes). Revisa el archivo en Supabase.`);
-      }
-
-      const tempFilePath = path.join(os.tmpdir(), `${libroId}.pdf`);
-      fs.writeFileSync(tempFilePath, buffer);
-
-      console.log(`Subiendo PDF de ${buffer.length} bytes a Gemini...`);
-      let uploadResult = await ai.files.upload({ file: tempFilePath, mimeType: 'application/pdf' });
-
-      // ESPERAR A QUE GEMINI EXTRAIGA EL TEXTO DEL PDF
-      console.log(`Esperando a que Gemini extraiga el texto del PDF...`);
-      while (uploadResult.state === 'PROCESSING') {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Esperar 2 segundos
-        uploadResult = await ai.files.get({ name: uploadResult.name });
-      }
-
-      if (uploadResult.state === 'FAILED') {
-        fs.unlinkSync(tempFilePath);
-        throw new Error("Google Gemini falló al procesar el texto del PDF.");
-      }
-
-      console.log(`Creando Context Cache en Gemini...`);
-      const ttlSeconds = 3600; 
-      const cachedContent = await ai.caches.create({
-        model: MODELO_CACHE, 
-        contents: [
-          { role: 'user', parts: [{ fileData: { fileUri: uploadResult.uri, mimeType: uploadResult.mimeType } }] }
-        ],
-        ttl: `${ttlSeconds}s`
-      });
-
-      geminiCacheName = cachedContent.name;
-
-      const expirationDate = new Date(Date.now() + ttlSeconds * 1000).toISOString();
-      await supabase.from('gemini_pdf_cache').upsert({ 
-        libro_id: libroId, 
-        cache_name: geminiCacheName, 
-        expira_en: expirationDate 
-      }, { onConflict: 'libro_id' }); 
-        
-      fs.unlinkSync(tempFilePath);
-      console.log(`Caché creado exitosamente: ${geminiCacheName}`);
-    } else {
-      console.log(`Utilizando caché activo desde Supabase: ${geminiCacheName}`);
-    }
-
-    // PASO 3: Construcción del Prompt
+    // 4. El Prompt Mágico (Igual que en tu función principal, enfocado en NEM)
     const prompt = `
       Eres un experto docente de la Nueva Escuela Mexicana (NEM). 
-      Tienes en tu memoria (Context Cache) el libro de texto oficial de la SEP completo.
       
       TAREA:
-      Localiza el proyecto titulado "${proyectoNombre}", que se encuentra aproximadamente entre las páginas ${paginas}.
-      Diseña una secuencia didáctica completa, formal y detallada para este proyecto.
+      Diseña una secuencia didáctica completa, formal y detallada para el "Proyecto de Aula" de los libros de texto gratuitos de la SEP titulado: "${proyectoNombre}".
+      Este proyecto se encuentra aproximadamente en las páginas ${paginas} del libro de proyectos.
       
       DATOS DEL PROYECTO:
       - Grado: ${grado}
@@ -139,14 +59,15 @@ export default async function handler(req: any, res: any) {
       - Total de sesiones a planear: ${numSesiones || 8}
       
       INSTRUCCIONES ESTRICTAS:
-      1. Extrae el "propósito" y el "producto" final tal cual lo marca el libro.
-      2. Divide las actividades del proyecto en ${numSesiones || 8} sesiones.
-      3. Basa las actividades ("inicio", "desarrollo", "cierre") en lo que dicen las páginas del libro.
-      4. Para cada sesión, llena el campo "evaluacionSesion" detallando qué evaluar.
-      5. La respuesta debe estar en Español de México, con ortografía impecable.
+      1. Define un "propósito" pedagógico claro y un "producto" final realista para este proyecto.
+      2. Divide el proyecto en ${numSesiones || 8} sesiones, respetando las fases/momentos de la metodología NEM correspondiente al campo formativo.
+      3. Desarrolla las actividades de "inicio", "desarrollo" y "cierre" de cada sesión de manera práctica, asumiendo el uso del libro de texto y el trabajo comunitario.
+      4. Llena el campo "evaluacionSesion" detallando qué criterios formativos se evaluarán ese día.
+      5. Genera sugerencias de adecuación DUA (Diseño Universal para el Aprendizaje).
+      6. La respuesta debe estar en Español de México, con ortografía impecable.
     `;
 
-    // PASO 4: Esquema JSON (Intacto)
+    // 5. Esquema JSON (Idéntico a tu función original para que el Frontend lo dibuje perfecto)
     const responseSchema = {
       type: Type.OBJECT,
       properties: {
@@ -193,15 +114,14 @@ export default async function handler(req: any, res: any) {
       required: ["proposito", "producto", "fases", "evaluacionFormativa", "sugerenciasAdecuacion"],
     };
 
-    // PASO 5: Generar Contenido
+    // 6. Ejecutamos la petición directa a Gemini (Sin descargas de PDF, super rápido)
     const result = await ai.models.generateContent({
-      model: MODELO_CACHE,
+      model: selectedModel,
       contents: prompt,
       config: {
-        cachedContent: geminiCacheName,
         responseMimeType: "application/json",
         responseSchema: responseSchema,
-        temperature: 0.2, 
+        temperature: 0.3, // Temperatura baja para respuestas coherentes y estructuradas
       },
     });
 
@@ -209,10 +129,12 @@ export default async function handler(req: any, res: any) {
     if (!responseText) throw new Error("La IA no devolvió ningún texto.");
 
     const planData = JSON.parse(responseText.trim());
-    return res.status(200).json({ success: true, plan: planData, fromCache: true });
+    
+    // Retornamos el éxito al Frontend
+    return res.status(200).json({ success: true, plan: planData });
 
   } catch (error: any) {
-    console.error("Error crítico en generate-plan-libro:", error);
-    return res.status(500).json({ error: error.message || "Error interno al procesar el libro de la SEP." });
+    console.error("Error en generate-plan-libro:", error);
+    return res.status(500).json({ error: error.message || "Error interno al generar la planeación del libro." });
   }
 }
